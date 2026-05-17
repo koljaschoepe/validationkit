@@ -13,18 +13,22 @@ export function AuditForm({ defaultPath }: { defaultPath: string }) {
   return (
     <>
       <form className="form" action={action}>
-        <label htmlFor="path">Absolute path to repository</label>
+        <label htmlFor="path">Public GitHub repo URL — or a local absolute path</label>
         <input
           id="path"
           name="path"
-          defaultValue={defaultPath}
-          placeholder="/Users/you/code/your-repo"
+          defaultValue=""
+          placeholder="https://github.com/anthropics/anthropic-cookbook"
           autoComplete="off"
           spellCheck={false}
         />
         <SubmitButton />
         <div className="examples">
-          Examples: <code>{defaultPath}</code> ·{" "}
+          GitHub:&nbsp;
+          <code>https://github.com/anthropics/anthropic-cookbook</code> ·{" "}
+          <code>github.com/owner/repo</code>
+          <br />
+          Local (dev only): <code>{defaultPath}</code> ·{" "}
           <code>{defaultPath}/examples/sample-bad</code>
         </div>
       </form>
@@ -36,16 +40,19 @@ export function AuditForm({ defaultPath }: { defaultPath: string }) {
           runs in the background via Inngest. Track progress at{" "}
           <a href={`/scans/${state.savedScanId}`}>
             /scans/{state.savedScanId.slice(0, 8)}…
-          </a>{" "}
-          or watch the dev queue at{" "}
-          <a href="http://localhost:8288" target="_blank" rel="noreferrer">
-            localhost:8288
           </a>
           .
         </div>
       ) : null}
       {state.ok && state.scan && state.report ? (
-        <ReportView scan={state.scan} report={state.report} />
+        <>
+          {state.displayPath ? (
+            <p style={{ color: "var(--fg-dim)", fontSize: "0.9rem" }}>
+              Audited: <code>{state.displayPath}</code>
+            </p>
+          ) : null}
+          <ReportView scan={state.scan} report={state.report} />
+        </>
       ) : null}
     </>
   );
@@ -55,7 +62,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending}>
-      {pending ? "Scanning…" : "Run audit"}
+      {pending ? "Fetching + scanning…" : "Run audit"}
     </button>
   );
 }

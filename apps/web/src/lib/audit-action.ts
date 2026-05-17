@@ -10,6 +10,12 @@ import { inngest, isInngestEnabled, BACKGROUND_THRESHOLD } from "@vk/inngest";
 import type { AuditReport, ParserResult } from "@vk/core";
 import { getSessionUser } from "./session";
 import { ensureDefaultWorkspace } from "./workspaces";
+import {
+  parseGithubUrl,
+  fetchRepoZipball,
+  cleanupTempDir,
+  looksLikeGithubUrl,
+} from "./github-fetch";
 
 export interface AuditFormState {
   ok: boolean;
@@ -17,6 +23,7 @@ export interface AuditFormState {
   scan?: ParserResult;
   report?: AuditReport;
   resolvedPath?: string;
+  displayPath?: string;
   savedScanId?: string;
   background?: boolean;
 }
@@ -27,15 +34,22 @@ export async function auditAction(
 ): Promise<AuditFormState> {
   const raw = String(formData.get("path") ?? "").trim();
   if (!raw) {
-    return { ok: false, error: "Provide an absolute path to a repository." };
+    return {
+      ok: false,
+      error: "Paste a GitHub repository URL (or a local absolute path).",
+    };
   }
 
-  const abs = path.resolve(raw);
+  // Path 1: GitHub URL → fetch zipball + extract → audit → cleanup
+  if (looksLikeGithubUrl(raw)) {
+    return await auditGithubUrl(raw);
+  }
 
+  // Path 2: local absolute path (only useful in local dev)
+  const abs = path.resolve(raw);
   if (!existsSync(abs)) {
     return { ok: false, error: `Path not found: ${abs}` };
   }
-
   let stat;
   try {
     stat = statSync(abs);
@@ -45,7 +59,6 @@ export async function auditAction(
       error: `Cannot stat ${abs}: ${(err as Error).message}`,
     };
   }
-
   if (!stat.isDirectory()) {
     return { ok: false, error: `${abs} is not a directory.` };
   }
@@ -80,6 +93,7 @@ export async function auditAction(
       scan: probe,
       report,
       resolvedPath: abs,
+      displayPath: abs,
       background: false,
     };
     if (savedScanId) state.savedScanId = savedScanId;
@@ -90,6 +104,66 @@ export async function auditAction(
       error: `Scan failed: ${(err as Error).message}`,
       resolvedPath: abs,
     };
+  }
+}
+
+async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
+  const refInfo = parseGithubUrl(rawUrl);
+  if (!refInfo) {
+    return {
+      ok: false,
+      error: `Couldn't parse GitHub URL: ${rawUrl}`,
+    };
+  }
+  const displayPath = `github.com/${refInfo.owner}/${refInfo.repo}${refInfo.ref ? "@" + refInfo.ref : ""}`;
+
+  let extractedRoot: string | null = null;
+  try {
+    extractedRoot = await fetchRepoZipball(refInfo);
+    const probe = await scanRepository(extractedRoot);
+    const report = await runAudit(probe);
+
+    // Re-rewrite paths in the persisted scan so we don't store the temp /tmp/vk-gh-xxx prefix.
+    const rewrittenScan: ParserResult = {
+      ...probe,
+      rootPath: displayPath,
+      files: probe.files.map((f) => ({
+        ...f,
+        absolutePath: displayPath + "/" + f.relativePath,
+      })),
+    };
+    const rewrittenReport: AuditReport = {
+      ...report,
+      rootPath: displayPath,
+    };
+
+    const savedScanId = await maybePersist(
+      rewrittenScan,
+      rewrittenReport,
+      displayPath,
+    );
+    if (savedScanId) revalidatePath("/scans");
+
+    const state: AuditFormState = {
+      ok: true,
+      scan: rewrittenScan,
+      report: rewrittenReport,
+      resolvedPath: displayPath,
+      displayPath,
+      background: false,
+    };
+    if (savedScanId) state.savedScanId = savedScanId;
+    return state;
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Failed to audit ${displayPath}: ${(err as Error).message}`,
+      resolvedPath: displayPath,
+    };
+  } finally {
+    if (extractedRoot) {
+      await cleanupTempDir(extractedRoot).catch(() => {});
+    }
   }
 }
 
