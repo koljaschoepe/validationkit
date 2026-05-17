@@ -1,6 +1,9 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
+  bigserial,
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -82,16 +85,25 @@ export const repo = pgTable("repo", {
     .references(() => workspace.id, { onDelete: "cascade" }),
   label: varchar("label", { length: 200 }).notNull(),
   rootPath: text("root_path").notNull(),
-  // Read-only by default. Write requires per-repo approval via install_request.
-  // PRD §6.4 + docs/legal/scope-policy.md.
   writeAccessGranted: boolean("write_access_granted").notNull().default(false),
   writeApprovedBy: text("write_approved_by").references(() => user.id, {
     onDelete: "set null",
   }),
   writeApprovedAt: timestamp("write_approved_at", { withTimezone: true }),
-  // GitHub App installation id, populated by the install webhook.
   githubInstallationId: integer("github_installation_id"),
   githubFullName: varchar("github_full_name", { length: 300 }),
+  // Auto-tracking (Sprint 0.12). SHA of the last commit observed by the
+  // poller; re-audits skip when SHA is unchanged.
+  lastCommitSha: varchar("last_commit_sha", { length: 64 }),
+  lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
+  // Canonical reference for drift detection. When set, an audit completion
+  // auto-enqueues a drift run against this repo.
+  canonicalRepoId: uuid("canonical_repo_id").references(
+    (): AnyPgColumn => repo.id,
+    { onDelete: "set null" },
+  ),
+  // Opt-in HMAC secret for /api/notify-update. Per-repo, rotated by re-issuing.
+  notifySecret: varchar("notify_secret", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -224,6 +236,32 @@ export const installRequestRelations = relations(installRequest, ({ one }) => ({
 export const driftRunRelations = relations(driftRun, ({ one }) => ({
   workspace: one(workspace, {
     fields: [driftRun.workspaceId],
+    references: [workspace.id],
+  }),
+}));
+
+// Sprint 0.12: lightweight workspace-scoped event log. Producers (Inngest
+// audit/drift completions) INSERT; the SSE endpoint SELECTs since last_id.
+// Auto-rolled by retention; 7d default.
+export const event = pgTable(
+  "event",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 60 }).notNull(),
+    payload: jsonb("payload").notNull().default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("event_workspace_id_idx").on(t.workspaceId, t.id)],
+);
+
+export const eventRelations = relations(event, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [event.workspaceId],
     references: [workspace.id],
   }),
 }));

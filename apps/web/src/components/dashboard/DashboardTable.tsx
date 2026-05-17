@@ -35,6 +35,11 @@ function relativeTime(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+const STALE_THRESHOLD_MS = 7 * 24 * 3_600_000;
+function isStale(d: Date): boolean {
+  return Date.now() - d.getTime() > STALE_THRESHOLD_MS;
+}
+
 export function DashboardTable({ rows }: { rows: DashboardScanRow[] }) {
   if (rows.length === 0) {
     return (
@@ -101,8 +106,13 @@ export function DashboardTable({ rows }: { rows: DashboardScanRow[] }) {
                 <TableCell className="text-right font-mono text-xs tabular-nums">
                   {r.findingsCount}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {relativeTime(r.createdAt)}
+                <TableCell className="text-xs">
+                  <span className="text-muted-foreground">{relativeTime(r.createdAt)}</span>
+                  {isStale(r.createdAt) ? (
+                    <span className="ml-1 text-[var(--color-sev-weak)] font-medium">
+                      · possible drift
+                    </span>
+                  ) : null}
                 </TableCell>
                 <TableCell>
                   <Link

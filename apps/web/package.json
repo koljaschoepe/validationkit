@@ -1,6 +1,6 @@
 {
   "name": "@vk/web",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,6 +23,7 @@
     "@vk/inngest": "workspace:*",
     "@vk/parser": "workspace:*",
     "@vk/pr-workflow": "workspace:*",
+    "@xyflow/react": "^12.10.2",
     "adm-zip": "^0.5.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

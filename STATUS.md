@@ -12,9 +12,9 @@
 - **Current Cluster:** C1 — Foundation & First Contact
 - **Hours-this-Week:** 0 / 25 target
 - **Burnout-Flag:** 🟢 Green (no risk yet)
-- **Last Sprint:** Sprint 0.11 — Dashboard Shell ✅ shipped 2026-05-17
+- **Last Sprint:** Sprint 0.12 — Auto-Tracking + Visual Connections ✅ shipped 2026-05-17
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
-- **Dashboard-Pivot:** ADR-0019 + `phase-0.5-dashboard.md` plan signed 2026-05-17. Sprint 0.11 ships shadcn-migration (22 primitives + SeverityBadge cva), `/dashboard` 3-zone shell (Sidebar × Filter-Strip × Table), `/customers` shadcn-Table with DropdownMenu row-actions, saved-views URL-state (`?view=&severity=&activity=`). 71/71 vitest, 21/21 eval, build clean. $0 cash-out.
+- **Dashboard-Pivot:** ADR-0019 + `phase-0.5-dashboard.md` plan signed 2026-05-17. Sprint 0.11 ships shadcn-migration + dashboard shell. Sprint 0.12 ships Inngest 4h auto-track + HMAC `/api/notify-update` + SSE `/api/events/stream` + React Flow graph view + auto-drift on canonical + last-activity badge. 71/71 vitest, 21/21 eval, build clean. $0 cash-out cumulative.
 
 ---
 

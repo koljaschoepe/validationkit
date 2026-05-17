@@ -6,6 +6,36 @@
 
 ---
 
+## [0.0.12] — 2026-05-17 — Sprint 0.12 — Auto-Tracking + Visual Connections
+
+### Added
+- **Inngest scheduled function `auto-track-repos`** (cron `0 */4 * * *`) — polls every watched repo with a `github_full_name`, fetches latest commit SHA via the unauthenticated GitHub API, skips re-audit if SHA matches `repo.last_commit_sha`, else enqueues `audit/requested`. Quota math: 30 repos × 6 polls/day × 30 days = 5.4k step-runs/mo (~10% of Inngest-free).
+- **`/api/notify-update`** — HMAC-SHA256 opt-in endpoint per A3-research (Hybrid-Notify). Per-repo `notify_secret`, 10 req/min in-memory rate-limit, returns 401 on bad signature, 429 on rate-cap, 200 on enqueue. Power-user CI hook with no GitHub App dependency.
+- **`drift/requested` Inngest function** — runs `scanRepository` × 2 + `computeDrift`, persists `drift_run`, publishes `drift.completed` event.
+- **Auto-drift trigger** — when `audit-requested` completes for a repo with `canonical_repo_id` set, enqueues `drift/requested` against the canonical's `rootPath`.
+- **`/api/events/stream`** SSE endpoint — `ReadableStream` polling the new `event` table every 1.5s for the workspace, 30s heartbeats, explicit `maxDuration = 300` to align with Fluid Compute cap. Client EventSource reconnects automatically.
+- **`useDashboardEvents()` client hook** — wires SSE to sonner toasts: `audit.completed` (success), `drift.completed` (warning), `audit.failed` (error). Each toast includes a router-push action.
+- **`RepoGraph` (React Flow v12)** — `@xyflow/react` graph view at `/dashboard?display=graph`, radial layout (canonical at center, others on circle), severity-banded `RepoNode`s, severity-colored drift edges (Kill/Weak animated). Click-through to scan + drift pages.
+- **`DashboardViewToggle`** — Table ⇌ Graph segmented control in the filter-strip header, persists choice in `localStorage` (`vk.dashboard.view`).
+- **Last-activity badge** — `Xh ago` / `Xd ago` with `· possible drift` suffix when stale (>7d).
+- **`event` table** + `event_workspace_id_idx` (Drizzle migration `0004_superb_puff_adder.sql`).
+- **`repo.last_commit_sha`, `repo.last_polled_at`, `repo.canonical_repo_id` (self-FK), `repo.notify_secret`** columns.
+- **`publishEvent()`** helper exported from `@vk/inngest` (workspace-scoped insert into `event`).
+
+### Changed
+- **`audit-requested`** now publishes `audit.completed` / `audit.failed` events and auto-enqueues `drift/requested` when `canonical_repo_id` is set.
+- **`@vk/inngest`** depends on `@vk/drift` (new workspace edge).
+- **Dashboard `/dashboard` page** reads `?display=graph` to switch between `DashboardTable` and `RepoGraphClient`. Graph data is loaded server-side as a `RepoGraphInput` (repos + drift-edges keyed by rootPath pairs).
+
+### Notes
+- **Build:** 13 packages green. New routes: `/api/events/stream`, `/api/notify-update`.
+- **Tests:** 71/71 vitest (13 files). Eval: 21/21.
+- **Cash-out:** $0. No new SaaS accounts. SSE chosen over Pusher/Ably to honor PRD §14 + ContextForge-Wedge cross-vendor-trust promise (A8 research).
+- **Deferred:** GitHub-App-push-webhook (Phase 1 / Agency-Tier per A3 Skeptic-Mentor-call). UI to assign canonical + rotate notify_secret lands in Sprint 0.13 alongside billing.
+- **No AI calls executed.**
+
+---
+
 ## [0.0.11] — 2026-05-17 — Sprint 0.11 — Dashboard Shell
 
 ### Added

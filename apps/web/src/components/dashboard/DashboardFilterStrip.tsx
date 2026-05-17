@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { DashboardViewToggle } from "./DashboardViewToggle";
 
 const SAVED_VIEWS = [
   { id: "all", label: "All scans" },
@@ -109,9 +110,7 @@ export function DashboardFilterStrip() {
       </DropdownMenu>
 
       <div className="ml-auto flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">
-          Graph view: Sprint 0.12
-        </span>
+        <DashboardViewToggle />
       </div>
     </div>
   );

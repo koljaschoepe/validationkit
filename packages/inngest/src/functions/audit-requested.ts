@@ -4,6 +4,7 @@ import { runAudit } from "@vk/audit";
 import { getDb, schema } from "@vk/db";
 import type { AuditFinding } from "@vk/core";
 import { inngest } from "../client.js";
+import { publishEvent } from "../events.js";
 
 export interface AuditRequestedPayload {
   scanId: string;
@@ -73,6 +74,75 @@ export const auditRequested: any = inngest.createFunction(
         }
       });
 
+      await step.run("publish-event", async () => {
+        const rows = await db
+          .select({
+            workspaceId: schema.scan.workspaceId,
+            repoId: schema.scan.repoId,
+            severity: schema.scan.overallSeverity,
+            findingsCount: schema.scan.findingsCount,
+            rootPath: schema.scan.rootPath,
+          })
+          .from(schema.scan)
+          .where(eq(schema.scan.id, scanId))
+          .limit(1);
+        const row = rows[0];
+        if (!row) return;
+        await publishEvent({
+          workspaceId: row.workspaceId,
+          type: "audit.completed",
+          payload: {
+            scanId,
+            repoId: row.repoId,
+            severity: row.severity,
+            findingsCount: row.findingsCount,
+            rootPath: row.rootPath,
+          },
+        });
+      });
+
+      // Auto-drift: if the scanned repo declares a canonical, enqueue a drift run.
+      await step.run("auto-drift", async () => {
+        const rows = await db
+          .select({
+            repoId: schema.scan.repoId,
+            workspaceId: schema.scan.workspaceId,
+            rootPathA: schema.scan.rootPath,
+          })
+          .from(schema.scan)
+          .where(eq(schema.scan.id, scanId))
+          .limit(1);
+        const row = rows[0];
+        if (!row || !row.repoId) return;
+
+        const repoRows = await db
+          .select({
+            canonicalRepoId: schema.repo.canonicalRepoId,
+          })
+          .from(schema.repo)
+          .where(eq(schema.repo.id, row.repoId))
+          .limit(1);
+        const canonical = repoRows[0]?.canonicalRepoId;
+        if (!canonical) return;
+
+        const canonicalRows = await db
+          .select({ rootPath: schema.repo.rootPath })
+          .from(schema.repo)
+          .where(eq(schema.repo.id, canonical))
+          .limit(1);
+        const canonicalPath = canonicalRows[0]?.rootPath;
+        if (!canonicalPath) return;
+
+        await inngest.send({
+          name: "drift/requested",
+          data: {
+            workspaceId: row.workspaceId,
+            rootPathA: row.rootPathA,
+            rootPathB: canonicalPath,
+          },
+        });
+      });
+
       return { ok: true, findings: report.findings.length };
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -85,6 +155,19 @@ export const auditRequested: any = inngest.createFunction(
             completedAt: new Date(),
           })
           .where(eq(schema.scan.id, scanId));
+        const rows = await db
+          .select({ workspaceId: schema.scan.workspaceId })
+          .from(schema.scan)
+          .where(eq(schema.scan.id, scanId))
+          .limit(1);
+        const workspaceId = rows[0]?.workspaceId;
+        if (workspaceId) {
+          await publishEvent({
+            workspaceId,
+            type: "audit.failed",
+            payload: { scanId, reason },
+          });
+        }
       });
       throw err;
     }
