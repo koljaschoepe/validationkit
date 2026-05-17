@@ -27,13 +27,36 @@ export interface AddCustomerInput {
   githubFullName?: string;
 }
 
+export interface AddCustomerError {
+  ok: false;
+  error: string;
+  /** Set when the failure is a billing-quota gate vs. a normal validation error. */
+  upgradeRequired?: boolean;
+  used?: number;
+  quota?: number;
+}
+
 export async function addCustomer(
   input: AddCustomerInput,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string } | AddCustomerError> {
   const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
   if (!input.label.trim() || !input.rootPath.trim()) {
     return { ok: false, error: "Label and rootPath are required." };
+  }
+
+  const { canAddRepo } = await import("@vk/billing");
+  const quota = await canAddRepo(user.id);
+  if (!quota.allowed) {
+    return {
+      ok: false,
+      error:
+        (quota.reason ?? "Repo quota exceeded.") +
+        " Upgrade your plan to add another.",
+      upgradeRequired: true,
+      used: quota.used,
+      quota: quota.quota,
+    };
   }
 
   const db = getDb();

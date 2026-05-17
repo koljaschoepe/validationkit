@@ -88,7 +88,11 @@ export function AuditForm({ defaultPath: _defaultPath }: { defaultPath: string }
               Audited: {state.displayPath}
             </p>
           ) : null}
-          <ReportView scan={state.scan} report={state.report} />
+          <ReportView
+            scan={state.scan}
+            report={state.report}
+            scanId={state.savedScanId ?? null}
+          />
         </>
       ) : null}
     </div>

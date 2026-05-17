@@ -265,3 +265,44 @@ export const eventRelations = relations(event, ({ one }) => ({
     references: [workspace.id],
   }),
 }));
+
+// Sprint 0.13 — billing. One subscription row per user; auto-inserted as
+// 'free' on first dashboard hit, mutated by the Stripe webhook on plan changes.
+// Quota fields are mirrored from tier-config in @vk/billing so app-side gates
+// don't have to round-trip Stripe.
+export const subscription = pgTable("subscription", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  tier: varchar("tier", { length: 20 }).notNull().default("free"),
+  status: varchar("status", { length: 20 }).notNull().default("active"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 80 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 80 }),
+  paidReposQuota: integer("paid_repos_quota").notNull().default(1),
+  runsQuota: integer("runs_quota").notNull().default(20),
+  runsUsedThisPeriod: integer("runs_used_this_period").notNull().default(0),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const subscriptionRelations = relations(subscription, ({ one }) => ({
+  user: one(user, { fields: [subscription.userId], references: [user.id] }),
+}));
+
+// Stripe webhook idempotency. Stripe retries the same event id; we upsert on
+// PRIMARY KEY and let the second-onwards write fall through with no-op.
+export const stripeEvent = pgTable("stripe_event", {
+  id: varchar("id", { length: 80 }).primaryKey(),
+  type: varchar("type", { length: 80 }).notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  payload: jsonb("payload"),
+});

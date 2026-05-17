@@ -1,12 +1,5 @@
-import type {
-  AuditReport,
-  ParserResult,
-  SeverityBand,
-  AuditFinding,
-} from "@vk/core";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import type { AuditReport, ParserResult } from "@vk/core";
+import { Card, CardContent } from "@/components/ui/card";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import {
   Table,
@@ -16,26 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const SEV_RANK: Record<SeverityBand, number> = {
-  Kill: 0,
-  Weak: 1,
-  Mid: 2,
-  Strong: 3,
-  Exceptional: 4,
-};
+import { FindingsList } from "./FindingsList";
 
 export function ReportView({
   scan,
   report,
+  scanId,
 }: {
   scan: ParserResult;
   report: AuditReport;
+  /** When provided, deterministic fix-generators light up. */
+  scanId?: string | null;
 }) {
-  const sortedFindings = [...report.findings].sort(
-    (a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity],
-  );
-
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -52,28 +37,7 @@ export function ReportView({
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Findings
         </h2>
-        {sortedFindings.length === 0 ? (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-4 text-sm space-y-2">
-              <p>
-                <strong className="text-foreground">Concession:</strong>{" "}
-                Audit passed cleanly. None of the 6 finding rules fired.
-              </p>
-              <p className="text-muted-foreground">
-                <strong className="text-foreground">Critique:</strong> the
-                deterministic-set is intentionally narrow. Don&apos;t take a
-                green report as proof of quality — it means none of the
-                load-bearing red flags showed up.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {sortedFindings.map((f) => (
-              <FindingCard key={f.id} f={f} />
-            ))}
-          </div>
-        )}
+        <FindingsList scanId={scanId ?? null} findings={report.findings} />
       </section>
 
       <section className="space-y-3">
@@ -162,38 +126,3 @@ function Stat({
   );
 }
 
-function FindingCard({ f }: { f: AuditFinding }) {
-  return (
-    <Card>
-      <CardHeader className="space-y-2 pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <SeverityBadge severity={f.severity} />
-          <CardTitle className="text-base flex-1">{f.title}</CardTitle>
-          <Badge variant={f.deterministic ? "secondary" : "outline"} className="font-mono text-[0.65rem]">
-            {f.category}
-            {f.deterministic ? "" : " · LLM"}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-0">
-        <p className="text-sm text-muted-foreground">{f.detail}</p>
-        {f.citations.length > 0 ? (
-          <>
-            <Separator />
-            <div className="flex flex-wrap gap-1.5">
-              {f.citations.map((c, i) => (
-                <code
-                  key={`${c.path}-${i}`}
-                  className="rounded bg-muted px-1.5 py-0.5 text-[0.7rem] font-mono"
-                >
-                  {c.path}
-                  {c.line ? `:${c.line}` : ""}
-                </code>
-              ))}
-            </div>
-          </>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}

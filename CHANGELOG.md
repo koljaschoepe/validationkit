@@ -6,6 +6,43 @@
 
 ---
 
+## [0.0.13] — 2026-05-17 — Sprint 0.13 — Deterministic Fixes + Freemium Gate
+
+### Added
+- **`@vk/fixes` package** — 4 deterministic unified-diff generators (per A7 research):
+  - `unused-agent` → file-delete patch (`+++ /dev/null`)
+  - `duplicate-guidance` → block removal in alphabetically-second file + link to canonical
+  - `stale-reference` → line removal for dead links
+  - `token-budget` (overflow-trim) → trims trailing `## ` sections until ~20% size reduction
+  - `generateBatchFix()` aggregates patches + reports per-finding failures
+  - 6/6 unit tests cover golden inputs (vitest)
+- **`@vk/billing` package** — tier config + `ensureSubscription` + `isPaid` + `canAddRepo` + `canRunAudit`. TIERS: Free (1 repo, 20 audits), Solo Indie $19 (3 repos, 50), Solo Pro $79 (10 repos, 250), Agency Pro $299 (30 repos, 1000, 5 seats), Agency Scale $799 (100 repos, 5000, 15 seats). No $99 sandwich tier (PRD constraint #15).
+- **Stripe integration** (test-mode skeleton, $0 cash-out until founder flips key):
+  - `lib/stripe.ts` — lazy singleton, `isStripeEnabled()`, `priceIdFor()` resolution
+  - `createCheckoutSession()` server action + `startCheckoutAction` form-action — hosted Checkout with `client_reference_id = userId` + `subscription_data.metadata.tier`
+  - `createBillingPortalSession()` + `openBillingPortalAction` server action
+  - `/api/stripe/webhook` — Node runtime, `await req.text()` raw body, `stripe.webhooks.constructEvent` HMAC verify, idempotent upsert into `stripe_event` (PK = `event.id`). Handles `checkout.session.completed`, `customer.subscription.updated/deleted`, `invoice.paid/payment_failed` → updates `subscription` row.
+- **`/billing` page** — current-plan card with usage stats + 5 tier cards with Stripe-Checkout buttons + portal-launch button when paid. Skeptic-mentor copy on success/cancelled/error states.
+- **Hard-gate `AddCustomerForm`** — calls `canAddRepo()` before insert; on rejection shows shadcn `Dialog` with concession-then-critique copy and "See plans" CTA → `/billing`.
+- **`FindingsList` client component** — replaces inline FindingCard rendering in `ReportView`. Checkbox-select per finding + "Select all fixable" + "Clear" + "Preview diff" / "Fix N selected" toolbar. Per-finding `[Preview diff]` (shadcn Dialog) + `[Download patch]` (Blob URL, `*.patch` filename) buttons. Disabled with explanatory copy on findings without deterministic fixes.
+- **`subscription` table** + UNIQUE(user_id) + tier/status/quotas/period columns.
+- **`stripe_event` table** (idempotency keyed on event.id) — drizzle migration `0005_square_forge.sql` applied to Neon.
+
+### Changed
+- **`apps/web/next.config.ts` transpilePackages** + workspace deps now include `@vk/billing` + `@vk/fixes`.
+- **`DashboardSidebar`** — Billing link enabled (was Sprint-0.13 placeholder).
+- **`ReportView`** — accepts `scanId?: string | null`; passed through from `/scans/[id]` and `AuditForm` (when `savedScanId` exists). Unauthenticated audits still render findings but with disabled fix-buttons + "sign in to enable" copy.
+- **`addCustomer`** — returns `upgradeRequired` flag when quota gate trips.
+
+### Notes
+- **Build:** 15 packages green. New routes: `/billing`, `/api/stripe/webhook`.
+- **Tests:** 77/77 vitest across 14 files (was 71/13; +6 fix-generator tests). Eval: 21/21.
+- **End-to-end patch round-trip verified:** stale-reference generator → `git apply` on a fresh repo → dead-link line removed cleanly.
+- **Cash-out:** $0. Stripe test-mode not yet wired (`STRIPE_SECRET_KEY` + per-tier `STRIPE_PRICE_*` env vars unset in prod). Code returns 503 / "Stripe not configured" gracefully. Founder flips when ready — same toggle-pattern as Inngest Cloud in Sprint 0.12.
+- **No AI calls executed.** Conflicting-rules + context-bloat fixes remain Phase 1 (post-M3 LOI-gate) per A7 research.
+
+---
+
 ## [0.0.12] — 2026-05-17 — Sprint 0.12 — Auto-Tracking + Visual Connections
 
 ### Added

@@ -36,6 +36,13 @@
       "when": 1779026145039,
       "tag": "0004_superb_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779027226821,
+      "tag": "0005_square_forge",
+      "breakpoints": true
     }
   ]
 }

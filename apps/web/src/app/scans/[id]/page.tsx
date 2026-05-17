@@ -67,6 +67,7 @@ export default async function ScanDetailPage({
         <ReportView
           scan={revivePersistedScan(row.rawScan as ParserResult)}
           report={revivePersistedReport(row.rawReport as AuditReport)}
+          scanId={id}
         />
       ) : null}
 

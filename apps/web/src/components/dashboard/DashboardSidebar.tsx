@@ -108,9 +108,11 @@ export function DashboardSidebar({ repos }: { repos: RepoNavEntry[] }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton disabled>
-              <CreditCard className="size-4" />
-              Billing (Sprint 0.13)
+            <SidebarMenuButton asChild>
+              <Link href="/billing">
+                <CreditCard className="size-4" />
+                Billing
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
