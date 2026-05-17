@@ -36,11 +36,26 @@ export function getAuth(): AuthInstance {
 }
 
 function createAuth(): AuthInstance {
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? "127.0.0.1",
-    port: Number(process.env.SMTP_PORT ?? 1025),
-    secure: false,
-  });
+  // Three transport modes:
+  //   1. RESEND_API_KEY set    → smtp.resend.com:465 TLS with API key as password
+  //   2. SMTP_HOST set         → generic SMTP relay (Mailpit local-stack default)
+  //   3. neither               → throws on first send
+  const useResend = Boolean(process.env.RESEND_API_KEY);
+  const transport = useResend
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST ?? "smtp.resend.com",
+        port: Number(process.env.SMTP_PORT ?? 465),
+        secure: true,
+        auth: {
+          user: "resend",
+          pass: process.env.RESEND_API_KEY as string,
+        },
+      })
+    : nodemailer.createTransport({
+        host: process.env.SMTP_HOST ?? "127.0.0.1",
+        port: Number(process.env.SMTP_PORT ?? 1025),
+        secure: false,
+      });
 
   return betterAuth({
     secret: process.env.AUTH_SECRET as string,
@@ -59,19 +74,45 @@ function createAuth(): AuthInstance {
       magicLink({
         sendMagicLink: async ({ email, url }) => {
           await transport.sendMail({
-            from: process.env.SMTP_FROM ?? "auth@validationkit.local",
+            from:
+              process.env.SMTP_FROM ??
+              (useResend ? "onboarding@resend.dev" : "auth@validationkit.local"),
             to: email,
             subject: "Sign in to ValidationKit",
             text:
               `Click to sign in: ${url}\n\n` +
-              "Open Mailpit at http://localhost:8025 to read this in the local stack.",
-            html: `
-              <p>Click to sign in to ValidationKit.</p>
-              <p><a href="${url}">${url}</a></p>
-              <p style="color:#888;font-size:12px">
-                Local dev: open <a href="http://localhost:8025">Mailpit</a> to find this email.
-              </p>
-            `,
+              (useResend
+                ? "If you didn't request this link, you can ignore this email."
+                : "Open Mailpit at http://localhost:8025 to read this in the local stack."),
+            html: useResend
+              ? `
+                <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+                  <h1 style="font-size:18px;margin:0 0 16px">Sign in to ValidationKit</h1>
+                  <p style="color:#333;font-size:15px">Click below to complete sign-in:</p>
+                  <p>
+                    <a href="${url}"
+                       style="display:inline-block;background:#5eead4;color:#06231e;
+                              padding:10px 20px;border-radius:6px;text-decoration:none;
+                              font-weight:600">
+                      Sign in
+                    </a>
+                  </p>
+                  <p style="color:#888;font-size:13px;margin-top:24px">
+                    Or paste this link in your browser:<br>
+                    <span style="word-break:break-all">${url}</span>
+                  </p>
+                  <p style="color:#aaa;font-size:12px;margin-top:24px">
+                    If you didn't request this, you can safely ignore this email.
+                  </p>
+                </div>
+              `
+              : `
+                <p>Click to sign in to ValidationKit.</p>
+                <p><a href="${url}">${url}</a></p>
+                <p style="color:#888;font-size:12px">
+                  Local dev: open <a href="http://localhost:8025">Mailpit</a> to find this email.
+                </p>
+              `,
           });
         },
       }),
