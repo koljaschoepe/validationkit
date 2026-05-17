@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "pnpm turbo run build --filter=@vk/web && pnpm --filter @vk/db exec tsx src/migrate.ts",
   "installCommand": "pnpm install --frozen-lockfile=false",
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "pnpm next build"
 }
