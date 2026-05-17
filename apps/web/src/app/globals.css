@@ -1,166 +1,107 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  /* shadcn tokens → CSS variables (defined below) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ValidationKit severity bands (PRD constraint #5) */
+  --color-sev-kill: oklch(0.69 0.21 25);
+  --color-sev-weak: oklch(0.74 0.17 50);
+  --color-sev-mid: oklch(0.85 0.16 90);
+  --color-sev-strong: oklch(0.83 0.18 145);
+  --color-sev-exceptional: oklch(0.83 0.14 165);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/*
+ * Dark-mode-first: the :root values match Sprint 0.10 hand-rolled dark theme.
+ * The light-mode block is kept minimal so accidental class="light" doesn't break.
+ * Default: html lang="en" with NO class — body reads :root → dark visuals.
+ */
 :root {
-  --bg: #0b0c0e;
-  --bg-elevated: #14161a;
-  --bg-card: #1a1d23;
-  --border: #2a2e36;
-  --fg: #e8e9ec;
-  --fg-dim: #9aa0aa;
-  --fg-muted: #686d77;
-  --accent: #5eead4;
-  --sev-kill: #f87171;
-  --sev-weak: #fb923c;
-  --sev-mid: #facc15;
-  --sev-strong: #4ade80;
-  --sev-exceptional: #34d399;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  --background: oklch(0.155 0.004 270);     /* near #0b0c0e */
+  --foreground: oklch(0.94 0.005 270);      /* near #e8e9ec */
+  --card: oklch(0.205 0.005 270);           /* near #1a1d23 */
+  --card-foreground: oklch(0.94 0.005 270);
+  --popover: oklch(0.205 0.005 270);
+  --popover-foreground: oklch(0.94 0.005 270);
+  --primary: oklch(0.835 0.13 175);         /* mint-teal #5eead4 */
+  --primary-foreground: oklch(0.155 0.004 270);
+  --secondary: oklch(0.255 0.005 270);
+  --secondary-foreground: oklch(0.94 0.005 270);
+  --muted: oklch(0.235 0.005 270);
+  --muted-foreground: oklch(0.66 0.012 270);  /* near #9aa0aa */
+  --accent: oklch(0.255 0.005 270);
+  --accent-foreground: oklch(0.94 0.005 270);
+  --destructive: oklch(0.69 0.21 25);        /* matches sev-kill */
+  --border: oklch(0.295 0.006 270);          /* near #2a2e36 */
+  --input: oklch(0.275 0.006 270);
+  --ring: oklch(0.835 0.13 175);
+  --sidebar: oklch(0.18 0.004 270);
+  --sidebar-foreground: oklch(0.94 0.005 270);
+  --sidebar-primary: oklch(0.835 0.13 175);
+  --sidebar-primary-foreground: oklch(0.155 0.004 270);
+  --sidebar-accent: oklch(0.255 0.005 270);
+  --sidebar-accent-foreground: oklch(0.94 0.005 270);
+  --sidebar-border: oklch(0.255 0.005 270);
+  --sidebar-ring: oklch(0.835 0.13 175);
+  --radius: 0.5rem;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-code,
-pre,
-.mono {
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-}
-
-main {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 5rem;
-}
-
-header h1 {
-  margin: 0 0 0.4rem;
-  font-size: 1.8rem;
-  letter-spacing: -0.01em;
-}
-
-header p {
-  margin: 0;
-  color: var(--fg-dim);
-  font-size: 0.95rem;
-}
-
-.lede {
-  color: var(--fg-dim);
-  max-width: 60ch;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 2rem 0 1rem;
-  padding: 1.25rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.form label {
-  font-size: 0.85rem;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.form input {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  padding: 0.75rem 0.9rem;
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  outline: none;
-}
-
-.form input:focus {
-  border-color: var(--accent);
-}
-
-.form button {
-  background: var(--accent);
-  color: #06231e;
-  border: none;
-  padding: 0.65rem 1.1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  align-self: flex-start;
-}
-
-.form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.examples {
-  font-size: 0.8rem;
-  color: var(--fg-muted);
-}
-
-.examples code {
-  background: var(--bg);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-}
-
-section.summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.stat {
-  padding: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.stat .label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--fg-muted);
-}
-
-.stat .value {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-top: 0.3rem;
-  font-family: var(--font-mono);
-}
-
+/*
+ * Severity utility classes — preserved from Sprint 0.10 for pages still rendering
+ * the old pill markup. The SeverityBadge cva component (Sprint 0.11 follow-up) is
+ * the canonical replacement.
+ */
 .sev-pill {
   display: inline-block;
   padding: 0.15rem 0.55rem;
@@ -171,171 +112,8 @@ section.summary {
   text-transform: uppercase;
   font-family: var(--font-mono);
 }
-
-.sev-pill[data-sev="Kill"] {
-  background: rgba(248, 113, 113, 0.15);
-  color: var(--sev-kill);
-}
-.sev-pill[data-sev="Weak"] {
-  background: rgba(251, 146, 60, 0.15);
-  color: var(--sev-weak);
-}
-.sev-pill[data-sev="Mid"] {
-  background: rgba(250, 204, 21, 0.15);
-  color: var(--sev-mid);
-}
-.sev-pill[data-sev="Strong"] {
-  background: rgba(74, 222, 128, 0.15);
-  color: var(--sev-strong);
-}
-.sev-pill[data-sev="Exceptional"] {
-  background: rgba(52, 211, 153, 0.15);
-  color: var(--sev-exceptional);
-}
-
-.findings {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  margin: 0.5rem 0 2rem;
-}
-
-.finding {
-  padding: 1rem 1.1rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-left-width: 3px;
-  border-radius: 6px;
-}
-
-.finding[data-sev="Kill"] {
-  border-left-color: var(--sev-kill);
-}
-.finding[data-sev="Weak"] {
-  border-left-color: var(--sev-weak);
-}
-.finding[data-sev="Mid"] {
-  border-left-color: var(--sev-mid);
-}
-.finding[data-sev="Strong"] {
-  border-left-color: var(--sev-strong);
-}
-
-.finding .head {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  margin-bottom: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.finding .title {
-  font-weight: 600;
-}
-
-.finding .cat {
-  font-family: var(--font-mono);
-  color: var(--fg-muted);
-  font-size: 0.78rem;
-}
-
-.finding .detail {
-  color: var(--fg-dim);
-  margin: 0.2rem 0 0.5rem;
-  font-size: 0.92rem;
-}
-
-.finding .cites {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.finding .cite {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--fg-muted);
-  background: var(--bg);
-  padding: 0.1rem 0.45rem;
-  border-radius: 4px;
-}
-
-table.inventory {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  font-size: 0.88rem;
-}
-
-table.inventory th,
-table.inventory td {
-  text-align: left;
-  padding: 0.55rem 0.9rem;
-  border-bottom: 1px solid var(--border);
-}
-
-table.inventory th {
-  background: var(--bg);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--fg-muted);
-  font-weight: 500;
-}
-
-table.inventory tr:last-child td {
-  border-bottom: none;
-}
-
-table.inventory td.kind {
-  font-family: var(--font-mono);
-  color: var(--accent);
-  font-size: 0.8rem;
-}
-
-table.inventory td.path {
-  font-family: var(--font-mono);
-}
-
-table.inventory td.num {
-  text-align: right;
-  font-family: var(--font-mono);
-  color: var(--fg-dim);
-}
-
-.callout {
-  padding: 1rem 1.1rem;
-  background: var(--bg-elevated);
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
-  margin: 1rem 0;
-  color: var(--fg-dim);
-  font-size: 0.92rem;
-}
-
-footer {
-  margin-top: 4rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  color: var(--fg-muted);
-  font-size: 0.82rem;
-}
-
-h2 {
-  font-size: 1.15rem;
-  margin: 2rem 0 0.5rem;
-  letter-spacing: -0.005em;
-}
-
-.error {
-  padding: 1rem;
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  border-radius: 6px;
-  color: var(--sev-kill);
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
-}
+.sev-pill[data-sev="Kill"]        { background: color-mix(in oklch, var(--color-sev-kill) 18%, transparent); color: var(--color-sev-kill); }
+.sev-pill[data-sev="Weak"]        { background: color-mix(in oklch, var(--color-sev-weak) 18%, transparent); color: var(--color-sev-weak); }
+.sev-pill[data-sev="Mid"]         { background: color-mix(in oklch, var(--color-sev-mid) 18%, transparent); color: var(--color-sev-mid); }
+.sev-pill[data-sev="Strong"]      { background: color-mix(in oklch, var(--color-sev-strong) 18%, transparent); color: var(--color-sev-strong); }
+.sev-pill[data-sev="Exceptional"] { background: color-mix(in oklch, var(--color-sev-exceptional) 18%, transparent); color: var(--color-sev-exceptional); }

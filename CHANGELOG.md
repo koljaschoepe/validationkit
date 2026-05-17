@@ -6,6 +6,32 @@
 
 ---
 
+## [0.0.11] — 2026-05-17 — Sprint 0.11 — Dashboard Shell
+
+### Added
+- **`/dashboard` route** — 3-zone shell (shadcn `Sidebar` × Filter-Strip × `Table`) per A1-research-convergent-pattern (Vercel/GitHub/Sentry/Linear). Signed-in primary surface.
+- **Saved-views URL-state** — `?view=&severity=&activity=` via `useSearchParams` + `useTransition`. Pre-built views: All / Critical / Drift>7d / Unused-agents / Recently-audited. Backend-persistence deferred to Sprint 0.12.
+- **`SeverityBadge`** (`components/ui/severity-badge.tsx`) — `cva`-based 5-band component, oklch background-mix. Replaces `.sev-pill` class.
+- **22 shadcn primitives** installed (new-york style, Radix base): button, card, input, label, dialog, alert-dialog, dropdown-menu, table, tabs, badge, avatar, separator, sheet, skeleton, sonner, command, sidebar, tooltip, popover, scroll-area, textarea, input-group.
+- **`DashboardSidebar`** with collapsible-icon mode + Recent-repos section.
+- **`DashboardFilterStrip`** with shadcn `DropdownMenu` × 3 (Saved views / Severity / Activity).
+- **`DashboardTable`** with severity-cell + relative-time + empty-state ("No customer-repos yet. Free tier covers 1 repo.").
+
+### Changed
+- **Frontend system migrated to Tailwind v4 + shadcn/ui new-york** (PRD §16 unchanged; pure FE-layer swap). Geist + Geist_Mono via `next/font`. Dark-mode-first `:root`, severity-bands as CSS-variables in `globals.css`.
+- **`/customers`** rewritten as shadcn `Card` + `Table` with `DropdownMenu` row-actions.
+- **`/` (home)** rewritten with shadcn `Card` grid showing 6 finding-categories with lucide icons + Concession-then-Critique highlight-card. `AuditForm` + `ReportView` migrated to shadcn.
+- **`SiteNav`** sticky top-bar with shadcn `Button` + `Separator`. Signed-in users get a Dashboard CTA.
+
+### Notes
+- **Build:** 11/11 turbo tasks green. `/dashboard` registered (force-dynamic for runtime-only env-vars).
+- **Tests:** 71/71 vitest passing (13 test-files).
+- **Eval:** 21/21 golden-set entries pass.
+- **Cash-out:** $0 (Vercel + Neon + Resend free tiers).
+- **No AI calls executed.** LLM features (`conflicting-rules`, multi-model-compare) deferred to Sprint 0.13 per user direction.
+
+---
+
 ## [0.0.10] — 2026-05-16 — Sprint 0.10 — Light-Code Polish
 
 ### Added

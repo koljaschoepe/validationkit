@@ -7,13 +7,14 @@
 
 ## Quick-Glance
 
-- **Today:** 2026-05-16
+- **Today:** 2026-05-17
 - **Current Week:** W1 (of 13)
 - **Current Cluster:** C1 — Foundation & First Contact
 - **Hours-this-Week:** 0 / 25 target
 - **Burnout-Flag:** 🟢 Green (no risk yet)
-- **Last Sprint:** Sprint 0.10 — Light-Code Polish ✅ shipped 2026-05-16
+- **Last Sprint:** Sprint 0.11 — Dashboard Shell ✅ shipped 2026-05-17
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
+- **Dashboard-Pivot:** ADR-0019 + `phase-0.5-dashboard.md` plan signed 2026-05-17. Sprint 0.11 ships shadcn-migration (22 primitives + SeverityBadge cva), `/dashboard` 3-zone shell (Sidebar × Filter-Strip × Table), `/customers` shadcn-Table with DropdownMenu row-actions, saved-views URL-state (`?view=&severity=&activity=`). 71/71 vitest, 21/21 eval, build clean. $0 cash-out.
 
 ---
 
