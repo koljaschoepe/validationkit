@@ -1,9 +1,7 @@
-import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
+import { mkdir, mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import AdmZip from "adm-zip";
 
 export interface GithubRepoRef {
   owner: string;
@@ -82,29 +80,20 @@ export async function fetchRepoZipball(
   }
 
   const baseDir = await mkdtemp(path.join(tmpdir(), "vk-gh-"));
-  const zipPath = path.join(baseDir, "repo.zip");
 
   if (!response.body) {
     throw new Error("Zipball response had no body");
   }
-  const readable = Readable.fromWeb(
-    response.body as unknown as import("node:stream/web").ReadableStream,
-  );
-  await pipeline(readable, createWriteStream(zipPath));
 
-  // Extract using built-in /usr/bin/unzip; Vercel build runtime includes it.
+  // Read zipball into memory + extract via adm-zip (Vercel serverless has no
+  // /usr/bin/unzip). For repos up to ~50 MB zipped this is comfortable inside
+  // the 256 MB Vercel function memory budget.
+  const buf = Buffer.from(await response.arrayBuffer());
   const extractDir = path.join(baseDir, "extracted");
   await mkdir(extractDir, { recursive: true });
 
-  const { spawn } = await import("node:child_process");
-  await new Promise<void>((resolve, reject) => {
-    const proc = spawn("unzip", ["-q", zipPath, "-d", extractDir]);
-    proc.on("error", reject);
-    proc.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`unzip exited with code ${code}`));
-    });
-  });
+  const zip = new AdmZip(buf);
+  zip.extractAllTo(extractDir, /* overwrite */ true);
 
   // GitHub zipballs extract into a single dir like "owner-repo-shaHash".
   const entries = await readdir(extractDir);
