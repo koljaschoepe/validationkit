@@ -1,0 +1,6 @@
+---
+description: Always apply our TypeScript style.
+alwaysApply: true
+---
+
+Use strict null checks, no `any`, prefer narrow types.

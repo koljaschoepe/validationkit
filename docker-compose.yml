@@ -1,0 +1,68 @@
+# ValidationKit local stack — Phase 0 Hardcore-Local-Only (PRD §5.1).
+# Every component OSS or self-hostable. ~1.5 GB RAM total.
+
+name: validationkit
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: vk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vk
+      POSTGRES_PASSWORD: vk_local
+      POSTGRES_DB: validationkit
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vk -d validationkit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    container_name: vk-dragonfly
+    restart: unless-stopped
+    ulimits:
+      memlock: -1
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - dragonfly_data:/data
+    command: ["--logtostderr"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: vk-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "5000"
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "127.0.0.1:1025:1025"  # SMTP
+      - "127.0.0.1:8025:8025"  # Web UI
+    volumes:
+      - mailpit_data:/data
+
+  inngest:
+    image: inngest/inngest:latest
+    container_name: vk-inngest
+    restart: unless-stopped
+    command: ["inngest", "dev", "--host", "0.0.0.0", "--port", "8288", "--no-discovery"]
+    environment:
+      INNGEST_DEV: "1"
+    ports:
+      - "127.0.0.1:8288:8288"
+
+volumes:
+  postgres_data:
+  dragonfly_data:
+  mailpit_data:

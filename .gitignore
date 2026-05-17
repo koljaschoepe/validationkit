@@ -1,0 +1,32 @@
+node_modules/
+.turbo/
+dist/
+.next/
+out/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+.vercel/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+
+# Phase-0 customer outreach data — keep PII out of git
+.local/
+interviews/
+engagements/
+quotes/
+
+# Playwright + screenshots (local dev artifacts)
+.playwright-mcp/
+*.png
+!docs/assets/*.png
+
+# Cloudflared tunnel state
+.cloudflared/
+
+# Patch dispatch outputs
+*.patch
+

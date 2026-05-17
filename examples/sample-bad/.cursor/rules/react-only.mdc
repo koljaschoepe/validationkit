@@ -1,0 +1,6 @@
+---
+description: React component conventions.
+globs: ["**/*.tsx"]
+---
+
+Default to server components. Use ternary for conditional render, not `&&`.

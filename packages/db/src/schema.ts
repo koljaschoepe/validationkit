@@ -1,0 +1,229 @@
+import { relations, sql } from "drizzle-orm";
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+// Better-Auth tables (per Better-Auth Postgres adapter contract). Field names
+// match the upstream defaults so the adapter wires up without overrides.
+
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  idToken: text("id_token"),
+  password: text("password"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ValidationKit-domain tables.
+
+export const workspace = pgTable("workspace", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  slug: varchar("slug", { length: 120 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const repo = pgTable("repo", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  label: varchar("label", { length: 200 }).notNull(),
+  rootPath: text("root_path").notNull(),
+  // Read-only by default. Write requires per-repo approval via install_request.
+  // PRD §6.4 + docs/legal/scope-policy.md.
+  writeAccessGranted: boolean("write_access_granted").notNull().default(false),
+  writeApprovedBy: text("write_approved_by").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  writeApprovedAt: timestamp("write_approved_at", { withTimezone: true }),
+  // GitHub App installation id, populated by the install webhook.
+  githubInstallationId: integer("github_installation_id"),
+  githubFullName: varchar("github_full_name", { length: 300 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const installRequest = pgTable("install_request", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  requesterId: text("requester_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  targetRepoLabel: varchar("target_repo_label", { length: 200 }).notNull(),
+  targetRootPath: text("target_root_path").notNull(),
+  requestedScope: varchar("requested_scope", { length: 10 }).notNull(), // 'read' | 'write'
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | approved | rejected | revoked
+  approverId: text("approver_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  decisionNote: text("decision_note"),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const webhookEvent = pgTable("webhook_event", {
+  // GitHub's x-github-delivery is a UUID-shaped string and serves as the
+  // idempotency key. Replays land on the same row and skip processing.
+  deliveryId: text("delivery_id").primaryKey(),
+  eventName: varchar("event_name", { length: 60 }).notNull(),
+  action: varchar("action", { length: 60 }),
+  payload: jsonb("payload").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("processed"),
+  failureReason: text("failure_reason"),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+});
+
+export const driftRun = pgTable("drift_run", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  rootPathA: text("root_path_a").notNull(),
+  rootPathB: text("root_path_b").notNull(),
+  itemsCount: integer("items_count").notNull(),
+  overallSeverity: varchar("overall_severity", { length: 20 }).notNull(),
+  rawDrift: jsonb("raw_drift").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const scan = pgTable("scan", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  repoId: uuid("repo_id").references(() => repo.id, { onDelete: "set null" }),
+  rootPath: text("root_path").notNull(),
+  // queued (Inngest about to pick up) | running | complete | failed
+  // Synchronous audits land directly as 'complete'.
+  status: varchar("status", { length: 20 }).notNull().default("complete"),
+  failureReason: text("failure_reason"),
+  fileCount: integer("file_count").notNull().default(0),
+  overallSeverity: varchar("overall_severity", { length: 20 }).notNull().default("Exceptional"),
+  findingsCount: integer("findings_count").notNull().default(0),
+  warningsCount: integer("warnings_count").notNull().default(0),
+  rawScan: jsonb("raw_scan"),
+  rawReport: jsonb("raw_report"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const finding = pgTable("finding", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  scanId: uuid("scan_id")
+    .notNull()
+    .references(() => scan.id, { onDelete: "cascade" }),
+  category: varchar("category", { length: 40 }).notNull(),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  title: text("title").notNull(),
+  detail: text("detail").notNull(),
+  deterministic: boolean("deterministic").notNull(),
+  confidence: varchar("confidence", { length: 10 }),
+  citations: jsonb("citations").notNull().default(sql`'[]'::jsonb`),
+});
+
+export const workspaceRelations = relations(workspace, ({ many, one }) => ({
+  owner: one(user, { fields: [workspace.ownerId], references: [user.id] }),
+  repos: many(repo),
+  scans: many(scan),
+}));
+
+export const repoRelations = relations(repo, ({ one, many }) => ({
+  workspace: one(workspace, {
+    fields: [repo.workspaceId],
+    references: [workspace.id],
+  }),
+  scans: many(scan),
+}));
+
+export const scanRelations = relations(scan, ({ one, many }) => ({
+  workspace: one(workspace, {
+    fields: [scan.workspaceId],
+    references: [workspace.id],
+  }),
+  repo: one(repo, { fields: [scan.repoId], references: [repo.id] }),
+  findings: many(finding),
+}));
+
+export const findingRelations = relations(finding, ({ one }) => ({
+  scan: one(scan, { fields: [finding.scanId], references: [scan.id] }),
+}));
+
+export const installRequestRelations = relations(installRequest, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [installRequest.workspaceId],
+    references: [workspace.id],
+  }),
+  requester: one(user, {
+    fields: [installRequest.requesterId],
+    references: [user.id],
+    relationName: "requester",
+  }),
+  approver: one(user, {
+    fields: [installRequest.approverId],
+    references: [user.id],
+    relationName: "approver",
+  }),
+}));
+
+export const driftRunRelations = relations(driftRun, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [driftRun.workspaceId],
+    references: [workspace.id],
+  }),
+}));

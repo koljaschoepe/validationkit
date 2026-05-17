@@ -1,0 +1,8 @@
+---
+description: React component conventions for the apps/ tree.
+globs: ["apps/**/*.tsx", "apps/**/*.jsx"]
+---
+
+- Default to Server Components.
+- Use ternary, not `&&`, for conditional rendering.
+- Avoid `useEffect` for derived state.

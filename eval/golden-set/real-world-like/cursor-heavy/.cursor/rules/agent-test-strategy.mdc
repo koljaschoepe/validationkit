@@ -1,0 +1,7 @@
+---
+description: Invoke when the user asks about testing strategy.
+---
+
+- Unit tests at the function boundary.
+- Integration tests at module-to-module seams.
+- E2E only for the critical-path user flow.

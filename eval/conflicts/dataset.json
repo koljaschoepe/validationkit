@@ -1,0 +1,110 @@
+{
+  "$schema": "./schema.json",
+  "version": 1,
+  "description": "Hand-crafted conflict-pair fixtures for promptfoo eval of the LLM-augmented conflicting-rules check. Five categories, with annotated expected outcomes. FPR ≤ 15% target per PRD constraint #13.",
+  "pairs": [
+    {
+      "id": "true-conflict-tabs-vs-spaces",
+      "kind": "true-conflict",
+      "file_a": {
+        "path": "CLAUDE.md",
+        "body": "We use **tabs** for indentation across the codebase. Never spaces. The tab-width is 4."
+      },
+      "file_b": {
+        "path": "AGENTS.md",
+        "body": "Indent with **two spaces**. Tab characters are forbidden — pre-commit hook will reject them."
+      },
+      "expected": {
+        "conflict": true,
+        "min_confidence": "mid",
+        "reason_must_mention": ["tab", "space"]
+      }
+    },
+    {
+      "id": "true-conflict-ternary-vs-and",
+      "kind": "true-conflict",
+      "file_a": {
+        "path": ".cursor/rules/react.mdc",
+        "body": "For conditional rendering in JSX, **always use ternary** (`cond ? <X /> : null`). Never use `&&`."
+      },
+      "file_b": {
+        "path": "CLAUDE.md",
+        "body": "Use **`&&`** for conditional rendering in JSX. Ternary should only appear when both branches render something."
+      },
+      "expected": {
+        "conflict": true,
+        "min_confidence": "high",
+        "reason_must_mention": ["ternary"]
+      }
+    },
+    {
+      "id": "partial-overlap-emphasis",
+      "kind": "partial-overlap",
+      "file_a": {
+        "path": "CLAUDE.md",
+        "body": "Write tests before pushing. Unit tests are sufficient for most utility modules. Integration tests are recommended at module-to-module seams."
+      },
+      "file_b": {
+        "path": ".cursor/rules/testing.mdc",
+        "body": "Always run `pnpm test` before commit. Integration tests are required for any change that crosses 2+ module boundaries."
+      },
+      "expected": {
+        "conflict": false,
+        "max_confidence": "high",
+        "reason_must_mention": []
+      }
+    },
+    {
+      "id": "similar-but-not-conflict-different-scope",
+      "kind": "similar-but-not-conflict",
+      "file_a": {
+        "path": "CLAUDE.md",
+        "body": "Default to Server Components. Use the 'use client' directive only when crossing a runtime boundary."
+      },
+      "file_b": {
+        "path": ".windsurf/rules/data.md",
+        "body": "Default to React.cache() for per-request data deduplication. Fall through to LRU cache only when cross-request reuse is intentional."
+      },
+      "expected": {
+        "conflict": false,
+        "max_confidence": "low",
+        "reason_must_mention": []
+      }
+    },
+    {
+      "id": "pure-style-diff-no-conflict",
+      "kind": "pure-style-diff",
+      "file_a": {
+        "path": "CLAUDE.md",
+        "body": "Write commit messages in **active voice**, with a one-line subject under 60 characters."
+      },
+      "file_b": {
+        "path": "AGENTS.md",
+        "body": "Commit messages should be concise. Active voice preferred. Subject line short and descriptive."
+      },
+      "expected": {
+        "conflict": false,
+        "max_confidence": "low",
+        "reason_must_mention": []
+      }
+    },
+    {
+      "id": "identical-paraphrase-no-conflict",
+      "kind": "identical-paraphrase",
+      "file_a": {
+        "path": "CLAUDE.md",
+        "body": "Never commit secrets to the repository. Use environment variables for all credentials."
+      },
+      "file_b": {
+        "path": "AGENTS.md",
+        "body": "Secrets must not be committed. Credentials live in env vars, not in the source tree."
+      },
+      "expected": {
+        "conflict": false,
+        "max_confidence": "mid",
+        "reason_must_mention": []
+      }
+    }
+  ],
+  "fpr_target": 0.15
+}

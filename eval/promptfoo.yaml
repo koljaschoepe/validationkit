@@ -1,0 +1,27 @@
+# promptfoo eval scaffold for conflicting-rules LLM check.
+# Not yet wired (Sprint 0.9). Today the primary eval is eval/conflicts/run.ts.
+#
+# When extending: provider claude-sonnet-4-6 via @ai-sdk/anthropic direct
+# (PRD §5: NOT via AI Gateway in Phase 0).
+
+description: "Conflicting-rules LLM eval"
+
+prompts:
+  - file://./conflicts/prompt-v1.txt
+
+providers:
+  - id: anthropic-direct:claude-sonnet-4-6
+    config:
+      apiKey: $ANTHROPIC_API_KEY
+
+tests:
+  - file://./conflicts/dataset.json#pairs
+
+defaultTest:
+  options:
+    cache: false
+  assert:
+    - type: javascript
+      value: |
+        // Future hook: compare output.conflict with context.expected.conflict
+        return output.conflict === context.expected.conflict;

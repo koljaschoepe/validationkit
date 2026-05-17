@@ -1,0 +1,8 @@
+---
+description: Apply strict TypeScript rules at all times.
+alwaysApply: true
+---
+
+- `strict: true` in tsconfig.
+- Never use `any` — use `unknown` and narrow.
+- Discriminated unions over flag booleans.

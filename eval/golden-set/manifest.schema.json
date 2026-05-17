@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Golden-Set Manifest",
+  "type": "object",
+  "required": ["version", "entries", "target_size", "fpr_target"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "description": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "path", "expected"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["fixture", "dogfood", "real-world", "anonymized-customer", "adversarial"]
+          },
+          "path": { "type": "string", "description": "Relative to repo root." },
+          "vendor_mix": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "expected": {
+            "type": "object",
+            "required": ["min_files", "max_files", "min_findings", "max_findings", "must_categories"],
+            "properties": {
+              "min_files": { "type": "integer", "minimum": 0 },
+              "max_files": { "type": "integer", "minimum": 0 },
+              "min_findings": { "type": "integer", "minimum": 0 },
+              "max_findings": { "type": "integer", "minimum": 0 },
+              "must_categories": { "type": "array", "items": { "type": "string" } },
+              "must_not_categories": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "target_size": { "type": "integer", "minimum": 1 },
+    "current_size": { "type": "integer", "minimum": 0 },
+    "growth_plan": { "type": "array", "items": { "type": "string" } },
+    "fpr_target": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "validationkit",
+  "version": "0.0.10",
+  "private": true,
+  "description": "Cross-Vendor Agent-File-Trust — from idea to multi-customer operations.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.18.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "turbo run typecheck",
+    "audit": "pnpm --filter @vk/cli exec validationkit audit",
+    "eval": "tsx eval/smoke.ts",
+    "eval:conflicts": "tsx eval/conflicts/run.ts",
+    "bip:count": "tsx scripts/bip-counter.ts",
+    "e2e:smoke": "bash scripts/docker-e2e-smoke.sh",
+    "stack:up": "docker compose up -d",
+    "stack:down": "docker compose down",
+    "stack:reset": "docker compose down -v && docker compose up -d",
+    "stack:logs": "docker compose logs -f",
+    "db:generate": "pnpm --filter @vk/db generate",
+    "db:migrate": "pnpm --filter @vk/db migrate",
+    "db:studio": "pnpm --filter @vk/db studio",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2",
+    "vitest": "^3.0.0",
+    "tsx": "^4.19.0",
+    "dotenv-cli": "^7.4.4",
+    "gray-matter": "^4.0.3"
+  }
+}

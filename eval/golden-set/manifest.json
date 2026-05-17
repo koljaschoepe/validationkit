@@ -1,0 +1,312 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": 1,
+  "description": "30-File-Golden-Set per PRD §6.5 Phase-0-Gate-Criterion #7. Target FPR ≤ 15% (PRD constraint #13). Sprint 0.5 fill: 12 adversarial fixtures synthetic.",
+  "entries": [
+    {
+      "id": "fixture-good",
+      "kind": "fixture",
+      "path": "examples/sample-good",
+      "vendor_mix": ["claude-md", "agents-md", "claude-agent"],
+      "expected": {
+        "min_files": 3,
+        "max_files": 6,
+        "min_findings": 0,
+        "max_findings": 0,
+        "must_categories": []
+      },
+      "notes": "Clean baseline. Used to verify the audit doesn't false-positive on healthy repos."
+    },
+    {
+      "id": "fixture-bad-full-vendor",
+      "kind": "fixture",
+      "path": "examples/sample-bad",
+      "vendor_mix": [
+        "claude-md", "agents-md", "claude-agent", "claude-command",
+        "cursor-rule-mdc", "cursor-rules-legacy",
+        "windsurf-rule", "cline-rule", "gemini-md"
+      ],
+      "expected": {
+        "min_files": 10,
+        "max_files": 20,
+        "min_findings": 3,
+        "max_findings": 12,
+        "must_categories": ["unused-agent", "duplicate-guidance", "stale-reference"]
+      },
+      "notes": "Full cross-vendor surface. Triggers all 4 Sprint-0.2 deterministic categories plus token-budget when scaled up."
+    },
+    {
+      "id": "dogfood-self",
+      "kind": "dogfood",
+      "path": ".",
+      "vendor_mix": ["claude-md", "claude-agent", "claude-command"],
+      "expected": {
+        "min_files": 8,
+        "max_files": 30,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Self-audit of validationkit repo. Reflects the repo we ship from; if this is dirty we lose credibility."
+    },
+    {
+      "id": "adv-broken-frontmatter",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a1-broken-frontmatter",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Unterminated YAML frontmatter. Parser must not crash; may emit a warning."
+    },
+    {
+      "id": "adv-crlf-mixed",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a2-crlf-mixed",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Mixed CRLF + LF line endings. lineCount must be sensible."
+    },
+    {
+      "id": "adv-bom-header",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a3-bom-headers",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "UTF-8 BOM at file start. Parser must strip BOM before classifying."
+    },
+    {
+      "id": "adv-bilingual",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a4-bilingual",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "DE+EN mixed prose. Token-count must remain reasonable; no false bloat."
+    },
+    {
+      "id": "adv-oversize",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a5-oversize",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 2,
+        "max_findings": 6,
+        "must_categories": ["context-bloat", "token-budget"]
+      },
+      "notes": "~60k tokens. Must trigger context-bloat AND token-budget."
+    },
+    {
+      "id": "adv-empty-claude",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a6-empty-claude",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Zero-byte CLAUDE.md. Parser must not crash."
+    },
+    {
+      "id": "adv-nested-agents",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a7-nested-agents",
+      "vendor_mix": ["claude-md", "claude-agent"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 4,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "Deeply-nested .claude/agents/. Scanner must walk subdirs."
+    },
+    {
+      "id": "adv-case-dups",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a8-case-dups",
+      "vendor_mix": ["claude-md", "claude-agent"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 4,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "macOS case-insensitive: only one of the case variants will be on disk after checkout."
+    },
+    {
+      "id": "adv-no-newline",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a9-no-newline",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "No trailing newline. lineCount must include the last line."
+    },
+    {
+      "id": "adv-multi-claude",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a10-multi-claude",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 4,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "CLAUDE.md at both root and subdir. Both must be detected."
+    },
+    {
+      "id": "adv-symlink",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a11-symlink-target",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Symlink in same dir as target. followSymbolicLinks:false must keep count at 1."
+    },
+    {
+      "id": "adv-emoji",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/a12-emoji-content",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 3,
+        "must_categories": []
+      },
+      "notes": "Multi-script + emoji content. tiktoken cl100k_base may over-count by 30%; should not crash."
+    },
+    {
+      "id": "dogfood-apps-web",
+      "kind": "dogfood",
+      "path": "apps/web",
+      "vendor_mix": [],
+      "expected": {
+        "min_files": 0,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Self-audit sub-path: apps/web shouldn't have its own CLAUDE.md (yet). 0 files expected."
+    },
+    {
+      "id": "dogfood-packages-parser",
+      "kind": "dogfood",
+      "path": "packages/parser",
+      "vendor_mix": [],
+      "expected": {
+        "min_files": 0,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Self-audit sub-path: parser package shouldn't have its own agent files."
+    },
+    {
+      "id": "dogfood-claude-dir",
+      "kind": "dogfood",
+      "path": ".claude",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Edge case: scanning the .claude/ subtree directly loses the .claude/ path prefix that classifyPath() depends on. Only the root CLAUDE.md file matches. Document this limitation so users scan the repo root, not a .claude/ subtree."
+    },
+    {
+      "id": "real-cursor-heavy",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/cursor-heavy",
+      "vendor_mix": ["claude-md", "cursor-rule-mdc"],
+      "expected": {
+        "min_files": 5,
+        "max_files": 8,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "Cursor-heavy realistic fixture covering all 4 MDC activation modes (always/auto/agent/manual)."
+    },
+    {
+      "id": "real-windsurf-heavy",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/windsurf-heavy",
+      "vendor_mix": ["claude-md", "agents-md", "windsurf-rule"],
+      "expected": {
+        "min_files": 3,
+        "max_files": 6,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "Windsurf-heavy realistic fixture with two rule files + AGENTS.md + CLAUDE.md."
+    },
+    {
+      "id": "real-cline-heavy",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/cline-heavy",
+      "vendor_mix": ["claude-md", "cline-rule", "claude-agent", "claude-command"],
+      "expected": {
+        "min_files": 3,
+        "max_files": 6,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "Cline-heavy realistic fixture: .clinerules + .claude/agents + .claude/commands + CLAUDE.md."
+    }
+  ],
+  "target_size": 30,
+  "current_size": 21,
+  "growth_plan": [
+    "Add 5 anonymized customer-pilot snapshots (after first 5 Agency-LOIs in M3).",
+    "Add 4 permissively-licensed public-repo vendoring once GitHub App lands (Sprint 0.7+ external work)."
+  ],
+  "fpr_target": 0.15
+}

@@ -1,0 +1,10 @@
+---
+---
+
+# Manual refactor guide
+
+Invoke via `@manual-refactor-guide` when starting a multi-file refactor.
+
+1. Map all touched files first.
+2. Land a green-build commit before any rename.
+3. One semantic change per PR.
