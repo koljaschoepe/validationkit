@@ -153,6 +153,9 @@ importers:
       '@vk/core':
         specifier: workspace:*
         version: link:../core
+      '@vk/llm':
+        specifier: workspace:*
+        version: link:../llm
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

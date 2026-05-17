@@ -117,3 +117,131 @@
 .sev-pill[data-sev="Mid"]         { background: color-mix(in oklch, var(--color-sev-mid) 18%, transparent); color: var(--color-sev-mid); }
 .sev-pill[data-sev="Strong"]      { background: color-mix(in oklch, var(--color-sev-strong) 18%, transparent); color: var(--color-sev-strong); }
 .sev-pill[data-sev="Exceptional"] { background: color-mix(in oklch, var(--color-sev-exceptional) 18%, transparent); color: var(--color-sev-exceptional); }
+
+/*
+ * Legacy markup fallbacks — older routes (customers/[id], requests, drift,
+ * bip, DriftView) still use raw <div className="callout"> / "error" / "lede"
+ * markup. These shims give them a defensible look until each page is
+ * migrated to shadcn Alert/Card. Sprint 0.14.
+ */
+.callout {
+  border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 5%, transparent);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin: 0.75rem 0;
+}
+.error {
+  border: 1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent);
+  background: color-mix(in oklch, var(--color-destructive) 5%, transparent);
+  color: var(--color-destructive);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+.lede {
+  color: var(--color-muted-foreground);
+  font-size: 0.95rem;
+  margin: 0.5rem 0 1rem;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 32rem;
+}
+.form label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.form input,
+.form select,
+.form textarea {
+  background: var(--color-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  color: var(--color-foreground);
+  font-size: 0.875rem;
+}
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 1px;
+}
+.form button {
+  align-self: flex-start;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.inventory {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.inventory th,
+.inventory td {
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+.inventory th {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted-foreground);
+}
+.inventory .path,
+.inventory .kind {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.inventory .num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+main > header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0.5rem 0 0.4rem;
+}
+main > h2 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted-foreground);
+  margin: 1.5rem 0 0.5rem;
+}
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+main > footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}

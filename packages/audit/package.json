@@ -19,7 +19,8 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@vk/core": "workspace:*"
+    "@vk/core": "workspace:*",
+    "@vk/llm": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

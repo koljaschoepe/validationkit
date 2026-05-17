@@ -14,6 +14,11 @@ import { checkDuplicateGuidance } from "./rules/duplicate-guidance.js";
 import { checkContextBloat } from "./rules/context-bloat.js";
 import { checkStaleReferences } from "./rules/stale-references.js";
 import { checkTokenBudget } from "./rules/token-budget.js";
+import {
+  isLlmEnabled,
+  llmDisabledFinding,
+  checkConflictingRules,
+} from "@vk/llm";
 
 export interface AuditConfig {
   /** Tokens above which a single agent file is flagged as bloated. */
@@ -29,6 +34,15 @@ export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
 
 export interface RunAuditOptions {
   config?: Partial<AuditConfig>;
+  /**
+   * When true, surfaces the LLM-augmented `conflicting-rules` findings — or,
+   * if no provider key is configured, a single placeholder finding stating
+   * the disabled state (per Sprint 0.14 "visible-but-disabled" requirement).
+   *
+   * Default false so the deterministic-only smoke-eval keeps its golden-set
+   * bounds intact (PRD §6.5).
+   */
+  includeLLM?: boolean;
 }
 
 export async function runAudit(
@@ -44,6 +58,14 @@ export async function runAudit(
     ...checkStaleReferences(scan),
     ...checkTokenBudget(scan),
   ];
+
+  if (opts.includeLLM) {
+    if (isLlmEnabled()) {
+      findings.push(...(await checkConflictingRules(scan)));
+    } else {
+      findings.push(llmDisabledFinding());
+    }
+  }
 
   return {
     rootPath: scan.rootPath,

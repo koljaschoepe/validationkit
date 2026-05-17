@@ -15,6 +15,7 @@ import { DashboardFilterStrip } from "@/components/dashboard/DashboardFilterStri
 import { DashboardTable } from "@/components/dashboard/DashboardTable";
 import { DashboardEventBus } from "@/components/dashboard/DashboardEventBus";
 import { RepoGraphClient } from "@/components/dashboard/RepoGraphClient";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import type { RepoGraphInput } from "@/components/dashboard/RepoGraph";
 
 type SearchParams = Promise<{
@@ -108,6 +109,10 @@ export default async function DashboardPage({
 
   const graphData = display === "graph" ? await buildGraphInput(user.id) : null;
 
+  const onboarding = await buildOnboardingStatus(user.id);
+  const showOnboarding =
+    !onboarding.hasScans || !onboarding.hasRepos || !onboarding.hasDrift;
+
   return (
     <SidebarProvider>
       <DashboardSidebar repos={sidebarRepos} />
@@ -126,8 +131,11 @@ export default async function DashboardPage({
 
         <DashboardFilterStrip />
 
-        <main className="flex-1 p-4 sm:p-6">
-          <div className="mb-4 flex items-baseline justify-between">
+        <main className="flex-1 space-y-6 p-4 sm:p-6">
+          {showOnboarding ? (
+            <OnboardingChecklist status={onboarding} />
+          ) : null}
+          <div className="flex items-baseline justify-between">
             <p className="text-xs text-muted-foreground">
               {display === "graph" && graphData
                 ? `${graphData.nodes.length} repo${graphData.nodes.length === 1 ? "" : "s"} · ${graphData.edges.length} drift edge${graphData.edges.length === 1 ? "" : "s"}`
@@ -149,6 +157,46 @@ export default async function DashboardPage({
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+async function buildOnboardingStatus(userId: string): Promise<{
+  hasScans: boolean;
+  hasRepos: boolean;
+  hasDrift: boolean;
+}> {
+  const db = getDb();
+  const [scanRow] = await db
+    .select({ id: schema.scan.id })
+    .from(schema.scan)
+    .innerJoin(
+      schema.workspace,
+      eq(schema.scan.workspaceId, schema.workspace.id),
+    )
+    .where(eq(schema.workspace.ownerId, userId))
+    .limit(1);
+  const [repoRow] = await db
+    .select({ id: schema.repo.id })
+    .from(schema.repo)
+    .innerJoin(
+      schema.workspace,
+      eq(schema.repo.workspaceId, schema.workspace.id),
+    )
+    .where(eq(schema.workspace.ownerId, userId))
+    .limit(1);
+  const [driftRow] = await db
+    .select({ id: schema.driftRun.id })
+    .from(schema.driftRun)
+    .innerJoin(
+      schema.workspace,
+      eq(schema.driftRun.workspaceId, schema.workspace.id),
+    )
+    .where(eq(schema.workspace.ownerId, userId))
+    .limit(1);
+  return {
+    hasScans: Boolean(scanRow),
+    hasRepos: Boolean(repoRow),
+    hasDrift: Boolean(driftRow),
+  };
 }
 
 async function buildGraphInput(userId: string): Promise<RepoGraphInput> {

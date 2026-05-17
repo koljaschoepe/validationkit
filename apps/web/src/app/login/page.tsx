@@ -3,51 +3,64 @@ import { redirect } from "next/navigation";
 import { isAuthEnabled } from "@vk/auth";
 import { LoginForm } from "@/components/LoginForm";
 import { getSessionUser } from "@/lib/session";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function LoginPage() {
   if (!isAuthEnabled()) {
     return (
-      <main>
-        <header>
-          <h1>Login disabled</h1>
-          <p>
-            Hardcore-Local-Only is still active. Bring up the local stack and
-            point at it with <code>.env.local</code>:
-          </p>
-        </header>
-        <pre className="callout mono">
-          {`pnpm stack:up
+      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Login disabled</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Hardcore-Local-Only is still active. Bring up the local stack and
+              point at it with <code className="font-mono">.env.local</code>:
+            </p>
+            <pre className="overflow-auto rounded-md border bg-muted/50 p-3 text-xs font-mono">
+              {`pnpm stack:up
 cp .env.example .env.local
 # fill in AUTH_SECRET via: openssl rand -base64 32
 pnpm db:generate
 pnpm db:migrate`}
-        </pre>
-        <footer>
-          ValidationKit · <Link href="/">Audit (anonymous)</Link>
-        </footer>
+            </pre>
+            <Link
+              href="/"
+              className="text-primary underline-offset-4 hover:underline text-sm"
+            >
+              → Try an anonymous audit instead
+            </Link>
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
   const user = await getSessionUser();
-  if (user) redirect("/scans");
+  if (user) redirect("/dashboard");
 
   return (
-    <main>
-      <header>
-        <h1>Sign in</h1>
-        <p>
-          Email magic link via{" "}
-          <a href="http://localhost:8025" target="_blank" rel="noreferrer">
-            Mailpit
-          </a>
-          . No passwords stored.
-        </p>
-      </header>
-      <LoginForm />
-      <footer>
-        ValidationKit · <Link href="/">Audit (anonymous)</Link>
-      </footer>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl">Sign in</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Email magic link. No passwords stored. The link drops you on the
+            dashboard.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <LoginForm />
+        </CardContent>
+      </Card>
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        Or{" "}
+        <Link href="/" className="text-primary underline-offset-4 hover:underline">
+          try an anonymous audit first
+        </Link>{" "}
+        — no signup required.
+      </p>
     </main>
   );
 }

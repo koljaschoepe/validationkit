@@ -37,7 +37,9 @@ export const auditRequested: any = inngest.createFunction(
 
     try {
       const scan = await step.run("scan", () => scanRepository(rootPath));
-      const report = await step.run("audit", () => runAudit(scan));
+      const report = await step.run("audit", () =>
+        runAudit(scan, { includeLLM: true }),
+      );
 
       await step.run("persist", async () => {
         await db

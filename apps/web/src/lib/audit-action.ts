@@ -84,7 +84,7 @@ export async function auditAction(
       };
     }
 
-    const report = await runAudit(probe);
+    const report = await runAudit(probe, { includeLLM: true });
     const savedScanId = await maybePersist(probe, report, abs);
     if (savedScanId) revalidatePath("/scans");
 
@@ -121,7 +121,7 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
   try {
     extractedRoot = await fetchRepoZipball(refInfo);
     const probe = await scanRepository(extractedRoot);
-    const report = await runAudit(probe);
+    const report = await runAudit(probe, { includeLLM: true });
 
     // Re-rewrite paths in the persisted scan so we don't store the temp /tmp/vk-gh-xxx prefix.
     const rewrittenScan: ParserResult = {

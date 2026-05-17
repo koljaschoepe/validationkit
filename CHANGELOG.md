@@ -6,6 +6,44 @@
 
 ---
 
+## [0.0.14] — 2026-05-17 — Sprint 0.14 — Polish + Tester-Readiness (Phase-0.5 close-out)
+
+### Added
+- **`@vk/llm` `selectModel(opts)`** abstraction — provider-agnostic resolver. Prefers `ANTHROPIC_API_KEY` (claude-sonnet-4-6, ~$3/M tokens), falls back to `OPENAI_API_KEY` (gpt-5-nano, ~$0.05/M), returns `null` when neither configured. Tier-hook reserved (free-tier OPENAI-cap) but not enforced yet — shipping the shape, not the limits.
+- **`isLlmEnabled()` + `llmDisabledMessage()` + `llmDisabledFinding()`** — visible-but-disabled state pattern. A placeholder finding under `conflicting-rules` surfaces when no LLM key is set (severity `Exceptional` so overallSeverity rank is unaffected). Per A9 honest-non-vapor.
+- **`runAudit(scan, { includeLLM: true })`** option — when true, runs `checkConflictingRules` if a key is configured, otherwise emits the placeholder finding. Default `false` so the smoke-eval keeps its 21/21 golden-set bounds.
+- **`OnboardingChecklist`** on `/dashboard` — Linear-style 3-step list (run first audit → add customer-repo → connect canonical). Each step checks DB state and shows the next CTA. Hides when all 3 done.
+- **Loading skeletons** — `apps/web/src/app/{dashboard,scans,customers,billing}/loading.tsx`. shadcn `Skeleton` per route.
+- **`docs/outreach/tester-invite-template.md`** — 4 voice-templates (cold / warm-intro / build-in-public follow-up / magic-link-onboarding-email). Skeptic-Mentor brand-voice, ≤180 words, explicit "what you can't do" set-expectations block.
+
+### Changed
+- **`/scans`, `/drifts`, `/trust`, `/login`** rewritten with shadcn primitives (`Card`, `Table`, `Badge`, `Alert`, `Button`). Skeptic-mentor empty-state copy with concession-then-critique pattern. `/trust` now table-renders both default-scopes and compliance roadmap.
+- **`LoginForm`** migrated from raw `<form className="form">` + `<div className="error">` to shadcn `Input`/`Label`/`Button`/`Alert` (destructive + success variants). Magic-link callback now drops on `/dashboard` (was `/scans`).
+- **`/login` page** centered card layout with anonymous-audit fallback CTA.
+- **`globals.css`** — added defensible legacy-class fallback styling (`.callout`, `.error`, `.lede`, `.form`, `.inventory`) so as-yet-unmigrated routes (customers/[id], requests, drift, bip, DriftView) render with the new design tokens instead of naked.
+
+### Notes
+- **Build:** 15 turbo tasks green. Routes registered: same 22 as Sprint 0.13 + new `loading.tsx` boundaries.
+- **Tests:** 77/77 vitest across 14 files. Eval: 21/21 golden-set (LLM-disabled finding gated behind `includeLLM: true`).
+- **Cash-out:** $0. No new SaaS. No AI calls executed.
+- **Phase-0.5 close-out:** 4 sprints (0.11 → 0.14), 4 commits, dashboard + auto-tracking + freemium-gate + polish. End-state matches `docs/roadmap/phase-0.5-dashboard.md` §Phase-outcome end-state list.
+- **What testers explicitly CAN'T do (set on first email):** open PR (needs GH App), real LLM fixes (Phase 1), >200 deltas/day (SSE cliff), real-money payments (Stripe test-mode only), custom domain. Honest non-vapor.
+
+### Phase 0.5 retro
+
+What worked:
+- Shipping `runAudit` LLM hook gated by option preserved eval bounds while wiring the disabled-state. Avoided the "rewrite the eval" tax.
+- shadcn migration paid off cumulatively — every empty-state polish in Sprint 0.14 took <5min because primitives were in place.
+- $0 cash-out preserved across all 4 sprints (Vercel + Neon + Resend free tiers; Stripe + Inngest Cloud + Anthropic remain toggle-on env-flips).
+
+What stayed deferred:
+- README.md screenshots (user constraint — no PDF/README without explicit request)
+- Tester recruitment names (`.local/recruitment.md`, gitignored — Kolja-only data input)
+- GitHub-App registration (PRD §6.4 — gated on M3 LOI count + 4 Day-1-Mitigations)
+- LLM `conflicting-rules` real calls (env-flag waits for golden-set eval per Constraint #14)
+
+---
+
 ## [0.0.13] — 2026-05-17 — Sprint 0.13 — Deterministic Fixes + Freemium Gate
 
 ### Added
