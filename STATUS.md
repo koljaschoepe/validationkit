@@ -15,6 +15,7 @@
 - **Last Sprint:** Sprint 0.14 — Polish + Tester-Readiness (Phase-0.5 close-out) ✅ shipped 2026-05-17
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
 - **Dashboard-Pivot:** ADR-0019 + `phase-0.5-dashboard.md` plan signed 2026-05-17. Sprint 0.11 ships shadcn-migration + dashboard shell. Sprint 0.12 ships Inngest 4h auto-track + HMAC `/api/notify-update` + SSE `/api/events/stream` + React Flow graph view + auto-drift on canonical + last-activity badge. 71/71 vitest, 21/21 eval, build clean. $0 cash-out cumulative.
+- **Phase-1 Plan:** 10-agent parallel research synthesis landed 2026-05-17 — `docs/research/phase-1-pivot/00-synthesis.md` + `docs/roadmap/phase-1.md` (Sprint 1.0→1.12, M3→M9) + ADR-0020 (CPN over AAIF saves $10k, pricing tweaks, GH-App revised 14–17 PD, monthly trigger-watch). 3 PRD corrections needed (§11 AAIF naming, §6.4 GH-App cost, §14 Mom-Test §201 StGB consent). Sprint 1.0 starts when user signs off.
 
 ---
 
