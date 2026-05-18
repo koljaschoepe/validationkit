@@ -6,6 +6,34 @@
 
 ---
 
+## [0.0.16] — 2026-05-18 — Sprint 1.1 — Stripe Live-Mode Prep + Pricing Update
+
+### Added
+- **`agency_scale_plus` tier** ($1,499/mo, annual-only, MSA-required, 300 customer repos, 30 seats, 20k audits). M3–M9 LOI-absorption tier per ADR-0020. Annual checkout button → MSA contact CTA when self-serve checkout disabled.
+- **`BillingCycle`** type + **`ANNUAL_DISCOUNT = 0.20`** constant + **`priceForCycle()`** + **`monthlyEquivalent()`** helpers in `@vk/billing`. 20% off monthly headline price for annual billing (Linear/Cursor PLG-leader playbook).
+- **`/billing` annual/monthly toggle** — shadcn Link-toggle reading `?cycle=` URL state; agency_scale_plus forces annual regardless of toggle (`annualOnly` flag in tier config).
+- **EU VAT-inclusive display** — `apps/web/src/lib/vat.ts` maps EU-27 + UK country codes to 2026 VAT rates; `/billing` reads `x-vercel-ip-country` + `cf-ipcountry` headers and shows VAT-inclusive prices ("$30/mo (incl. 19% VAT)" for DE) with a footer note explaining reverse-charge for B2B. Source: EU Commission VAT rates accessed 2026-05.
+- **Stripe Checkout hardening** — `automatic_tax: true` + `customer_update: { address: 'auto' }` + `tax_id_collection: { enabled: true }` + `allow_promotion_codes: true` flags landed in `createCheckoutSession()`. Tax line shows in Stripe-hosted Checkout once founder enables Stripe Tax in the Dashboard.
+- **`stripeReconcile` Inngest cron** (`0 3 * * *`) — paginates `stripe.subscriptions.list({ status: 'all' })` in 100-row batches, compares tier+status against the `subscription` table, emits `subscription.drift` events on mismatch. Detection-only; no auto-fix (audit-log discipline). Skips gracefully without `STRIPE_SECRET_KEY`.
+- **`SubscriptionBanner`** on `/dashboard` — surfaces `past_due` / `canceled` / `incomplete` subscription states with Concession-then-Critique copy + portal-launch link. Hidden for `active` / `trialing`.
+
+### Changed
+- **Solo Indie $19 → $25** (Sentry / Snyk parity per ADR-0020 / A5).
+- **Per-tier × billing-cycle Stripe Price IDs** — env convention: `STRIPE_PRICE_<TIER>_<MONTHLY|ANNUAL>`. Backwards-compat: `STRIPE_PRICE_<TIER>` (no suffix) still maps to monthly.
+- **`createCheckoutSession(tier, cycle?)`** — second arg = `BillingCycle`, defaults `monthly`. Returns 400-ish error when `agency_scale_plus` requested with `monthly` (annual-only enforcement). Returns sales-contact error when `msaRequired` tier requested (no self-serve).
+- **`startCheckoutAction`** — accepts hidden `cycle` form field; defaults to `monthly`.
+- **`@vk/inngest`** depends on `@vk/billing` + `stripe` (cron needs both at module-load time).
+
+### Notes
+- **Build:** 15 turbo green. Routes unchanged from Sprint 1.0; `/billing` rewritten with cycle-toggle.
+- **Tests:** 84/84 vitest. **Eval:** 30/30 golden-set.
+- **Cash-out:** $0. Stripe live-mode toggle remains paperwork-bound (Gewerbeanmeldung → KYC → Tax → SAQ-A per A3).
+- **No AI calls executed.**
+- **Phase-0-Gate Criterion #6 (GH-App Mitigations) unchanged:** 2 / 4 implemented (Customer-Admin UI Sprint 1.2, live-registration Sprint 1.4).
+- **Sprint 1.1 paperwork track:** founder enables Stripe Tax + signs SAQ-A + completes Gewerbeanmeldung; first 10 warm-intros sent; Substack post #2 (Phase 0.5 retro) live.
+
+---
+
 ## [0.0.15] — 2026-05-18 — Sprint 1.0 — GitHub-App Mitigations Slice + LLM-Eval Floor
 
 ### Added

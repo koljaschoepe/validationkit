@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { TierId } from "@vk/billing";
+import type { BillingCycle, TierId } from "@vk/billing";
 
 let cached: Stripe | null = null;
 
@@ -18,29 +18,54 @@ export function getStripe(): Stripe {
     cached = new Stripe(key, {
       apiVersion: "2026-04-22.dahlia",
       typescript: true,
-      appInfo: { name: "ValidationKit", version: "0.0.13" },
+      appInfo: { name: "ValidationKit", version: "0.0.15" },
     });
   }
   return cached;
 }
 
 /**
- * Per-tier Stripe Price IDs. Wired via env vars at deploy time. When a tier
- * has no Price ID configured we treat checkout as disabled for that tier.
+ * Per-tier × billing-cycle Stripe Price IDs. Wired via env at deploy time.
  *
- * Setup-flip lives outside the codebase: founder creates 5 Products + Prices
- * in Stripe Dashboard, copies the price_xxx IDs into the env vars below.
+ * Convention:
+ *   STRIPE_PRICE_SOLO_INDIE_MONTHLY   = price_xxx (monthly recurring)
+ *   STRIPE_PRICE_SOLO_INDIE_ANNUAL    = price_yyy (annual recurring, 20% off)
+ *
+ * Backwards-compat: STRIPE_PRICE_SOLO_INDIE (no suffix) maps to monthly.
+ *
+ * The founder creates one Stripe Product per tier and two recurring Prices
+ * per Product (monthly + annual), then drops the IDs into Vercel env vars.
+ * agency_scale_plus is annual-only — monthly env var stays unset.
  */
-export const STRIPE_PRICE_IDS: Record<Exclude<TierId, "free">, string | null> = {
-  solo_indie: process.env.STRIPE_PRICE_SOLO_INDIE ?? null,
-  solo_pro: process.env.STRIPE_PRICE_SOLO_PRO ?? null,
-  agency_pro: process.env.STRIPE_PRICE_AGENCY_PRO ?? null,
-  agency_scale: process.env.STRIPE_PRICE_AGENCY_SCALE ?? null,
+type PaidTier = Exclude<TierId, "free">;
+type CycleSuffix = "MONTHLY" | "ANNUAL";
+
+const TIER_ENV_NAME: Record<PaidTier, string> = {
+  solo_indie: "SOLO_INDIE",
+  solo_pro: "SOLO_PRO",
+  agency_pro: "AGENCY_PRO",
+  agency_scale: "AGENCY_SCALE",
+  agency_scale_plus: "AGENCY_SCALE_PLUS",
 };
 
-export function priceIdFor(tier: TierId): string | null {
+function envKeyFor(tier: PaidTier, suffix: CycleSuffix): string {
+  return `STRIPE_PRICE_${TIER_ENV_NAME[tier]}_${suffix}`;
+}
+
+export function priceIdFor(
+  tier: TierId,
+  cycle: BillingCycle = "monthly",
+): string | null {
   if (tier === "free") return null;
-  return STRIPE_PRICE_IDS[tier];
+  const paidTier = tier as PaidTier;
+  const suffix: CycleSuffix = cycle === "annual" ? "ANNUAL" : "MONTHLY";
+  const newStyle = process.env[envKeyFor(paidTier, suffix)];
+  if (newStyle) return newStyle;
+  // Backwards-compat: STRIPE_PRICE_<TIER> with no suffix = monthly.
+  if (suffix === "MONTHLY") {
+    return process.env[`STRIPE_PRICE_${TIER_ENV_NAME[paidTier]}`] ?? null;
+  }
+  return null;
 }
 
 export function billingBaseUrl(): string {

@@ -3,7 +3,12 @@
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb, schema, isDbEnabled } from "@vk/db";
-import { ensureSubscription, type TierId } from "@vk/billing";
+import {
+  ensureSubscription,
+  TIERS,
+  type BillingCycle,
+  type TierId,
+} from "@vk/billing";
 import { getSessionUser } from "./session";
 import {
   billingBaseUrl,
@@ -16,8 +21,13 @@ export type ActionResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
+function normaliseCycle(input: unknown): BillingCycle {
+  return input === "annual" ? "annual" : "monthly";
+}
+
 export async function createCheckoutSession(
   tier: TierId,
+  cycle: BillingCycle = "monthly",
 ): Promise<ActionResult> {
   if (!isDbEnabled()) {
     return { ok: false, error: "Database is not enabled on this deployment." };
@@ -32,11 +42,24 @@ export async function createCheckoutSession(
   if (tier === "free") {
     return { ok: false, error: "The free tier has no checkout." };
   }
-  const priceId = priceIdFor(tier);
+  const config = TIERS[tier];
+  if (config.annualOnly && cycle !== "annual") {
+    return {
+      ok: false,
+      error: `${config.label} is annual-only. Switch the billing cycle to annual before checkout.`,
+    };
+  }
+  if (config.msaRequired) {
+    return {
+      ok: false,
+      error: `${config.label} requires a signed MSA. Email kol.schoepe@gmail.com to start.`,
+    };
+  }
+  const priceId = priceIdFor(tier, cycle);
   if (!priceId) {
     return {
       ok: false,
-      error: `Stripe price ID for tier "${tier}" is not configured.`,
+      error: `Stripe price ID for tier "${tier}" (${cycle}) is not configured.`,
     };
   }
   const user = await getSessionUser();
@@ -55,9 +78,13 @@ export async function createCheckoutSession(
     customer_email: snap.stripeCustomerId ? undefined : user.email,
     client_reference_id: user.id,
     subscription_data: {
-      metadata: { userId: user.id, tier },
+      metadata: { userId: user.id, tier, cycle },
     },
-    metadata: { userId: user.id, tier },
+    metadata: { userId: user.id, tier, cycle },
+    allow_promotion_codes: true,
+    automatic_tax: { enabled: true },
+    customer_update: snap.stripeCustomerId ? { address: "auto" } : undefined,
+    tax_id_collection: { enabled: true },
     success_url: `${baseUrl}/billing?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/billing?status=cancelled`,
   });
@@ -69,7 +96,8 @@ export async function createCheckoutSession(
 
 export async function startCheckoutAction(formData: FormData): Promise<void> {
   const tier = String(formData.get("tier") ?? "") as TierId;
-  const result = await createCheckoutSession(tier);
+  const cycle = normaliseCycle(formData.get("cycle"));
+  const result = await createCheckoutSession(tier, cycle);
   if (!result.ok) {
     redirect(
       `/billing?status=error&reason=${encodeURIComponent(result.error)}`,

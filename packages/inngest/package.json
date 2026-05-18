@@ -20,12 +20,14 @@
   },
   "dependencies": {
     "@vk/audit": "workspace:*",
+    "@vk/billing": "workspace:*",
     "@vk/core": "workspace:*",
     "@vk/db": "workspace:*",
     "@vk/drift": "workspace:*",
     "@vk/parser": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "inngest": "^4.4.0"
+    "inngest": "^4.4.0",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

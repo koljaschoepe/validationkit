@@ -16,6 +16,8 @@ import { DashboardTable } from "@/components/dashboard/DashboardTable";
 import { DashboardEventBus } from "@/components/dashboard/DashboardEventBus";
 import { RepoGraphClient } from "@/components/dashboard/RepoGraphClient";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { SubscriptionBanner } from "@/components/dashboard/SubscriptionBanner";
+import { ensureSubscription } from "@vk/billing";
 import type { RepoGraphInput } from "@/components/dashboard/RepoGraph";
 
 type SearchParams = Promise<{
@@ -112,6 +114,7 @@ export default async function DashboardPage({
   const onboarding = await buildOnboardingStatus(user.id);
   const showOnboarding =
     !onboarding.hasScans || !onboarding.hasRepos || !onboarding.hasDrift;
+  const subscription = await ensureSubscription(user.id);
 
   return (
     <SidebarProvider>
@@ -132,6 +135,10 @@ export default async function DashboardPage({
         <DashboardFilterStrip />
 
         <main className="flex-1 space-y-6 p-4 sm:p-6">
+          <SubscriptionBanner
+            status={subscription.status}
+            tierLabel={subscription.config.label}
+          />
           {showOnboarding ? (
             <OnboardingChecklist status={onboarding} />
           ) : null}
