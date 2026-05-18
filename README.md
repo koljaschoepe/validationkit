@@ -1,164 +1,160 @@
-# ValidationKit / Sondr
+# ValidationKit
 
-> **Cross-Vendor Agent-File Trust** — from idea to multi-customer operations.
+> **Cross-vendor agent-file trust** — deterministic audit + drift detection across CLAUDE.md, AGENTS.md, .cursor/rules, .windsurfrules, .clinerules, .aider.conf.yml, SKILL.md and 5 more vendor formats.
 
-Find out if anyone actually wants your idea — before you build it. Keep your customer-repos' AI-agent guidance aligned without dropping into each one weekly. One framework, two wedges, one cash engine.
+[![Hosted dashboard](https://img.shields.io/badge/dashboard-validationkit.vercel.app-7c3aed)](https://validationkit.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-Phase%201%20deferral-orange)](docs/status/m3-gate-audit.md)
 
-**Status:** Phase 0 (M0–M3) · Hardcore-Local-Only · Working title "ValidationKit" / Sondr (final M9). MIT-licensed core.
-
----
-
-## The 30-second pitch
-
-ValidationKit reads the agent-files in any repository — `CLAUDE.md`, `AGENTS.md`, `.claude/agents/*`, `.cursor/rules/*.mdc`, `GEMINI.md`, plus 7 more — and tells you, deterministically, what's broken or drifting. **5 of 6 finding categories are deterministic.** The 6th (conflicting-rules) uses an LLM with confidence-banding. No vibe-scores. Every finding includes a `file:line` citation.
-
-Two wedges:
-
-- **`/validate`** — Pre-Build-Validation for Solopreneurs. Audit your prototype. Mom-Test your wedge. Pick a price that doesn't sandwich. Ship.
-- **`/operations`** — Post-Build-Operations for AI-Consultancies. Audit 5–30 customer-repos. Drift-detect across them. Distribute template changes via PR-Workflow with Customer-Admin approval (Read-Only-Default).
-
-Both wedges share an OSS core and a hosted web app.
+**5 of 6 finding categories are deterministic.** Every finding includes a `file:line` citation. No vibe-scores. The 6th category (`conflicting-rules`) is LLM-augmented with explicit confidence-banding — and only fires when you've set `ANTHROPIC_API_KEY` yourself.
 
 ---
 
-## Try it (local)
+## Two ways to use this
+
+### 1. CLI (OSS-MIT, runs locally)
 
 ```bash
-# Clone
-git clone https://github.com/validationkit-ai/validationkit
-cd validationkit
-pnpm install
-pnpm build
+npm install -g validationkit-cli
 
-# Run a one-shot audit against any repo (no auth required)
-node packages/cli/bin/validationkit.mjs audit /path/to/your/repo
-
-# Drift between two repos
-node packages/cli/bin/validationkit.mjs drift /path/to/a /path/to/b
-
-# Boot the web UI (anonymous mode, no DB needed)
-pnpm --filter @vk/web dev
-# → http://localhost:3000
+validationkit audit .                  # Scan the current repo
+validationkit drift ./repo-a ./repo-b  # Compare two repos
+validationkit inventory .              # List detected agent-files
+validationkit audit . --as-skill       # JSON contract for Claude Skills
 ```
 
-For the full stack (auth + persistence + background jobs + GitHub App):
+See [`packages/cli/README.md`](packages/cli/README.md) for full usage.
 
-```bash
-pnpm stack:up         # Postgres + Dragonfly + Mailpit + Inngest dev server
-cp .env.example .env.local
-# generate AUTH_SECRET: openssl rand -base64 32
-pnpm db:migrate
-pnpm --filter @vk/web dev
-```
+### 2. Hosted dashboard
 
-For GitHub App registration (Customer-PR-Workflow): see [`docs/setup/github-app-checklist.md`](./docs/setup/github-app-checklist.md).
+<https://validationkit.vercel.app>
 
----
+- **Free tier:** 1 repo, 20 audits/month, no card.
+- **Solo Indie $25/mo · Solo Pro $79/mo · Agency Pro $299/mo · Agency Scale $799/mo · Agency Scale Plus $1,499/mo (annual-only)** — pricing at [`/pricing`](https://validationkit.vercel.app/pricing).
+- Trust + DPA + sub-processor RSS feed at [`/trust`](https://validationkit.vercel.app/trust).
+- Status + per-surface health at [`/status`](https://validationkit.vercel.app/status).
+- LLM-eval FPR history at [`/trust/eval`](https://validationkit.vercel.app/trust/eval) — Constraint #14 audit surface.
 
-## What it actually does
-
-### Audit (5/6 deterministic + 1 LLM)
-
-| Category | Detection | LLM? |
-|---|---|---|
-| `unused-agent` | No command/workflow references the agent. | No |
-| `duplicate-guidance` | Trigram similarity ≥ 85% across 2+ files. | No |
-| `context-bloat` | Single file over 8000 tokens (tiktoken cl100k_base). | No |
-| `stale-reference` | Markdown link points to a non-existent file. | No |
-| `token-budget` | Always-loaded context sum > 25k tokens. | No |
-| `conflicting-rules` | Two related files disagree (low/mid/high confidence). | Yes (opt-in via `ANTHROPIC_API_KEY`) |
-
-### Drift (5 deterministic kinds)
-
-`only-in-A` · `only-in-B` · `content-drift` (similarity < 85%) · `frontmatter-drift` (name/description/globs/activationMode change) · `token-drift` (>25% delta).
-
-### Cross-vendor coverage (12/12)
-
-5 MUST (CLAUDE.md, AGENTS.md, `.claude/agents/*`, `.claude/commands/*`, `SKILL.md`)
-+ 5 SHOULD (GEMINI.md, `.cursor/rules/*.mdc` with 4-mode activation logic, `.cursorrules`, `.windsurf/rules/*.md`, `.clinerules`)
-+ 2 MAY (`.codex/*`, `aider.conf.yml` — pure YAML parser).
-
-### Build-in-Public output
-
-`@vk/bip-generator` — turns any audit or drift report into three social-media drafts (X-thread, LinkedIn, Mastodon) in Skeptic-Mentor voice. Concession-then-Critique. Specific numbers, not vibes. Copy-to-clipboard ready.
-
----
-
-## Brand voice
-
-- **Skeptic Mentor.** Older founder who doesn't lie, but respects the person.
-- **Concession-then-Critique.** Acknowledge what's right, then push back with specific data.
-- **Severity bands, not scores.** `{Kill, Weak, Mid, Strong, Exceptional}`. No "87/100".
-- **Citation-first.** Every claim ships with a `file:line` and a date.
-- **Counter-tagline:** "Most ideas fail this. That's the point."
+> **Stripe live-mode is not flipped yet** as of 2026-05-18. Code is shipped; the founder is mid-KYC. See [`/pricing`](https://validationkit.vercel.app/pricing) for honest current state.
 
 ---
 
 ## What's in this repo
 
-| Path | Contents |
+```
+apps/web/                  Next.js 16 app (hosted dashboard)
+packages/
+  core/                    Shared types (Severity bands, FindingCategory, etc.)
+  parser/                  12-format agent-file parser
+  audit/                   5 deterministic audit rules
+  llm/                     1 LLM-augmented rule + provider abstraction
+  drift/                   Cross-repo drift detection
+  fixes/                   4 deterministic + 1 LLM-augmented patch generator
+  billing/                 Tier config + canAddRepo + isPaid helpers
+  cli/                     validationkit-cli (publishable npm package)
+  db/                      Drizzle schema + Neon adapter
+  auth/                    Better-Auth + magic-link
+  inngest/                 Background workflows (audit cron, stripe-reconcile)
+  github-app/              Manifest + webhook handlers (App-ID not live yet)
+  pr-workflow/             Patch-download fallback (LocalGitClient)
+  bip-generator/           Build-in-Public draft generator
+skills/
+  validationkit-agent-file-audit/    First Anthropic Skill
+eval/
+  golden-set/              34 fixtures (real-world + dogfood + adversarial)
+  conflicts/               LLM-eval harness w/ per-band FPR + N=3 variance
+docs/
+  PRD.md                   Single source of truth
+  roadmap/                 Phase-by-phase plans (phase-0.5-dashboard.md, phase-1.md)
+  decisions/               22 ADRs locking strategic + scope decisions
+  research/                30+ research outputs (Phase-0.5 + Phase-1 pivots)
+  legal/                   DPA template + sub-processor list + scope policy
+  outreach/                Tester-invite voice templates
+  status/                  Live audit docs (m3-gate-audit.md)
+```
+
+---
+
+## Quick local-dev start
+
+```bash
+git clone https://github.com/koljaschoepe/validationkit
+cd validationkit
+pnpm install
+
+# Local stack via Docker (Postgres + Mailpit + Dragonfly + Inngest dev)
+pnpm stack:up
+
+# Migrate Neon-compatible schema
+pnpm --filter @vk/db migrate
+
+# Boot the web app
+pnpm --filter @vk/web dev   # → http://localhost:3000
+
+# Run the CLI locally without npm install
+node packages/cli/bin/validationkit.mjs audit .
+```
+
+See [`.env.example`](.env.example) for required env-vars.
+
+---
+
+## Run the test gates
+
+```bash
+pnpm typecheck      # All 28 workspace packages
+pnpm test           # 84/84 vitest (15 files)
+pnpm eval           # 34/34 golden-set (smoke)
+pnpm build          # 15 turbo tasks
+```
+
+The pre-commit checklist for any PR is in [`CONTRIBUTING.md`](CONTRIBUTING.md). CI runs the same gates on every push + PR to `main` via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+---
+
+## Current state (2026-05-18)
+
+| | |
 |---|---|
-| `packages/` | 12 packages: core, parser, audit, drift, llm, cli, db, auth, pr-workflow, github-app, inngest, bip-generator. |
-| `apps/web/` | Next.js 16 web app. 14 routes including `/customers`, `/drift`, `/scans`, `/bip`, `/trust`, `/requests`. |
-| `docs/` | PRD, Roadmap, Decisions (ADRs), Research (v2–v5), Handbook v0 (8 chapters), Playbook v0 (2 chapters), Legal (DPA + TOMs + Incident-Response + Scope-Policy), Setup (GitHub App). |
-| `eval/` | Golden-set (21/30 entries), conflicts dataset, smoke + promptfoo eval scaffold. |
-| `examples/` | Sample-good + sample-bad fixtures used by the README demo + tests. |
-| `templates/` | Workflow templates (RFC, ADR, feature-spec, test-plan, release-note, sprint-planning). |
-| `.claude/` | Project context for Claude Code: CLAUDE.md, agents, commands. |
-| `scripts/` | One-off tooling (anonymize.ts, …). |
-| `docker-compose.yml` | Local stack: Postgres + Dragonfly + Mailpit + Inngest. |
+| Phase | 1 (post-Phase-0.5 close) |
+| Active sprint | Sprint 1.6 NO-GO audit closed — **feature-work paused until Sprint 1.10 audit re-test** per [ADR-0022](docs/decisions/0022-m3-gate-fail-scope-correction.md) |
+| M3-Gate technical criteria | 7 / 7 PASS (#6 ⚠️ partial: manifest pinned, live App-ID pending paperwork) |
+| M3-Gate commercial criteria | 0 / 3 (Indie Mom-Tests 0/20 · Agency Discovery 0/10 · Agency LOIs 0/5) |
+| Surfaces shipped | ~30 production routes + 1 Anthropic Skill |
+| Test coverage | 84 vitest + 34 golden-set eval + 1 LLM-eval harness (gated on key) |
+| Cumulative cash-out | $0 (Vercel + Neon + Resend free tiers; Stripe + Inngest Cloud + Anthropic remain toggle-on) |
+
+The honest read on why we're in deferral: [docs/status/m3-gate-audit.md](docs/status/m3-gate-audit.md). The lock-in for what happens next: [ADR-0022](docs/decisions/0022-m3-gate-fail-scope-correction.md).
 
 ---
 
-## Quick links
+## Strategic constraints (load-bearing)
 
-- **Strategy:** [`docs/PRD.md`](./docs/PRD.md) — Single Source of Truth.
-- **Roadmap:** [`docs/roadmap/ROADMAP.md`](./docs/roadmap/ROADMAP.md) + [`STATUS.md`](./STATUS.md).
-- **Handbook (for indie founders):** [`docs/handbook/`](./docs/handbook/).
-- **Playbook (for AI-agencies):** [`docs/playbook/`](./docs/playbook/).
-- **Trust Center:** [`http://localhost:3000/trust`](http://localhost:3000/trust) once running.
-- **Legal:** [`docs/legal/`](./docs/legal/) — DPA, scope-policy, sub-processors, TOMs, incident-response.
-- **GitHub App setup:** [`docs/setup/github-app-checklist.md`](./docs/setup/github-app-checklist.md).
-- **Demo walkthrough:** [`docs/demo-script.md`](./docs/demo-script.md) — 5-minute screen-share script for Mom-Tests.
+The PRD calls these out as "do-not-soften-without-an-ADR" — listed here so contributors don't accidentally violate them in a PR:
 
----
-
-## Pricing (as of Sprint 0.8)
-
-| Tier | For | $/mo |
-|---|---|---|
-| Free OSS | Self-host, solo | $0 |
-| Solo Indie | One project, validator + audit | $19 |
-| Solo Pro | Three projects, audit + drift | $79 |
-| Agency Pro | 10 customer-repos | $299 |
-| Agency Scale | 30 customer-repos, audit-trail export | $799 |
-| Validation Sprint | Founders, productized 2-week sprint | $4,500 |
-| Operations Sprint | Agencies, productized 2-week sprint | $4,500 |
-
-Explicit non-tier: there is **no $99 sandwich**. PRD §6 Constraint #11.
-
----
-
-## Status
-
-- ✅ 13 packages build clean
-- ✅ 71 vitest cases green
-- ✅ 21/30 golden-set entries pass (synthetic + dogfood + real-world-like)
-- ✅ 4/4 GitHub-App Day-1 Mitigations (Read-Only-Default · DPA-Template · Trust-Center · Requester→Approver-Bridge)
-- ✅ 12/12 cross-vendor formats parsed
-- ✅ 5/6 deterministic audit categories + 1 LLM opt-in
-- ⏳ Validation-Handbook v0 (8 chapters skeleton — this Sprint)
-- ⏳ Operations-Playbook v0 (2 chapters skeleton — this Sprint)
-- ⏳ Anonymized-customer fixtures (0/9 — unlocks per LOI)
-
-Per-sprint detail in [`STATUS.md`](./STATUS.md).
+1. **Multi-Provider from Day 1.** Every agent works on Claude Code + Cursor + Codex CLI. Single-Provider lock-in = Anthropic-Acquisition-Risk.
+2. **Citation-First.** Every finding has a `file:line` citation. No vibe-scores.
+3. **Legitimate channels only.** No DM-automation, no LinkedIn/Instagram outreach automation, no ToS-Verstöße.
+4. **Severity bands** ({Kill, Weak, Mid, Strong, Exceptional}) **never numeric scores.**
+5. **MIT for core.** BSL re-license is documented option for Phase 4+; no pinky-promise.
+6. **Skeptic-Mentor voice.** Concession-then-Critique. No "AI-powered" or "10x your X" copy.
+7. **Hybrid Layered (Pivot E).** PLG + Productized-Service in parallel. MM only as Phase-3-Optional. See [ADR-0017](docs/decisions/0017-hybrid-pivot-e.md).
+8. **Dual-Wedge** (Pre-Build Validation + Post-Build Agency Operations). See [ADR-0018](docs/decisions/0018-contextforge-as-productized-form.md).
 
 ---
 
 ## License
 
-MIT. Phase-4+ BSL re-license is documented in PRD §2 Constraint #6 as a future option, not a current intent.
+MIT. See [LICENSE](LICENSE).
+
+## Security
+
+Don't file public issues for security vulnerabilities. Email <kol.schoepe@gmail.com>. SLA + scope in [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) — what lands fast, what lands slow, commit conventions, brand-voice rules.
 
 ---
 
-*Owner: Kolja Schöpe ([kol.schoepe@gmail.com](mailto:kol.schoepe@gmail.com)). Built solo in Phase 0–2 per PRD §2 Constraint #9. No VC, no co-founder, no sales-hire before M18.*
+**Maintainer:** Kolja Schöpe · [kol.schoepe@gmail.com](mailto:kol.schoepe@gmail.com)

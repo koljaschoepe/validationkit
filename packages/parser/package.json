@@ -1,6 +1,6 @@
 {
   "name": "@vk/parser",
-  "version": "0.0.10",
+  "version": "0.0.20",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

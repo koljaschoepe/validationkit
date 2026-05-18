@@ -88,7 +88,33 @@ const ROADMAP: Array<{ milestone: string; item: string; sev: SeverityBand; statu
   },
 ];
 
+type CcaStatus = "pending" | "in-progress" | "certified";
+
+const CCA_COPY: Record<CcaStatus, { label: string; variant: "outline" | "secondary" | "default" }> = {
+  pending: {
+    label: "Claude Certified Architect · pending",
+    variant: "outline",
+  },
+  "in-progress": {
+    label: "Claude Certified Architect · in progress",
+    variant: "secondary",
+  },
+  certified: {
+    label: "Claude Certified Architect · certified",
+    variant: "default",
+  },
+};
+
+function resolveCcaStatus(): CcaStatus {
+  const raw = (process.env.CCA_STATUS ?? "pending").toLowerCase();
+  if (raw === "certified") return "certified";
+  if (raw === "in-progress") return "in-progress";
+  return "pending";
+}
+
 export default function TrustPage() {
+  const cca = resolveCcaStatus();
+  const ccaCopy = CCA_COPY[cca];
   return (
     <>
       <SiteNav />
@@ -103,6 +129,9 @@ export default function TrustPage() {
             and what&apos;s on the compliance roadmap. Pre-release.
             M3 pulls a lawyer through this; M8 pulls a second lawyer through the DPA.
           </p>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Badge variant={ccaCopy.variant}>{ccaCopy.label}</Badge>
+          </div>
         </header>
 
         <Card>
