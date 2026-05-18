@@ -6,6 +6,34 @@
 
 ---
 
+## [0.0.18] — 2026-05-18 — Sprint 1.3 — OSS v0.1 Public + Show-HN Readiness
+
+### Added
+- **`LICENSE` (MIT)** at repo root + bundled into `packages/cli/`.
+- **`SECURITY.md`** — 7-day acknowledgement SLA, 14/30/90-day fix SLA by severity, in-scope/out-of-scope list, no-bug-bounty disclosure.
+- **`CONTRIBUTING.md`** — "what lands fast / what lands slow" + pre-commit checklist + commit-message format + DCO-lite sign-off + brand-voice rules.
+- **`validationkit-cli` npm package** — `@vk/cli` renamed. Adds description, keywords, homepage, repository, engines (Node 22+), publishConfig{access:public}. README.md inside the package. Version 0.1.0. **Not yet published — Kolja runs `cd packages/cli && pnpm publish` when ready.**
+- **Anonymous-audit rate-limit** — 30/h per IP via in-memory sliding window (`apps/web/src/lib/rate-limit.ts`). Signed-in users bypass.
+- **`/pricing` public page** — separate from `/billing` (signed-in). 6-tier grid + annual/monthly toggle + EU VAT-inclusive display + 6-question FAQ with Concession-then-Critique answers. Concession-card at the bottom acknowledging Stripe-not-yet-flipped.
+- **`/status` health-check page** — live per-surface probes (Neon, Inngest, Resend, Stripe, Anthropic, GitHub). Per-surface severity badges (green/yellow/red/disabled). Disabled = intentional, not an outage. No Statuspage.io subscription.
+- **`apps/web/src/app/error.tsx`** — route-scoped error boundary with retry + back-to-dashboard CTA. Surfaces `error.digest`.
+- **`apps/web/src/app/not-found.tsx`** — branded 404 with 4 entry-point links.
+- **`apps/web/src/app/global-error.tsx`** — top-level fallback (inline-styled, no shadcn — defensive against layout-level failure).
+
+### Changed
+- **`@vk/cli` → `validationkit-cli`** — public package name. Root `package.json` `audit` script updated.
+- **`auditAction`** rate-limits anonymous calls before the GitHub-fetch / local-path branches fire.
+
+### Notes
+- **Build:** 15 turbo green. New routes: `/pricing`, `/status`. New files: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `error.tsx`, `not-found.tsx`, `global-error.tsx`.
+- **Tests:** 84/84 vitest.
+- **Eval:** 34/34 golden-set.
+- **Cash-out:** $0.
+- **No AI calls executed. Not yet published to npm.**
+- **Phase-0-Gate Criterion #6 (GH-App Mitigations):** unchanged at 3 of 4.
+
+---
+
 ## [0.0.17] — 2026-05-18 — Sprint 1.2 — Customer-Admin Approver UI + Context-Bloat LLM-Fix
 
 ### Added

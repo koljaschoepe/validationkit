@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { existsSync, statSync } from "node:fs";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { scanRepository } from "@vk/parser";
 import { runAudit } from "@vk/audit";
@@ -16,6 +17,7 @@ import {
   cleanupTempDir,
   looksLikeGithubUrl,
 } from "./github-fetch";
+import { checkAnonymousRateLimit, ipFromHeaders } from "./rate-limit";
 
 export interface AuditFormState {
   ok: boolean;
@@ -38,6 +40,22 @@ export async function auditAction(
       ok: false,
       error: "Paste a GitHub repository URL (or a local absolute path).",
     };
+  }
+
+  // Anonymous-audit rate-limit: signed-in users bypass; anonymous traffic
+  // capped at 30/h per IP (Sprint 1.3). The limiter is in-memory per region
+  // — soft cap, not a paywall (see lib/rate-limit.ts).
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    const hdrs = await headers();
+    const ip = ipFromHeaders(hdrs);
+    const limit = checkAnonymousRateLimit(ip);
+    if (!limit.allowed) {
+      return {
+        ok: false,
+        error: limit.reason ?? "Rate limited.",
+      };
+    }
   }
 
   // Path 1: GitHub URL → fetch zipball + extract → audit → cleanup
