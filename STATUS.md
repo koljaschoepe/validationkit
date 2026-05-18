@@ -12,7 +12,7 @@
 - **Current Cluster:** Sprint 1.0 ✅ shipped → Sprint 1.1 next
 - **Hours-this-Week:** ~7 / 25 target (Sprint 1.0 code track only)
 - **Burnout-Flag:** 🟢 Green (no risk yet)
-- **Last Sprint:** Sprint 1.5 — Mom-Test wait-state + /trust/eval + /onboarding/[slug] ✅ shipped 2026-05-18 (Phase 1 W5; **Mom-Test synthesis postponed via ADR-0021 — no transcripts yet**)
+- **Last Sprint:** Sprint 1.6 — **M3-Gate audit fired NO-GO** ✅ docs shipped 2026-05-18 (Phase 1 W6). `docs/status/m3-gate-audit.md` + ADR-0022 lock scope-correction: pause Sprint 1.7→1.12 feature work, founder 25 h/wk re-allocated to gate-clearing, Sprint 1.10 audit re-test, **no re-pivot today** (thesis-vs-execution diagnostic — see ADR-0022 §Diagnostic).
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
 - **Dashboard-Pivot (Phase 0.5):** ADR-0019 + Sprints 0.11–0.14 shipped 2026-05-17, $0 cumulative.
 - **Phase-1 Plan:** 10-agent parallel research synthesis landed 2026-05-17 — `docs/research/phase-1-pivot/00-synthesis.md` + `docs/roadmap/phase-1.md` (Sprint 1.0→1.12, M3→M9) + ADR-0020. PRD §3 + §6.4 + §6.5 + §11.3 corrected.
@@ -21,13 +21,15 @@
 
 ---
 
-## Phase-0-Gate (M3 = End-of-W13)
+## Phase-0-Gate (M3 = End-of-W13) — **NO-GO at Sprint 1.6 audit · re-test Sprint 1.10**
+
+> See `docs/status/m3-gate-audit.md` and `docs/decisions/0022-m3-gate-fail-scope-correction.md`.
 
 | # | Criterion | Target | Current | Notes |
 |---|---|---|---|---|
-| 1 | Indie-Mom-Tests transkribiert | 20 | 0 | recruitment-pipeline W1 |
-| 2 | Agency-Discovery-Interviews | 10 | 0 | startet W6 |
-| 3 | Agency-LOIs signed | 5 | 0 | startet W9 (LOI-Push C4) |
+| 1 | Indie-Mom-Tests transkribiert | 20 | **0 ❌** | Sprint 1.6 audit: paperwork-track did not execute Phase 1 W1–W6. Re-test Sprint 1.10. |
+| 2 | Agency-Discovery-Interviews | 10 | **0 ❌** | Same. |
+| 3 | Agency-LOIs signed | 5 | **0 ❌** | **ADR-0018 Trigger #1 fires by letter; diagnostic = execution-track-not-thesis-track.** No re-pivot per ADR-0022. |
 | 4 | OSS v0.1 lokal lauffähig | 1 | **1.0 ✅** | Real-Execution 2026-05-17: full stack up via `pnpm e2e:smoke` (9/9 layers green), magic-link round-trip → /scans → audit persisted (12 files, 4 findings, Weak) → BiP-draft generated → audit-trail export (JSON: 2 rows, 12-month retention). Phase-0-Gate #4 closed. |
 | 8 | Validation-Handbook v0 Kapitel | 8 | 8 | Sprint 0.8: 8 Kapitel-Skelette mit Brand-Voice (Positioning → Mom-Test → Channels → Pricing → Build → Launch → Iterate → Anchor) |
 | 9 | Operations-Playbook v0 Kapitel | 2 | 2 | Sprint 0.8: 2 Kapitel (Customer-Onboarding, Template-Distribution) als Sales-Collateral für $4500-Sprint |

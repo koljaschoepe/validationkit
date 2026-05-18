@@ -6,6 +6,34 @@
 
 ---
 
+## [unreleased] — 2026-05-18 — Sprint 1.6 — **M3-Gate audit NO-GO** (docs-only commit)
+
+> No version bump — this is the explicit "pause feature-work" sprint per ADR-0022. The next version bump lands when Sprint 1.10 audit re-tests positive OR ADR-0022 re-opens via a `trigger_to_revisit` firing.
+
+### Added
+- **`docs/status/m3-gate-audit.md`** — formal M3-Gate audit. Verdict: **NO-GO**. Per-criterion table: 3 commercial criteria at 0/N (Indie Mom-Tests 0/20, Agency Discovery 0/10, Agency LOIs 0/5); 7 technical criteria all PASS (#6 ⚠️ partial — manifest pinned, live App-ID flip is paperwork-track pending). Diagnostic: failure is execution-track-not-thesis-track. 30+ surfaces shipped + 84/84 vitest + 34/34 eval green; the gap is human cadence (warm intros, conferences, interview scheduling), not platform capability.
+- **`docs/decisions/0022-m3-gate-fail-scope-correction.md`** — ADR locking 6 calls:
+  1. **No re-pivot today.** ADR-0017 triggers don't fire; ADR-0018 Trigger #1 fires by letter but diagnostic says execution-not-thesis. Voller-Replacement requires ≥2 axes of evidence; we have 1.
+  2. **Pause Sprint 1.7→1.12 feature work.** Exceptions: bug fixes, paperwork-track flips (npm publish, Stripe KYC, CPN application), doc updates for LOI conversations, ≤0.5 PD interview-pipeline tooling.
+  3. **Founder 25 h/wk re-allocated 100% to gate-clearing**: 8h warm intros, 6h cold-email, 8h interview pipeline, 3h BiP cadence.
+  4. **Phase 1 timeline shifts right 4–6 sprints.** Sprint 1.10 audit re-test with branch conditions (≥1 LOI = resume / 0 LOI = ADR-0023 thesis-suspect / ≥3 LOI = fast-track).
+  5. **Criterion #6 partial accepted** for M3-clear conditional on #1–#3 clearing.
+  6. **ADR-0018 monthly watch stays.** Anthropic CPN ratifies channel-narrative; not a product surface. Re-evaluate if a Claude-for-Agencies SKU ships during the deferral.
+
+### Postponed (honest non-vapor, per ADR-0022)
+- **Production-hardening** (incident-response playbook, Sentry/PostHog instrumentation, Neon→R2 backup) — no paying customers = no operational stake; over-built-relative-to-signal already.
+- **Sprint 1.7–1.12 feature roadmap** — paused entirely by default.
+- **`validationkit-cli` npm publish** — paperwork-track exception; Kolja runs when ready.
+
+### Notes
+- **No code shipped this sprint.** Docs-only commit on `main`. Vercel deploys nothing new.
+- **No tests run** (no code changes; vitest 84/84 + eval 34/34 from Sprint 1.5 baseline still hold).
+- **Cash-out:** $0.
+- **Phase-1 narrative:** the roadmap line for Sprint 1.6 reads "Gate-Check + Production Hardening". The actual outcome is "Gate-Check (NO-GO) + scope-correction ADR". Sprint 1.7–1.9 publish nothing code-side by design.
+- **Next code-track checkpoint:** Sprint 1.10 audit (Phase 1 W10) per ADR-0022 §4.
+
+---
+
 ## [0.0.20] — 2026-05-18 — Sprint 1.5 — Mom-Test wait-state + /trust/eval + /onboarding/[slug]
 
 ### Added
