@@ -100,6 +100,18 @@ export function FindingsList({
           },
         );
       }
+      if (
+        result.skippedLlmDisabled &&
+        result.skippedLlmDisabled.length > 0
+      ) {
+        toast.info(
+          `${result.skippedLlmDisabled.length} LLM-augmented fix${result.skippedLlmDisabled.length === 1 ? "" : "es"} skipped`,
+          {
+            description:
+              "Set ANTHROPIC_API_KEY (or OPENAI_API_KEY) to enable.",
+          },
+        );
+      }
       if (mode === "preview") {
         setPreview({
           title,
@@ -277,8 +289,18 @@ export function FindingsList({
               ) : null}
               {!fixable ? (
                 <p className="text-xs text-muted-foreground">
-                  No deterministic fix in v0.0.13. LLM-augmented fixes ship in
-                  Phase 1 after the M3 LOI-gate.
+                  No fix-generator covers this category yet (e.g.{" "}
+                  <code className="font-mono text-[0.7rem]">conflicting-rules</code>{" "}
+                  remains LLM-eval-only in v0.0.17).
+                </p>
+              ) : null}
+              {fixable && !f.deterministic ? (
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-foreground">LLM-augmented:</strong>{" "}
+                  requires <code className="font-mono">ANTHROPIC_API_KEY</code>{" "}
+                  (or <code className="font-mono">OPENAI_API_KEY</code>). Without
+                  a key the action returns the disabled-state. Confidence band
+                  shown above the diff.
                 </p>
               ) : null}
               {fixable && !scanId ? (

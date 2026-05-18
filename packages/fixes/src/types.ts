@@ -9,10 +9,19 @@ export interface FixProposal {
   patch: string;
   /** Repo-relative paths touched by the patch. */
   filesTouched: string[];
-  /** Always true for deterministic fixes (Sprint 0.13 ships only those). */
-  deterministic: true;
-  /** Sprint 0.13 deterministic fixes are always "high". */
-  confidence: "high";
+  /**
+   * true = deterministic generator (Sprint 0.13: unused-agent /
+   *   duplicate-guidance / stale-reference / token-overflow-trim)
+   * false = LLM-augmented generator (Sprint 1.2+: context-bloat-llm)
+   */
+  deterministic: boolean;
+  /**
+   * "high" for deterministic generators.
+   * "low" | "mid" | "high" for LLM-augmented per the model's self-reported
+   * confidence band (Constraint #14). The UI surfaces the band visually so
+   * the user calibrates trust correctly.
+   */
+  confidence: "low" | "mid" | "high";
 }
 
 export class UnsupportedFixError extends Error {

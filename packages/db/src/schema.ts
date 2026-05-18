@@ -128,6 +128,87 @@ export const installRequest = pgTable("install_request", {
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Sprint 1.2 — membership + RBAC. The Requester→Approver-Bridge depends on
+// {owner, admin, member} role distinction. workspace.ownerId stays as the
+// legacy founder pointer; the membership row with role='owner' is the
+// source of truth for RBAC checks.
+export const membership = pgTable(
+  "membership",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+    /** Stable invite token; resolves to userId when invitee signs in. */
+    invitedEmail: varchar("invited_email", { length: 320 }),
+    role: varchar("role", { length: 20 }).notNull().default("member"),
+    status: varchar("status", { length: 20 }).notNull().default("active"),
+    invitedById: text("invited_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    invitedAt: timestamp("invited_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("membership_workspace_user_unique").on(
+      t.workspaceId,
+      t.userId,
+    ),
+    index("membership_workspace_email_idx").on(
+      t.workspaceId,
+      t.invitedEmail,
+    ),
+  ],
+);
+
+export const membershipRelations = relations(membership, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [membership.workspaceId],
+    references: [workspace.id],
+  }),
+  user: one(user, { fields: [membership.userId], references: [user.id] }),
+  invitedBy: one(user, {
+    fields: [membership.invitedById],
+    references: [user.id],
+    relationName: "membership_invited_by",
+  }),
+}));
+
+// Sprint 1.2 — install-request decision audit-log. Captures actor + IP + UA
+// per decision (approve / reject / revoke). Append-only, never updated.
+export const installDecision = pgTable("install_decision", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  installRequestId: uuid("install_request_id")
+    .notNull()
+    .references(() => installRequest.id, { onDelete: "cascade" }),
+  deciderId: text("decider_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  decision: varchar("decision", { length: 20 }).notNull(), // approve | reject | revoke
+  reason: text("reason"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  decidedAt: timestamp("decided_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const installDecisionRelations = relations(installDecision, ({ one }) => ({
+  installRequest: one(installRequest, {
+    fields: [installDecision.installRequestId],
+    references: [installRequest.id],
+  }),
+  decider: one(user, {
+    fields: [installDecision.deciderId],
+    references: [user.id],
+  }),
+}));
+
 export const webhookEvent = pgTable("webhook_event", {
   // GitHub's x-github-delivery is a UUID-shaped string and serves as the
   // idempotency key. Replays land on the same row and skip processing.

@@ -30,12 +30,12 @@ function mkScan(files: ParsedAgentFile[]): ParserResult {
 }
 
 describe("isSupported", () => {
-  it("covers exactly the 4 deterministic categories", () => {
+  it("covers 4 deterministic + 1 LLM-augmented category", () => {
     expect(isSupported("unused-agent")).toBe(true);
     expect(isSupported("duplicate-guidance")).toBe(true);
     expect(isSupported("stale-reference")).toBe(true);
     expect(isSupported("token-budget")).toBe(true);
-    expect(isSupported("context-bloat")).toBe(false);
+    expect(isSupported("context-bloat")).toBe(true);
     expect(isSupported("conflicting-rules")).toBe(false);
   });
 });
@@ -152,7 +152,7 @@ describe("token-overflow-trim fix", () => {
 });
 
 describe("generateBatchFix", () => {
-  it("aggregates multiple fixes + reports failures", () => {
+  it("aggregates multiple fixes + reports failures", async () => {
     const target = mkFile({
       relativePath: ".claude/agents/old.md",
       rawContent: "stub\n",
@@ -177,10 +177,13 @@ describe("generateBatchFix", () => {
         deterministic: false,
       },
     ];
-    const result = generateBatchFix(findings, mkScan([target]));
+    const result = await generateBatchFix(findings, mkScan([target]));
     expect(result.successes).toHaveLength(1);
-    expect(result.failures).toHaveLength(1);
-    expect(result.failures[0]!.reason).toContain("context-bloat");
+    // context-bloat is now LLM-augmented; without ANTHROPIC_API_KEY it lands
+    // in `skippedLlmDisabled`, not `failures`.
+    expect(result.failures).toHaveLength(0);
+    expect(result.skippedLlmDisabled).toHaveLength(1);
+    expect(result.skippedLlmDisabled[0]!.category).toBe("context-bloat");
     expect(result.combinedPatch).toContain("--- a/.claude/agents/old.md");
   });
 });

@@ -426,10 +426,66 @@
         "must_categories": []
       },
       "notes": "Sprint 1.0 (A2): self-audit our billing package. Calibration anchor for new-package additions."
+    },
+    {
+      "id": "adv-context-bloat-llm-archive-tail",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/context-bloat-archive-tail",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.2: clearly-archive trailing section. LLM-eval ground-truth target heading = '## Archive — pre-Sprint-0.5 conventions' (high confidence)."
+    },
+    {
+      "id": "adv-context-bloat-llm-multi-section",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/context-bloat-multi-section",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.2: five equally-current sections (A-F). LLM-eval ground-truth: mid or low confidence; no obvious chop. Confidence-band correctness test."
+    },
+    {
+      "id": "adv-context-bloat-llm-recent-only",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/context-bloat-recent-only",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.2: all sections are current operational guidance. LLM-eval ground-truth: low confidence refusal (every section load-bearing)."
+    },
+    {
+      "id": "adv-context-bloat-llm-structured-changelog",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/context-bloat-structured-changelog",
+      "vendor_mix": ["claude-md"],
+      "expected": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.2: current guidance + Changelog tail. LLM-eval ground-truth target heading = '## Changelog' (high confidence)."
     }
   ],
-  "target_size": 30,
-  "current_size": 30,
+  "target_size": 34,
+  "current_size": 34,
   "growth_plan": [
     "Add 5 anonymized customer-pilot snapshots (after first 5 Agency-LOIs in M3).",
     "Add 4 permissively-licensed public-repo vendoring once GitHub App lands."

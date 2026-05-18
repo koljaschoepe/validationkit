@@ -50,6 +50,13 @@
       "when": 1779085605480,
       "tag": "0006_secret_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779092241728,
+      "tag": "0007_narrow_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

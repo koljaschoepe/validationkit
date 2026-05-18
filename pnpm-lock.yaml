@@ -292,6 +292,9 @@ importers:
       '@vk/core':
         specifier: workspace:*
         version: link:../core
+      '@vk/llm':
+        specifier: workspace:*
+        version: link:../llm
       diff:
         specifier: ^7.0.0
         version: 7.0.0

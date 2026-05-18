@@ -4,6 +4,11 @@ export {
   defaultLLMConfig,
 } from "./rules/conflicting-rules.js";
 export {
+  suggestContextBloatTrim,
+  type ContextBloatSuggestion,
+  type ContextBloatSuggestionInput,
+} from "./rules/context-bloat-llm.js";
+export {
   selectModel,
   isLlmEnabled,
   llmDisabledMessage,

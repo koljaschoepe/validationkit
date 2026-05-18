@@ -33,6 +33,11 @@ export default async function CustomerDetailPage({
             </>
           ) : null}
         </p>
+        <p>
+          <Link href={`/customers/${id}/access`}>
+            → Access · members + pending install-requests
+          </Link>
+        </p>
       </header>
 
       <section className="summary">

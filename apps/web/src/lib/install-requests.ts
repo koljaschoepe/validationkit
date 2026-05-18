@@ -1,10 +1,12 @@
 "use server";
 
 import { and, desc, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 import { ensureDefaultWorkspace } from "./workspaces";
+import { getUserRole } from "./membership";
 
 export interface RequestInstallInput {
   targetRepoLabel: string;
@@ -55,6 +57,13 @@ export async function requestInstall(
   return { ok: true, id: row.id };
 }
 
+/**
+ * Sprint 1.2: decideInstall is now RBAC-gated via membership (owner | admin)
+ * and writes an append-only audit row to install_decision with IP + UA.
+ *
+ * Backwards-compat: workspace.ownerId is still recognised as `owner` even if
+ * the membership backfill hasn't run for some reason — defensive.
+ */
 export async function decideInstall(
   requestId: string,
   decision: "approved" | "rejected",
@@ -75,12 +84,25 @@ export async function decideInstall(
     .limit(1);
   const row = existing[0];
   if (!row) return { ok: false, error: "Request not found." };
-  if (row.workspace.ownerId !== user.id) {
-    return { ok: false, error: "Only workspace owner can approve." };
+
+  const role = await getUserRole(row.workspace.id, user.id);
+  const isLegacyOwner = row.workspace.ownerId === user.id;
+  if (!isLegacyOwner && role !== "owner" && role !== "admin") {
+    return {
+      ok: false,
+      error: "Only workspace owner or admin can decide install-requests.",
+    };
   }
   if (row.install_request.status !== "pending") {
     return { ok: false, error: "Request already decided." };
   }
+
+  const hdrs = await headers();
+  const ipAddress =
+    hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    hdrs.get("x-real-ip") ??
+    null;
+  const userAgent = hdrs.get("user-agent") ?? null;
 
   await db
     .update(schema.installRequest)
@@ -91,6 +113,15 @@ export async function decideInstall(
       decisionNote: note,
     })
     .where(eq(schema.installRequest.id, requestId));
+
+  await db.insert(schema.installDecision).values({
+    installRequestId: requestId,
+    deciderId: user.id,
+    decision: decision === "approved" ? "approve" : "reject",
+    reason: note,
+    ipAddress,
+    userAgent,
+  });
 
   if (
     decision === "approved" &&
@@ -129,6 +160,7 @@ export async function decideInstall(
   }
 
   revalidatePath("/requests");
+  revalidatePath(`/customers/${row.workspace.id}/access`);
   return { ok: true };
 }
 
@@ -157,5 +189,75 @@ export async function listRequestsForOwner(
     .where(eq(schema.workspace.ownerId, userId))
     .orderBy(desc(schema.installRequest.requestedAt))
     .limit(100);
+  return rows;
+}
+
+export interface PendingRequestForWorkspace extends InstallRequestRow {
+  requesterEmail: string | null;
+}
+
+export async function listPendingRequestsForWorkspace(
+  workspaceId: string,
+): Promise<PendingRequestForWorkspace[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: schema.installRequest.id,
+      status: schema.installRequest.status,
+      requestedScope: schema.installRequest.requestedScope,
+      targetRepoLabel: schema.installRequest.targetRepoLabel,
+      targetRootPath: schema.installRequest.targetRootPath,
+      requestedAt: schema.installRequest.requestedAt,
+      decidedAt: schema.installRequest.decidedAt,
+      decisionNote: schema.installRequest.decisionNote,
+      requesterId: schema.installRequest.requesterId,
+      approverId: schema.installRequest.approverId,
+      requesterEmail: schema.user.email,
+    })
+    .from(schema.installRequest)
+    .leftJoin(
+      schema.user,
+      eq(schema.installRequest.requesterId, schema.user.id),
+    )
+    .where(eq(schema.installRequest.workspaceId, workspaceId))
+    .orderBy(desc(schema.installRequest.requestedAt))
+    .limit(50);
+  return rows;
+}
+
+export interface InstallDecisionRow {
+  id: string;
+  installRequestId: string;
+  decision: string;
+  reason: string | null;
+  decidedAt: Date;
+  deciderEmail: string | null;
+}
+
+export async function listDecisionsForWorkspace(
+  workspaceId: string,
+): Promise<InstallDecisionRow[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: schema.installDecision.id,
+      installRequestId: schema.installDecision.installRequestId,
+      decision: schema.installDecision.decision,
+      reason: schema.installDecision.reason,
+      decidedAt: schema.installDecision.decidedAt,
+      deciderEmail: schema.user.email,
+    })
+    .from(schema.installDecision)
+    .innerJoin(
+      schema.installRequest,
+      eq(schema.installDecision.installRequestId, schema.installRequest.id),
+    )
+    .leftJoin(
+      schema.user,
+      eq(schema.installDecision.deciderId, schema.user.id),
+    )
+    .where(eq(schema.installRequest.workspaceId, workspaceId))
+    .orderBy(desc(schema.installDecision.decidedAt))
+    .limit(50);
   return rows;
 }

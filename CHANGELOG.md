@@ -6,6 +6,38 @@
 
 ---
 
+## [0.0.17] — 2026-05-18 — Sprint 1.2 — Customer-Admin Approver UI + Context-Bloat LLM-Fix
+
+### Added
+- **`membership` table** (UNIQUE(workspace_id, user_id) + workspace_email index) + **`install_decision`** table (append-only audit-log with IP + UA). Migration `0007` applied to Neon; backfilled `workspace.ownerId` → `membership` row with `role='owner'`.
+- **`@/lib/membership.ts`** — server actions `getUserRole`, `listMembers`, `inviteAdmin`, `revokeMember`, `claimPendingMemberships` (resolves email-only invites on first sign-in), `requireRole`. RBAC scaffold for `owner | admin | member`.
+- **`/customers/[id]/access`** — workspace-level admin page (members list with role badges + invite-admin form, pending install-requests with approve/reject, decision history with IP + UA trail). RBAC-gated: visible only to owner + admin.
+- **`AccessForms`** client component — `InviteForm`, `RevokeButton`, `DecideButtons`. Sonner toasts on success/error.
+- **`decideInstall()`** rewritten: RBAC-gated (owner or admin), writes append-only `install_decision` row with IP + user-agent + reason. Legacy `workspace.ownerId` still recognised as fallback for in-flight migrations.
+- **`@vk/llm/rules/context-bloat-llm.ts`** — `suggestContextBloatTrim()`. LLM picks ONE `## ` heading from a bounded candidate list (no free-form diff content from the model). Anthropic Sonnet-4-6 via `selectModel()`; returns null when no provider key is configured.
+- **`@vk/fixes/context-bloat-llm.ts`** — `generateContextBloatLlmFix()`. Calls into `@vk/llm`, locates the chosen heading, builds deterministic unified-diff via `fileModifyPatch`. Returns null when LLM disabled (honest non-vapor).
+- **`generateFixAsync`** + **`generateBatchFix` (async)** — async-only path covering both deterministic and LLM-augmented fixes. New `skippedLlmDisabled` array on the result so the UI surfaces the disabled-state count distinctly from real failures.
+- **`isDeterministicCategory` / `isLlmAugmentedCategory`** helpers exported from `@vk/fixes`.
+- **`FixProposal.deterministic: boolean`** (was `true` literal) + `confidence: "low" | "mid" | "high"`. LLM-augmented findings surface the confidence band in the FindingsList footnote + above the diff preview.
+- **4 context-bloat-llm golden-set fixtures**: `archive-tail` (clear chop target), `multi-section` (no clear chop), `recent-only` (refusal expected), `structured-changelog` (Changelog tail = obvious target). Manifest: 30 → 34 entries.
+- **Sonner `toast.info` for `skippedLlmDisabled`** count in `FindingsList`. Existing `failures` toast unchanged.
+
+### Changed
+- **`@vk/fixes`** declares `@vk/llm` as a workspace dep.
+- **`FixProposal.deterministic`** widened from `true` literal to `boolean`. Backwards compatible.
+- **`fix-actions.ts`** awaits `generateBatchFix`; surfaces `skippedLlmDisabled` to the client.
+- **FindingsList footnote** for non-deterministic findings now reads "LLM-augmented: requires ANTHROPIC_API_KEY / OPENAI_API_KEY. Confidence band shown above the diff."
+- **`/customers/[id]`** header links to `/customers/[id]/access`.
+
+### Notes
+- **Build:** 15 turbo green. New route: `/customers/[id]/access`.
+- **Tests:** 84/84 vitest.
+- **Eval:** 34/34 golden-set. Structured-changelog fixture correctly fires 1 finding deterministically; others 0 (sub-budget).
+- **Cash-out:** $0. **No AI calls executed.** LLM path ships gated.
+- **Phase-0-Gate Criterion #6 (GH-App Mitigations):** **3 of 4 implemented** — Trust-Center ✅ · DPA ✅ · Requester→Approver-Bridge ✅ · Read-Only-Default ⚠️ partial (manifest pinned; live-registration enforcement pending Sprint 1.4 GH-App App-ID registration).
+
+---
+
 ## [0.0.16] — 2026-05-18 — Sprint 1.1 — Stripe Live-Mode Prep + Pricing Update
 
 ### Added

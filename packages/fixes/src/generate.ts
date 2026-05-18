@@ -5,19 +5,46 @@ import { generateUnusedAgentFix } from "./unused-agent.js";
 import { generateDuplicateGuidanceFix } from "./duplicate-guidance.js";
 import { generateStaleReferenceFix } from "./stale-reference.js";
 import { generateTokenOverflowTrimFix } from "./token-overflow-trim.js";
+import { generateContextBloatLlmFix } from "./context-bloat-llm.js";
 import { concatPatches } from "./unified-diff.js";
 
-const SUPPORTED = new Set([
+/**
+ * Deterministic categories — always supported, never need an LLM key.
+ */
+const DETERMINISTIC = new Set([
   "unused-agent",
   "duplicate-guidance",
   "stale-reference",
   "token-budget",
 ] as const);
 
+/**
+ * LLM-augmented categories — supported, but require ANTHROPIC_API_KEY (or
+ * OPENAI_API_KEY) to actually produce a patch. Without the key the call
+ * returns null and the UI shows the disabled-state placeholder.
+ */
+const LLM_AUGMENTED = new Set(["context-bloat"] as const);
+
 export function isSupported(category: string): boolean {
-  return SUPPORTED.has(category as never);
+  return (
+    DETERMINISTIC.has(category as never) ||
+    LLM_AUGMENTED.has(category as never)
+  );
 }
 
+export function isDeterministicCategory(category: string): boolean {
+  return DETERMINISTIC.has(category as never);
+}
+
+export function isLlmAugmentedCategory(category: string): boolean {
+  return LLM_AUGMENTED.has(category as never);
+}
+
+/**
+ * Sync generator. Throws `UnsupportedFixError` on LLM-augmented categories
+ * (callers should switch to `generateFixAsync` for those). Useful when the
+ * caller wants strictly-no-LLM-call semantics.
+ */
 export function generateFix(
   finding: AuditFinding,
   scan: ParserResult,
@@ -36,21 +63,43 @@ export function generateFix(
   }
 }
 
+/**
+ * Async generator covering the same categories plus LLM-augmented ones.
+ * Returns null when the category needs an LLM key that isn't configured.
+ */
+export async function generateFixAsync(
+  finding: AuditFinding,
+  scan: ParserResult,
+): Promise<FixProposal | null> {
+  if (finding.category === "context-bloat") {
+    return generateContextBloatLlmFix(finding, scan);
+  }
+  return generateFix(finding, scan);
+}
+
 export interface BatchFixResult {
   successes: FixProposal[];
   failures: Array<{ findingId: string; reason: string }>;
+  /** Findings whose category requires an LLM key that wasn't configured. */
+  skippedLlmDisabled: Array<{ findingId: string; category: string }>;
   combinedPatch: string;
 }
 
-export function generateBatchFix(
+export async function generateBatchFix(
   findings: AuditFinding[],
   scan: ParserResult,
-): BatchFixResult {
+): Promise<BatchFixResult> {
   const successes: FixProposal[] = [];
   const failures: Array<{ findingId: string; reason: string }> = [];
+  const skippedLlmDisabled: Array<{ findingId: string; category: string }> = [];
   for (const f of findings) {
     try {
-      successes.push(generateFix(f, scan));
+      const result = await generateFixAsync(f, scan);
+      if (result === null) {
+        skippedLlmDisabled.push({ findingId: f.id, category: f.category });
+        continue;
+      }
+      successes.push(result);
     } catch (err) {
       failures.push({
         findingId: f.id,
@@ -61,6 +110,7 @@ export function generateBatchFix(
   return {
     successes,
     failures,
+    skippedLlmDisabled,
     combinedPatch: concatPatches(successes.map((s) => s.patch)),
   };
 }

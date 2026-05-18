@@ -12,6 +12,7 @@ export interface FixActionResult {
   filesTouched?: string[];
   rationale?: string[];
   failures?: Array<{ findingId: string; reason: string }>;
+  skippedLlmDisabled?: Array<{ findingId: string; category: string }>;
   error?: string;
 }
 
@@ -56,11 +57,14 @@ export async function generateFixesForScan(
     };
   }
 
-  const result = generateBatchFix(findings, parserResult);
+  const result = await generateBatchFix(findings, parserResult);
   if (result.successes.length === 0) {
     return {
       ok: false,
-      error: "All selected fixes failed.",
+      error:
+        result.skippedLlmDisabled.length > 0
+          ? `All selected fixes require an LLM key (set ANTHROPIC_API_KEY to enable). ${result.failures.length} other failure${result.failures.length === 1 ? "" : "s"}.`
+          : "All selected fixes failed.",
       failures: result.failures,
     };
   }
@@ -72,6 +76,10 @@ export async function generateFixesForScan(
     ),
     rationale: result.successes.map((s) => s.rationale),
     failures: result.failures.length > 0 ? result.failures : undefined,
+    skippedLlmDisabled:
+      result.skippedLlmDisabled.length > 0
+        ? result.skippedLlmDisabled
+        : undefined,
   };
 }
 
