@@ -272,6 +272,16 @@ export default function TrustPage() {
                 <code className="font-mono text-xs">docs/legal/sub-processors.md</code>
               </li>
               <li>
+                LLM-eval history —{" "}
+                <Link
+                  href="/trust/eval"
+                  className="text-primary hover:underline underline-offset-4"
+                >
+                  /trust/eval
+                </Link>{" "}
+                (per-band FPR over time, Constraint #14 audit)
+              </li>
+              <li>
                 Scope policy — <code className="font-mono text-xs">docs/legal/scope-policy.md</code>
               </li>
               <li>

@@ -6,6 +6,32 @@
 
 ---
 
+## [0.0.20] — 2026-05-18 — Sprint 1.5 — Mom-Test wait-state + /trust/eval + /onboarding/[slug]
+
+### Added
+- **ADR-0021 (wait-state)** — `docs/decisions/0021-mom-test-wait-state.md`. Honest postponement of the Mom-Test synthesis: 0 interview transcripts exist, so a synthesis would be fabrication. Encodes unblock conditions (≥10 indie + ≥4 agency transcripts in `interviews/`), the methodology the real synthesis will follow (A9 + Triage-YAML schema), Sprint 1.6 M3-Gate re-test point. Per Constraint #5 — fabricating findings is exactly the Vibe-Score anti-pattern ValidationKit exists to refuse.
+- **`/trust/eval`** — public per-band FPR/FNR history page reading `eval/conflicts/results/*.json`. Empty-state when no runs exist: "harness is shipped, runs gated on `ANTHROPIC_API_KEY` — flip to populate." Constraint #14 audit-surface for customers. Severity-banded colour per row.
+- **`/onboarding/[slug]`** — per-customer landing page generated from `docs/customer-onboarding/<slug>.md`. Frontmatter (customerName / tier / status / dpaVersion / signedDate) renders as badges; body markdown rendered as-is with `{{placeholder}}` substitution. Helpful 404 lists available slugs.
+- **`docs/customer-onboarding/_template.md`** — starter template with scope-of-engagement, DPA pointer, sub-processor disclosure, Approver-flow link, audit-trail-export link, escalation table.
+- **`outputFileTracingIncludes`** entries bundle `eval/conflicts/results/*.json` and `docs/customer-onboarding/*.md` for Vercel runtime.
+
+### Changed
+- **`/trust` document list** gains a `/trust/eval` row.
+
+### Postponed (honest non-vapor)
+- **Audit-rule tuning from Mom-Test pain-points** — 0 transcripts ⇒ no data ⇒ no rule. Re-opens with ADR-0021 supersession.
+- **LOIs #2/#3/#4 push** — Kolja-only paperwork track.
+- **AI & Data Summit Berlin prep** — Kolja-only paperwork track.
+
+### Notes
+- **Build:** 15 turbo green. New routes: `/trust/eval`, `/onboarding/[slug]`.
+- **Tests:** 84/84 vitest. **Eval:** 34/34 golden-set.
+- **Cash-out:** $0. **No AI calls executed.**
+- **Phase-0-Gate Criterion #6:** unchanged at 3 of 4.
+- **Sprint 1.6 M3-Gate audit** (Week 13–14) is the natural re-test for the Mom-Test deferral. If transcripts remain <10 indie / <4 agency at that point, ADR-0022 scope-correction fires per `phase-1.md` Sprint 1.6 DoD.
+
+---
+
 ## [0.0.19] — 2026-05-18 — Sprint 1.4 — CPN Application + Skills-Marketplace
 
 ### Added

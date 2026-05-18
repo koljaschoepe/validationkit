@@ -31,11 +31,15 @@ const config: NextConfig = {
     root: path.resolve(here, "..", ".."),
   },
   typedRoutes: true,
-  // Sprint 1.0 — bundle legal markdown for runtime read by /trust/dpa.
+  // Bundle markdown + JSON read at runtime by route handlers.
+  // Sprint 1.0: legal markdown for /trust/dpa + sub-processors.
+  // Sprint 1.5: eval-results JSON for /trust/eval + per-customer onboarding md.
   outputFileTracingIncludes: {
     "/trust/dpa": ["../../docs/legal/dpa-template.md"],
     "/trust/sub-processors.json": ["../../docs/legal/sub-processors.md"],
     "/trust/sub-processors.xml": ["../../docs/legal/sub-processors.md"],
+    "/trust/eval": ["../../eval/conflicts/results/*.json"],
+    "/onboarding/[slug]": ["../../docs/customer-onboarding/*.md"],
   },
 };
 
