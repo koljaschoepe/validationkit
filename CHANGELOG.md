@@ -6,6 +6,28 @@
 
 ---
 
+## [0.0.19] — 2026-05-18 — Sprint 1.4 — CPN Application + Skills-Marketplace
+
+### Added
+- **First Anthropic Skill** — `skills/validationkit-agent-file-audit/` with SKILL.md frontmatter (`name`, `description`, `trigger`, `license`, `homepage`) + per-Skill README with user-level + per-project install paths. Trigger covers the canonical natural-language phrasings ("audit my agent files", "check my CLAUDE.md", "lint AGENTS.md"). Includes Skeptic-Mentor summary-guidance so Claude renders findings in the brand voice when invoking the Skill.
+- **`validationkit-cli --as-skill`** mode — stable Claude-Skill JSON contract (`schemaVersion: 1`, `tool: "validationkit-cli"`, finding records with `confidence` always present as `null` for deterministic categories). Exit code 0 always (the Skill decides next action). Validated end-to-end against the `aider-conf-mix` fixture.
+- **`/skills` public page** — lists shipped Skills with status badges, frontmatter preview, install commands, and a Concession-then-Critique card explaining the Skill ↔ CLI relationship. `apps/web/src/lib/skills-registry.ts` is the typed source-of-truth.
+- **Tier-aware rate-limit** — `checkRateLimit({ key, tier })`. Buckets: anonymous 30/h · free 60/h · solo_indie 200/h · solo_pro 500/h · agency_pro 1000/h · agency_scale 2000/h · agency_scale_plus 5000/h. Friendly per-tier error copy on 429.
+- **`auditAction` reads tier from `ensureSubscription`** for signed-in users, fallback to IP-keyed anonymous bucket otherwise.
+- **`checkAnonymousRateLimit` backwards-compat** kept as a thin wrapper around the new tier-aware API.
+
+### Changed
+- **CLI help-text** documents the new `--as-skill` flag separately from `--json`.
+
+### Notes
+- **Build:** 15 turbo green. New route: `/skills`. New folder: `skills/validationkit-agent-file-audit/`.
+- **Tests:** 84/84 vitest. **Eval:** 34/34 golden-set.
+- **Cash-out:** $0. **No AI calls executed.**
+- **Phase-0-Gate Criterion #6 (GH-App Mitigations):** unchanged at 3 of 4.
+- **Sprint 1.4 paperwork track:** CCA cert modules 1–8 · CPN Technology-Partner application via Anthropic Skilljar · PR against `anthropics/skills` for the Skill listing · LOIs #2 + #3 to Stage 3.
+
+---
+
 ## [0.0.18] — 2026-05-18 — Sprint 1.3 — OSS v0.1 Public + Show-HN Readiness
 
 ### Added

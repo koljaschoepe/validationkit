@@ -16,6 +16,8 @@ USAGE
 
 OPTIONS
   --json                emit machine-readable JSON instead of a table
+  --as-skill            emit the Claude-Skill-friendly JSON contract
+                        (stable schemaVersion, no ANSI, no exit-on-findings)
   --out=<path>          write a Markdown report to <path>
   --include-archive     walk into docs/archive/ (skipped by default)
   --include-examples    walk into examples/ (skipped by default)
@@ -34,7 +36,8 @@ export async function main(argv: string[]): Promise<void> {
 
   const cmd = argv[0];
   const rest = argv.slice(1);
-  const json = rest.includes("--json");
+  const asSkill = rest.includes("--as-skill");
+  const json = rest.includes("--json") || asSkill;
   const includeArchive = rest.includes("--include-archive");
   const includeExamples = rest.includes("--include-examples");
   const outFlag = rest.find((a) => a.startsWith("--out="));
@@ -50,6 +53,7 @@ export async function main(argv: string[]): Promise<void> {
     case "audit":
       await runAuditCmd(absTarget, {
         json,
+        asSkill,
         includeArchive,
         includeExamples,
         outPath,
@@ -148,6 +152,7 @@ async function runAuditCmd(
   target: string,
   opts: {
     json: boolean;
+    asSkill: boolean;
     includeArchive: boolean;
     includeExamples: boolean;
     outPath: string | null;
@@ -164,6 +169,40 @@ async function runAuditCmd(
     const fs = await import("node:fs/promises");
     await fs.writeFile(opts.outPath, renderMarkdownReport(report, scan), "utf8");
     process.stderr.write(`Wrote ${opts.outPath}\n`);
+  }
+
+  if (opts.asSkill) {
+    // Stable Claude-Skill contract. schemaVersion is what downstream Skills
+    // pin against. Keep field names + shape backward-compatible.
+    const skillPayload = {
+      schemaVersion: 1,
+      tool: "validationkit-cli",
+      generatedAt: new Date().toISOString(),
+      rootPath: scan.rootPath,
+      fileCount: report.fileCount,
+      overallSeverity: report.summary.overallSeverity,
+      findings: report.findings.map((f) => ({
+        id: f.id,
+        category: f.category,
+        severity: f.severity,
+        title: f.title,
+        detail: f.detail,
+        deterministic: f.deterministic,
+        confidence: f.confidence ?? null,
+        citations: f.citations.map((c) => ({
+          path: c.path,
+          line: c.line ?? null,
+        })),
+      })),
+      summary: report.summary,
+      warnings: scan.warnings.map((w) => ({
+        path: w.path,
+        message: w.message,
+      })),
+    };
+    process.stdout.write(JSON.stringify(skillPayload, null, 2) + "\n");
+    // --as-skill exits 0 always — the Skill caller decides on next action.
+    return;
   }
 
   if (opts.json) {

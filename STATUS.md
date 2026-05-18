@@ -12,7 +12,7 @@
 - **Current Cluster:** Sprint 1.0 ✅ shipped → Sprint 1.1 next
 - **Hours-this-Week:** ~7 / 25 target (Sprint 1.0 code track only)
 - **Burnout-Flag:** 🟢 Green (no risk yet)
-- **Last Sprint:** Sprint 1.3 — OSS v0.1 Public + Show-HN Readiness ✅ shipped 2026-05-18 (Phase 1 W3)
+- **Last Sprint:** Sprint 1.4 — CPN Application + Skills-Marketplace ✅ shipped 2026-05-18 (Phase 1 W4)
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
 - **Dashboard-Pivot (Phase 0.5):** ADR-0019 + Sprints 0.11–0.14 shipped 2026-05-17, $0 cumulative.
 - **Phase-1 Plan:** 10-agent parallel research synthesis landed 2026-05-17 — `docs/research/phase-1-pivot/00-synthesis.md` + `docs/roadmap/phase-1.md` (Sprint 1.0→1.12, M3→M9) + ADR-0020. PRD §3 + §6.4 + §6.5 + §11.3 corrected.

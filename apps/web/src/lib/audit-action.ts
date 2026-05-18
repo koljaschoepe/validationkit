@@ -17,7 +17,8 @@ import {
   cleanupTempDir,
   looksLikeGithubUrl,
 } from "./github-fetch";
-import { checkAnonymousRateLimit, ipFromHeaders } from "./rate-limit";
+import { checkRateLimit, ipFromHeaders, type LimitKey } from "./rate-limit";
+import { ensureSubscription, type TierId } from "@vk/billing";
 
 export interface AuditFormState {
   ok: boolean;
@@ -42,20 +43,29 @@ export async function auditAction(
     };
   }
 
-  // Anonymous-audit rate-limit: signed-in users bypass; anonymous traffic
-  // capped at 30/h per IP (Sprint 1.3). The limiter is in-memory per region
-  // — soft cap, not a paywall (see lib/rate-limit.ts).
+  // Tier-aware rate-limit (Sprint 1.4). Anonymous = IP-keyed @30/h.
+  // Signed-in users get the bucket tied to their subscription tier —
+  // free=60/h, solo_indie=200/h, solo_pro=500/h, agency_pro=1000/h,
+  // agency_scale=2000/h, agency_scale_plus=5000/h. In-memory per region;
+  // soft cap, not a paywall (lib/rate-limit.ts).
   const sessionUser = await getSessionUser();
-  if (!sessionUser) {
+  let limitKey: LimitKey;
+  let bucketKey: string;
+  if (sessionUser) {
+    const snap = await ensureSubscription(sessionUser.id);
+    limitKey = snap.tier as TierId;
+    bucketKey = `user:${sessionUser.id}`;
+  } else {
     const hdrs = await headers();
-    const ip = ipFromHeaders(hdrs);
-    const limit = checkAnonymousRateLimit(ip);
-    if (!limit.allowed) {
-      return {
-        ok: false,
-        error: limit.reason ?? "Rate limited.",
-      };
-    }
+    limitKey = "anonymous";
+    bucketKey = `ip:${ipFromHeaders(hdrs)}`;
+  }
+  const limit = checkRateLimit({ key: bucketKey, tier: limitKey });
+  if (!limit.allowed) {
+    return {
+      ok: false,
+      error: limit.reason ?? "Rate limited.",
+    };
   }
 
   // Path 1: GitHub URL → fetch zipball + extract → audit → cleanup

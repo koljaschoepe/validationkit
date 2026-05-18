@@ -1,19 +1,39 @@
+import type { TierId } from "@vk/billing";
+
 /**
- * Sprint 1.3 — anonymous-audit rate-limiter.
+ * Sprint 1.3 → 1.4 — in-memory rate-limiter. Sprint 1.4 extends with
+ * tier-aware buckets so paid customers actually feel the upgrade.
  *
- * In-memory sliding-window. Keyed by client IP (Vercel + Cloudflare headers).
- * Authenticated users bypass entirely. The cap is deliberately generous
- * (30/h) — abusive traffic patterns get caught earlier by Vercel Edge
- * shield + the in-handler-defense is the second line.
+ * Bucket choice (per Phase-1 ADR-0020 + A5 pricing) — every limit is per
+ * hour, sliding window:
  *
- * Why not Vercel KV / Upstash? Sprint 1.3 budget = $0 (per ADR-0020). An
- * in-memory map is correct-but-per-region; we'd lose data on cold-start.
- * Acceptable for v0.0.18 because the IP cap is a soft-shape, not a hard
- * paywall. Phase 2 swaps to KV when MRR justifies the line-item.
+ *   anonymous     30/h        # IP-keyed, no signed-in user
+ *   free          60/h        # signed-in, Solo Free
+ *   solo_indie   200/h        # $25/mo
+ *   solo_pro     500/h        # $79/mo
+ *   agency_pro  1000/h        # $299/mo
+ *   agency_scale       2000/h # $799/mo
+ *   agency_scale_plus  5000/h # $1499/mo annual
+ *
+ * In-memory + per-region (Vercel Fluid Compute). Soft shape, not a hard
+ * paywall — Phase 2 swaps to KV (Vercel KV / Upstash) when MRR justifies
+ * the line-item. Until then a request can win/lose the bucket race
+ * between regions on cold-start; acceptable for v0.0.19.
  */
 
+export type LimitKey = "anonymous" | TierId;
+
 const WINDOW_MS = 60 * 60 * 1000;
-const LIMIT_PER_WINDOW = 30;
+
+const LIMITS: Record<LimitKey, number> = {
+  anonymous: 30,
+  free: 60,
+  solo_indie: 200,
+  solo_pro: 500,
+  agency_pro: 1000,
+  agency_scale: 2000,
+  agency_scale_plus: 5000,
+};
 
 const buckets = new Map<string, number[]>();
 
@@ -21,35 +41,62 @@ export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetSeconds: number;
+  limit: number;
   reason?: string;
 }
 
-export function checkAnonymousRateLimit(key: string): RateLimitResult {
-  if (!key) {
-    return { allowed: true, remaining: LIMIT_PER_WINDOW, resetSeconds: 0 };
+function limitFor(key: LimitKey): number {
+  return LIMITS[key] ?? LIMITS.anonymous;
+}
+
+/** Resolves a session/IP-keyed identifier + the tier bucket to charge. */
+export interface RateLimitContext {
+  /** Stable identifier used as the bucket key. Use `user:<id>` for signed-in,
+   *  `ip:<addr>` for anonymous. */
+  key: string;
+  tier: LimitKey;
+}
+
+export function checkRateLimit(ctx: RateLimitContext): RateLimitResult {
+  const limit = limitFor(ctx.tier);
+  if (!ctx.key) {
+    return { allowed: true, remaining: limit, resetSeconds: 0, limit };
   }
   const now = Date.now();
-  const hits = (buckets.get(key) ?? []).filter(
+  const hits = (buckets.get(ctx.key) ?? []).filter(
     (t) => now - t < WINDOW_MS,
   );
-  if (hits.length >= LIMIT_PER_WINDOW) {
+  if (hits.length >= limit) {
     const oldest = hits[0]!;
     const resetSeconds = Math.ceil((WINDOW_MS - (now - oldest)) / 1000);
-    buckets.set(key, hits);
+    buckets.set(ctx.key, hits);
     return {
       allowed: false,
       remaining: 0,
       resetSeconds,
-      reason: `Anonymous audits are limited to ${LIMIT_PER_WINDOW} per hour. Sign in for unlimited audits on the free tier (still 1 saved repo).`,
+      limit,
+      reason:
+        ctx.tier === "anonymous"
+          ? `Anonymous audits are limited to ${limit}/h. Sign in for ${LIMITS.free}/h on the free tier.`
+          : `${ctx.tier} tier is capped at ${limit} audits/h. Resets in ~${Math.ceil(resetSeconds / 60)}m.`,
     };
   }
   hits.push(now);
-  buckets.set(key, hits);
+  buckets.set(ctx.key, hits);
   return {
     allowed: true,
-    remaining: LIMIT_PER_WINDOW - hits.length,
+    remaining: limit - hits.length,
     resetSeconds: 0,
+    limit,
   };
+}
+
+/**
+ * Backwards-compat wrapper for Sprint 1.3 callers. Anonymous-only path.
+ * New callers should use `checkRateLimit` with a tier-aware context.
+ */
+export function checkAnonymousRateLimit(ip: string): RateLimitResult {
+  return checkRateLimit({ key: `ip:${ip}`, tier: "anonymous" });
 }
 
 export function ipFromHeaders(
