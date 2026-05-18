@@ -1,0 +1,4 @@
+read: docs/CLAUDE.md
+read: docs/missing-file.md
+auto-commits: false
+model: anthropic/claude-sonnet-4-6

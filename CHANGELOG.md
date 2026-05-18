@@ -6,6 +6,35 @@
 
 ---
 
+## [0.0.15] — 2026-05-18 — Sprint 1.0 — GitHub-App Mitigations Slice + LLM-Eval Floor
+
+### Added
+- **`dpa_acceptance` table** (migration `0006_secret_tigra.sql`) — UNIQUE(user_id, dpa_version) makes accept-action idempotent. Audit-log includes IP + user-agent. Vercel-pattern reference implementation per A1.
+- **`/trust/dpa`** — signed-in DPA acceptance UI with audit-log write. Anonymous = read-only view. DPA markdown bundled into Vercel via `outputFileTracingIncludes`. Current version `v0-draft-2026-05-17` — preserves old acceptances when the M8 lawyer-pass lands a new version.
+- **`/trust/sub-processors.json`** + **`/trust/sub-processors.xml`** — public static feeds for the 30-day prior-notice contract per DPA §5. Source of truth: `apps/web/src/lib/sub-processors.ts` (typed mirror of `docs/legal/sub-processors.md`). Both routes are static (`○`), cached `s-maxage=300, stale-while-revalidate=86400`.
+- **`@vk/github-app/manifest.ts`** — scope-pinned permission set (`contents:read`, `pull_requests:read`, `metadata:read`); separate `WRITE_GATED_PERMISSIONS` only ever combined with the install set when `repo.writeAccessGranted=true`. `permissionsFor()` THROWS rather than silently downgrades — hides nothing. Vitest covers 7 cases.
+- **`/api/install-webhook` reconciliation** — added `installation.suspend`/`unsuspend` handlers; emits `repo.access-changed` events to the `event` table on every install/uninstall/repos-added/repos-removed so the SSE dashboard toast fires.
+- **9 new golden-set entries** (manifest: 21 → 30): `real-aider-conf-mix`, `real-multi-vendor-monorepo`, `real-windsurf-cline-coexist`, `real-anthropic-skills-import`, `adv-conflict-bait-{true,paraphrase,style-only}`, `dogfood-packages-llm`, `dogfood-packages-billing`. Fixtures live under `eval/golden-set/{real-world-like,adversarial}/`.
+- **FP-instrumentation extension in `eval/conflicts/run.ts`** — per-confidence-band FPR/FNR (low/mid/high) · N=3 majority-vote variance runs · persisted JSON in `eval/conflicts/results/YYYY-MM-DD.json` for the Trust-Center page · CI gate fails on FPR > 15% at `mid` band only. Graceful skip without `ANTHROPIC_API_KEY`.
+- **`event.type` union extended** — `repo.access-changed` for GitHub-App install lifecycle events.
+
+### Changed
+- **PRD §6.4** updated: GH-App-mitigations cost revised to **14–17 PD production / 5.5 PD Sprint-1.0-minimal slice** per ADR-0020 (original 9–12 PD was the in-app-only path).
+- **PRD §3 + §11** corrected: **AAIF replaced with Anthropic Claude Partner Network** ($0 entry vs $10k/yr); AAIF is the Linux Foundation's Agentic AI Foundation, not Anthropic-owned (A7 finding).
+- **PRD §6.5 Phase-0-Gate criteria #1+#2** annotated with bilingual DE/EN explicit-prior-consent template requirement (§201 StGB + GDPR Art. 6(1)(a) — A9 finding).
+- **PRD §11.3 open question #3** (AAIF timing) resolved via ADR-0020.
+- **`next.config.ts`** — added `outputFileTracingIncludes` so `/trust/dpa` can read `docs/legal/dpa-template.md` at runtime on Vercel.
+
+### Notes
+- **Build:** 15 turbo green. New routes: `/trust/dpa`, `/trust/sub-processors.json`, `/trust/sub-processors.xml`.
+- **Tests:** 84/84 vitest (15 files, +7 manifest tests).
+- **Eval:** 30/30 golden-set (was 21/30). `real-aider-conf-mix` fires `stale-reference` for the planted dead link — correct.
+- **LLM-eval:** instrumentation extension landed; runs in skip-mode without key, as designed.
+- **Cash-out:** $0. No AI calls executed.
+- **Phase-0-Gate Criterion #6 (4 GH-App-Mitigations) now: 2 / 4 implemented** — Trust-Center ✅, DPA-Template + acceptance audit-log ✅, Requester→Approver-Bridge ⚠️ partial (in-app honor system + webhook reconciliation; production-hardening lands Sprint 1.2 with Customer-Admin UI), Read-Only-Default ⚠️ partial (manifest pinned + write-gate logic; live-registration enforcement still pending GH-App registration in Sprint 1.4).
+
+---
+
 ## [0.0.14] — 2026-05-17 — Sprint 0.14 — Polish + Tester-Readiness (Phase-0.5 close-out)
 
 ### Added

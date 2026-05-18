@@ -9,6 +9,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -306,3 +307,32 @@ export const stripeEvent = pgTable("stripe_event", {
     .defaultNow(),
   payload: jsonb("payload"),
 });
+
+// Sprint 1.0 — DPA acceptance audit-log. Per ADR-0020 + A1 reference impls
+// (Vercel pattern): hosted click-to-accept HTML with timestamped audit row.
+// Unique constraint on (userId, dpaVersion) makes accept-action idempotent.
+export const dpaAcceptance = pgTable(
+  "dpa_acceptance",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    dpaVersion: varchar("dpa_version", { length: 20 }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+  },
+  (t) => [
+    uniqueIndex("dpa_acceptance_user_version_unique").on(
+      t.userId,
+      t.dpaVersion,
+    ),
+  ],
+);
+
+export const dpaAcceptanceRelations = relations(dpaAcceptance, ({ one }) => ({
+  user: one(user, { fields: [dpaAcceptance.userId], references: [user.id] }),
+}));

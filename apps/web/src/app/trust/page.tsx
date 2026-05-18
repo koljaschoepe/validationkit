@@ -259,7 +259,17 @@ export default function TrustPage() {
                 — once the org is reserved (Phase-0-Day-1)
               </li>
               <li>
-                DPA Template — <code className="font-mono text-xs">docs/legal/dpa-template.md</code>
+                DPA — <Link href="/trust/dpa" className="text-primary hover:underline underline-offset-4">/trust/dpa</Link>{" "}
+                (acceptance audit-log) · source{" "}
+                <code className="font-mono text-xs">docs/legal/dpa-template.md</code>
+              </li>
+              <li>
+                Sub-Processors —{" "}
+                <a href="/trust/sub-processors.json" className="text-primary hover:underline underline-offset-4">JSON feed</a>
+                {" · "}
+                <a href="/trust/sub-processors.xml" className="text-primary hover:underline underline-offset-4">RSS</a>
+                {" · "}
+                <code className="font-mono text-xs">docs/legal/sub-processors.md</code>
               </li>
               <li>
                 Scope policy — <code className="font-mono text-xs">docs/legal/scope-policy.md</code>

@@ -7,15 +7,17 @@
 
 ## Quick-Glance
 
-- **Today:** 2026-05-17
-- **Current Week:** W1 (of 13)
-- **Current Cluster:** C1 — Foundation & First Contact
-- **Hours-this-Week:** 0 / 25 target
+- **Today:** 2026-05-18
+- **Current Week:** Phase 1 W1
+- **Current Cluster:** Sprint 1.0 ✅ shipped → Sprint 1.1 next
+- **Hours-this-Week:** ~7 / 25 target (Sprint 1.0 code track only)
 - **Burnout-Flag:** 🟢 Green (no risk yet)
-- **Last Sprint:** Sprint 0.14 — Polish + Tester-Readiness (Phase-0.5 close-out) ✅ shipped 2026-05-17
+- **Last Sprint:** Sprint 1.0 — GitHub-App Mitigations Slice + LLM-Eval Floor ✅ shipped 2026-05-18 (Phase 1 W1)
 - **Real-Execution Thread 1:** Docker E2E + Magic-Link Round-Trip ✅ verified 2026-05-17 — Phase-0-Gate #4 = 1.0 ✅
-- **Dashboard-Pivot:** ADR-0019 + `phase-0.5-dashboard.md` plan signed 2026-05-17. Sprint 0.11 ships shadcn-migration + dashboard shell. Sprint 0.12 ships Inngest 4h auto-track + HMAC `/api/notify-update` + SSE `/api/events/stream` + React Flow graph view + auto-drift on canonical + last-activity badge. 71/71 vitest, 21/21 eval, build clean. $0 cash-out cumulative.
-- **Phase-1 Plan:** 10-agent parallel research synthesis landed 2026-05-17 — `docs/research/phase-1-pivot/00-synthesis.md` + `docs/roadmap/phase-1.md` (Sprint 1.0→1.12, M3→M9) + ADR-0020 (CPN over AAIF saves $10k, pricing tweaks, GH-App revised 14–17 PD, monthly trigger-watch). 3 PRD corrections needed (§11 AAIF naming, §6.4 GH-App cost, §14 Mom-Test §201 StGB consent). Sprint 1.0 starts when user signs off.
+- **Dashboard-Pivot (Phase 0.5):** ADR-0019 + Sprints 0.11–0.14 shipped 2026-05-17, $0 cumulative.
+- **Phase-1 Plan:** 10-agent parallel research synthesis landed 2026-05-17 — `docs/research/phase-1-pivot/00-synthesis.md` + `docs/roadmap/phase-1.md` (Sprint 1.0→1.12, M3→M9) + ADR-0020. PRD §3 + §6.4 + §6.5 + §11.3 corrected.
+- **Sprint 1.0 deliverables (2026-05-18):** dpa_acceptance table + migration 0006 · `@vk/github-app/manifest.ts` (REQUIRED_PERMISSIONS + WRITE_GATED_PERMISSIONS + permissionsFor()) · install-webhook reconciliation extended w/ suspend/unsuspend + repo.access-changed events · `/trust/dpa` acceptance UI + audit-log · `/trust/sub-processors.json` + `.xml` static feeds · 9 new golden-set entries (30/30 green) · eval/conflicts FP-instrumentation per-band + N=3 + persist. **30/30 eval · 84/84 vitest · 15 turbo green · $0 cash-out.**
+- **Phase-0-Gate Criterion #6 (GH-App Mitigations):** 2 of 4 implemented (Trust-Center ✅, DPA ✅, Requester→Approver-Bridge ⚠️ partial — Customer-Admin UI Sprint 1.2, Read-Only-Default ⚠️ partial — live-registration Sprint 1.4).
 
 ---
 

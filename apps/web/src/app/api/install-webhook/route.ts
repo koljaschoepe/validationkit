@@ -6,6 +6,7 @@ import {
   type ParsedWebhook,
 } from "@vk/github-app";
 import { getDb, isDbEnabled, schema } from "@vk/db";
+import { publishEvent } from "@vk/inngest";
 
 /**
  * GitHub App install + repository-add/-remove webhook receiver.
@@ -162,15 +163,55 @@ async function handleParsed(parsed: ParsedWebhook): Promise<void> {
             githubFullName: row.targetRepoLabel,
           })
           .onConflictDoNothing();
+
+        await publishInstallEvent(row.workspaceId, "installed", {
+          installationId,
+          fullName: row.targetRepoLabel,
+        });
       }
       return;
     }
 
     if (action === "deleted") {
+      const affected = await db
+        .select({ workspaceId: schema.repo.workspaceId })
+        .from(schema.repo)
+        .where(eq(schema.repo.githubInstallationId, installationId));
       await db
         .update(schema.repo)
         .set({ writeAccessGranted: false, githubInstallationId: null })
         .where(eq(schema.repo.githubInstallationId, installationId));
+      for (const a of affected) {
+        await publishInstallEvent(a.workspaceId, "uninstalled", {
+          installationId,
+        });
+      }
+      return;
+    }
+
+    if (action === "suspend" || action === "unsuspend") {
+      // Suspend revokes write access immediately; unsuspend leaves
+      // writeAccessGranted alone — write must be re-approved via the
+      // Requester→Approver-Bridge by a Customer-Admin.
+      const affected = await db
+        .select({
+          workspaceId: schema.repo.workspaceId,
+          fullName: schema.repo.githubFullName,
+        })
+        .from(schema.repo)
+        .where(eq(schema.repo.githubInstallationId, installationId));
+      if (action === "suspend") {
+        await db
+          .update(schema.repo)
+          .set({ writeAccessGranted: false })
+          .where(eq(schema.repo.githubInstallationId, installationId));
+      }
+      for (const a of affected) {
+        await publishInstallEvent(a.workspaceId, action, {
+          installationId,
+          fullName: a.fullName,
+        });
+      }
       return;
     }
     return;
@@ -191,21 +232,53 @@ async function handleParsed(parsed: ParsedWebhook): Promise<void> {
             githubFullName: r.fullName,
           })
           .onConflictDoNothing();
+        await publishInstallEvent(workspaceId, "repos-added", {
+          installationId,
+          fullName: r.fullName,
+        });
       }
       return;
     }
     if (action === "removed") {
       for (const r of removed) {
+        const affected = await db
+          .select({ workspaceId: schema.repo.workspaceId })
+          .from(schema.repo)
+          .where(eq(schema.repo.githubFullName, r.fullName))
+          .limit(1);
         await db
           .update(schema.repo)
           .set({ writeAccessGranted: false, githubInstallationId: null })
           .where(eq(schema.repo.githubFullName, r.fullName));
+        const ws = affected[0]?.workspaceId;
+        if (ws) {
+          await publishInstallEvent(ws, "repos-removed", {
+            installationId,
+            fullName: r.fullName,
+          });
+        }
       }
       return;
     }
     return;
   }
   // ignored events: no-op.
+}
+
+async function publishInstallEvent(
+  workspaceId: string,
+  action: "installed" | "uninstalled" | "suspend" | "unsuspend" | "repos-added" | "repos-removed",
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await publishEvent({
+      workspaceId,
+      type: "repo.access-changed",
+      payload: { source: "github-app-webhook", action, ...payload },
+    });
+  } catch (err) {
+    console.error("[install-webhook] publishEvent failed", err);
+  }
 }
 
 async function pickWorkspaceForInstallation(

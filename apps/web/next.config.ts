@@ -31,6 +31,12 @@ const config: NextConfig = {
     root: path.resolve(here, "..", ".."),
   },
   typedRoutes: true,
+  // Sprint 1.0 — bundle legal markdown for runtime read by /trust/dpa.
+  outputFileTracingIncludes: {
+    "/trust/dpa": ["../../docs/legal/dpa-template.md"],
+    "/trust/sub-processors.json": ["../../docs/legal/sub-processors.md"],
+    "/trust/sub-processors.xml": ["../../docs/legal/sub-processors.md"],
+  },
 };
 
 export default config;

@@ -1,0 +1,7 @@
+---
+description: React + Next.js conventions for this app
+globs: apps/web/**/*.tsx
+---
+
+Use React Server Components by default. Mark client components with `"use client"`
+only when DOM events or hooks are needed.

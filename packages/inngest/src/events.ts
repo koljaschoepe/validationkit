@@ -4,7 +4,8 @@ export type EventType =
   | "audit.completed"
   | "audit.failed"
   | "drift.completed"
-  | "repo.auto-tracked";
+  | "repo.auto-tracked"
+  | "repo.access-changed";
 
 export interface EventInsert {
   workspaceId: string;

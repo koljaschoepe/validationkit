@@ -1,0 +1,3 @@
+Project: TypeScript monorepo (pnpm + turbo).
+Style: functional, no classes unless framework requires.
+Test runner: vitest. Run `pnpm test` before opening PR.

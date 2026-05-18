@@ -300,13 +300,139 @@
         "must_categories": []
       },
       "notes": "Cline-heavy realistic fixture: .clinerules + .claude/agents + .claude/commands + CLAUDE.md."
+    },
+    {
+      "id": "real-aider-conf-mix",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/aider-conf-mix",
+      "vendor_mix": ["aider-conf", "claude-md", "agents-md"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 4,
+        "min_findings": 0,
+        "max_findings": 4,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): aider.conf.yml + CLAUDE.md + AGENTS.md cohabitation. CLAUDE.md references STYLE.md which doesn't exist — stale-reference may fire."
+    },
+    {
+      "id": "real-multi-vendor-monorepo",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/multi-vendor-monorepo",
+      "vendor_mix": ["claude-md", "agents-md", "cursor-rule-mdc"],
+      "expected": {
+        "min_files": 3,
+        "max_files": 6,
+        "min_findings": 0,
+        "max_findings": 6,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): Turborepo with apps/web/.cursor/rules/ + root CLAUDE.md + per-package AGENTS.md. Exercises nested-path classification."
+    },
+    {
+      "id": "real-windsurf-cline-coexist",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/windsurf-cline-coexist",
+      "vendor_mix": ["windsurf-rule", "cline-rule", "claude-md", "agents-md"],
+      "expected": {
+        "min_files": 3,
+        "max_files": 5,
+        "min_findings": 0,
+        "max_findings": 6,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): .windsurfrules + .clinerules with identical-ish content. Common in agencies running both IDEs."
+    },
+    {
+      "id": "real-anthropic-skills-import",
+      "kind": "real-world",
+      "path": "eval/golden-set/real-world-like/anthropic-skills-import",
+      "vendor_mix": ["claude-md", "claude-skill"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 4,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): SKILL.md frontmatter pattern (Anthropic Skills-Marketplace). Parser must classify the skill; audit must not false-positive on trigger-activated skills."
+    },
+    {
+      "id": "adv-conflict-bait-true",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/conflict-bait-true",
+      "vendor_mix": ["claude-md", "agents-md"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): genuine tabs-vs-spaces conflict. Deterministic eval should NOT flag conflicting-rules (LLM-only). LLM-eval (eval/conflicts) ground-truth = conflict=true."
+    },
+    {
+      "id": "adv-conflict-bait-paraphrase",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/conflict-bait-paraphrase",
+      "vendor_mix": ["claude-md", "agents-md"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): DE vs EN saying the same thing. Multilingual FP-trap. LLM-eval ground-truth = conflict=false."
+    },
+    {
+      "id": "adv-conflict-bait-style-only",
+      "kind": "adversarial",
+      "path": "eval/golden-set/adversarial/conflict-bait-style-only",
+      "vendor_mix": ["claude-md", "agents-md"],
+      "expected": {
+        "min_files": 2,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): same rule, terse vs verbose. Confidence-banding test. LLM-eval ground-truth = conflict=false."
+    },
+    {
+      "id": "dogfood-packages-llm",
+      "kind": "dogfood",
+      "path": "packages/llm",
+      "vendor_mix": [],
+      "expected": {
+        "min_files": 0,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): self-audit our own LLM-rule code-folder. Ensures our package doesn't ship a CLAUDE.md that the audit would flag."
+    },
+    {
+      "id": "dogfood-packages-billing",
+      "kind": "dogfood",
+      "path": "packages/billing",
+      "vendor_mix": [],
+      "expected": {
+        "min_files": 0,
+        "max_files": 2,
+        "min_findings": 0,
+        "max_findings": 2,
+        "must_categories": []
+      },
+      "notes": "Sprint 1.0 (A2): self-audit our billing package. Calibration anchor for new-package additions."
     }
   ],
   "target_size": 30,
-  "current_size": 21,
+  "current_size": 30,
   "growth_plan": [
     "Add 5 anonymized customer-pilot snapshots (after first 5 Agency-LOIs in M3).",
-    "Add 4 permissively-licensed public-repo vendoring once GitHub App lands (Sprint 0.7+ external work)."
+    "Add 4 permissively-licensed public-repo vendoring once GitHub App lands."
   ],
   "fpr_target": 0.15
 }

@@ -1,0 +1,2 @@
+# Eval results live here. Each run writes YYYY-MM-DD.json with per-band FPR/FNR.
+# Production-published at /trust/eval (Sprint 1.5).

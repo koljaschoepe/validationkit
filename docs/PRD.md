@@ -32,7 +32,7 @@ ValidationKit / Sondr bietet zwei Wedges in einer Plattform:
 **Hybrid Layered Strategie (Pivot E, ADR-0017 + ADR-0018):**
 
 - **Phase 0 (M0–M3):** OSS v0.1 lokal lauffähig + 2 Validation-Engagements + 20 Indie-Mom-Tests + 10 Agency-Discovery-Interviews + **5 Agency-LOIs als Phase-0-Gate** + 4 GitHub-App-Day-1-Mitigations. **Hardcore-Local-Only.**
-- **Phase 1 (M3–M9):** Dual-Sprint-Mix: 4–6 Validation + 4–6 Operations-Sprints = 8–12 Engagements à $4.500 (≈ $45k–$108k Service-Revenue). Studio-Tier-Build ($19 / $79 / $299 / $799 — **kein $99-Sandwich**). AAIF-Silver-Membership ($5k/yr).
+- **Phase 1 (M3–M9):** Dual-Sprint-Mix: 4–6 Validation + 4–6 Operations-Sprints = 8–12 Engagements à $4.500 (≈ $45k–$108k Service-Revenue). Studio-Tier-Build ($25 / $79 / $299 / $799 + Agency-Scale-Plus $1499 annual-only — **kein $99-Sandwich**, 20% annual default per [ADR-0020](decisions/0020-phase-1-scope.md)). **Anthropic Claude Partner Network** ($0 entry, M3+) — *not* AAIF (corrected per ADR-0020: AAIF is Linux Foundation, $10k/yr, no Hebel for us).
 - **Phase 2 (M9–M18):** Hosted-Web-App mit `/validate` + `/operations` live. Ziel kombiniert $30k MRR.
 - **Phase 3 (M18+):** *Optional* MM-Expand bei Trigger-Erfüllung.
 
@@ -64,7 +64,7 @@ Die folgenden 14 Constraints dürfen nicht ohne explizite ADR aufgeweicht werden
 11. **Dual-Wedge (ADR-0018, Pfad C).** ContextForge-Wedge (Cross-Vendor Agent-File-Compliance) läuft parallel zu Validation-Wedge. Beide teilen OSS-Core, Hosted-App, Brand.
 12. **Cross-Vendor-Pflicht für Agent-Files.** Phase-1-Parser liest 12 Formate (5 MUST + 5 SHOULD + 2 MAY).
 13. **Audit-Report (statt "AI Review") ist deterministic-first.** 5 von 6 Finding-Kategorien (Unused agents, Duplicate guidance, Context bloat, Stale references, Token-Budget) sind regelbasiert. Nur Conflicting-Rules nutzt LLM mit Confidence-Banding. FPR ≤ 15 % Pflicht.
-14. **GitHub-App-Day-1-Mitigations sind Pflicht.** DPA-Template + Trust-Center-Page + Requester→Approver-Bridge + Read-Only-Default. 9–12 PD in Phase 0.
+14. **GitHub-App-Day-1-Mitigations sind Pflicht.** DPA-Template + Trust-Center-Page + Requester→Approver-Bridge + Read-Only-Default. **14–17 PD production-acceptable / 5.5 PD Sprint-1.0-minimal-slice** (cost revised per [ADR-0020](decisions/0020-phase-1-scope.md) — PRD §6.4 original 9–12 PD estimate was the in-app-only path and excluded GitHub-webhook reconciliation).
 
 **Re-Open-Trigger ADR-0017 (MM-Pivot-Re-Open):** {Funding-Decision | Co-Founder-Hire | Anthropic+Cursor+MS schließen alle MM-Gaps | Langfuse launcht Validation-vor-Build}.
 
@@ -213,7 +213,7 @@ Parser-Pflicht: Markdown + Frontmatter, Token-Count, last-modified, author via g
 
 **Eval-Pipeline-Plan:** 30-File-Golden-Set in Phase-0-W1–W2, *vor* Audit-Code. Promptfoo + Langfuse + ~280 Stunden über 12–16 Wochen. Continuous nightly-eval.
 
-### 6.4 GitHub-App-Day-1-Mitigations (Phase 0 Pflicht, 9–12 PD)
+### 6.4 GitHub-App-Day-1-Mitigations (Phase 0 Pflicht — 14–17 PD revised per ADR-0020; original 9–12 PD was in-app-only path)
 
 1. **DPA-Template** (2 PD): Lawyer-reviewed Day-1-template, Customer 1-Click-Co-Sign, DACH-GDPR-konform.
 2. **Trust-Center-Pseudo-MVP** (1 PD): Static-Page mit Permissions-Begründung, Security-Posture, Compliance-Roadmap.
@@ -227,8 +227,8 @@ Parser-Pflicht: Markdown + Frontmatter, Token-Count, last-modified, author via g
 ### 6.5 Phase-0-Gate (M3)
 
 **Pass-Criteria (alle binär):**
-1. 20 Indie-Mom-Tests transkribiert
-2. 10 Agency-Discovery-Interviews transkribiert
+1. 20 Indie-Mom-Tests transkribiert (bilingual DE/EN explicit-prior-consent template — see [ADR-0020](decisions/0020-phase-1-scope.md) §Mom-Test, A9 §4. §201 StGB + GDPR Art. 6(1)(a) load-bearing.)
+2. 10 Agency-Discovery-Interviews transkribiert (same consent stack)
 3. **5 Agency-LOIs signed** (schriftliche Willenserklärung mit (a) Use-Case, (b) Pricing-Anchor, (c) Decision-Maker-Signatory)
 4. OSS v0.1 lokal lauffähig (Audit-Report green gegen 25+/30 Golden-Set)
 5. 12-Format-Parser MUST-5 done + Eval ≥ 80 %
@@ -255,7 +255,7 @@ Detaillierte Phasen-Pläne unter `docs/roadmap/`:
 - **`docs/roadmap/phase-1.md`** — (geschrieben in W13 als Phase-0-Deliverable)
 
 **Phase 0 (M0–M3, 13 Wochen):** OSS v0.1 lokal + 20 Mom-Tests + 10 Agency-Discoveries + 5 LOIs + 4 GitHub-App-Mitigations.
-**Phase 1 (M3–M9):** Dual-Sprint-Mix ($45k–$108k), Studio-Tier-Build, AAIF-Membership.
+**Phase 1 (M3–M9):** Dual-Sprint-Mix ($45k–$108k), Studio-Tier-Build, **Anthropic Claude Partner Network** ($0 entry; ADR-0020 corrects PRD line "AAIF Silver $5k" → AAIF is Linux Foundation, $10k/yr, no Hebel — switched to CPN).
 **Phase 2 (M9–M18):** Hosted-Web-App live, kombiniertes $30k MRR-Ziel.
 **Phase 3 (M18+):** Optional, Trigger-bedingt.
 
@@ -286,7 +286,7 @@ Detaillierte Phasen-Pläne unter `docs/roadmap/`:
 
 1. **Brand-Architektur M9:** "ContextForge" als Sub-Brand behalten oder unter Sondr/Pondera vollständig konsumieren?
 2. **`/operations` vs `/validate` Tab-Reihenfolge** im Hosted-App-Dashboard. Hypothesis-Test in Phase 1.
-3. **AAIF-Silver-Membership-Timing:** M3 (sofort nach Gate) oder M6 (nach erstem Hosted-Tier-Sale)?
+3. ~~AAIF-Silver-Membership-Timing~~ → resolved per [ADR-0020](decisions/0020-phase-1-scope.md): AAIF is the wrong vehicle (Linux Foundation, $10k/yr). Anthropic Claude Partner Network ($0 entry) at M3 after CCA cert. AAIF Silver re-evaluated only if restructured as Anthropic sub-tier.
 4. **Operations-Sprint-Format:** 2 Wochen wie Validation-Sprint, oder 3 Wochen (mehr Discovery)?
 5. **Cross-Customer-Aggregation-Opt-In:** Phase-2-Frage. Anonymisierte Cross-Customer-Insights anbieten?
 
