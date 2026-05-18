@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "ValidationKit — Cross-Vendor Agent-File Audit",
+  title: "ValidationKit — Agent-File Audit",
   description:
     "Point at a public GitHub repo. Get a deterministic audit of CLAUDE.md, AGENTS.md, .claude/agents, .cursor/rules, and 8 more vendor formats. No vibe scores.",
 };

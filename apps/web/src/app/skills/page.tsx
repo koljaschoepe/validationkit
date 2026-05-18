@@ -39,29 +39,17 @@ export default function SkillsPage() {
           </p>
         </header>
 
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="py-5 space-y-3 text-sm">
-            <p>
-              <strong className="text-foreground">Concession:</strong> these
-              Skills don&apos;t replace the CLI — they wrap it. The audit
-              logic lives in <code className="font-mono text-xs">validationkit-cli</code>{" "}
-              (OSS-MIT). The Skill is just the trigger + instructions for
-              Claude.
-            </p>
-            <p className="text-muted-foreground">
-              <strong className="text-foreground">Critique:</strong> if you
-              already run the CLI in your CI, the Skill is redundant in CI.
-              The Skill is useful for the interactive case — &quot;hey
-              Claude, audit my agent-files&quot; — where typing the CLI
-              flags by hand is friction.
-            </p>
-          </CardContent>
-        </Card>
-
         <section className="space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Skills shipped
           </h2>
+          {SKILLS.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No Skills published yet.
+              </CardContent>
+            </Card>
+          ) : null}
           <div className="space-y-3">
             {SKILLS.map((skill) => (
               <Card key={skill.id}>
@@ -103,9 +91,7 @@ export default function SkillsPage() {
                     </div>
                     <pre className="overflow-auto rounded-md border bg-muted/50 p-3 text-[0.7rem] font-mono">
 {`mkdir -p ~/.claude/skills
-git clone --depth=1 https://github.com/koljaschoepe/validationkit /tmp/vk-skills
-cp -r /tmp/vk-skills/skills/${skill.id} ~/.claude/skills/
-npm install -g validationkit-cli`}
+# install instructions per Skill`}
                     </pre>
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -129,38 +115,9 @@ npm install -g validationkit-cli`}
           </div>
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Coming next sprint
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Sprint 1.5+:</strong> a
-              second Skill — <code className="font-mono text-xs">validationkit-drift</code>{" "}
-              — for cross-pair drift detection. Same trigger pattern, runs{" "}
-              <code className="font-mono text-xs">validationkit drift &lt;A&gt; &lt;B&gt; --as-skill</code>.
-            </p>
-            <p>
-              Anthropic Skills-Marketplace submission via PR against{" "}
-              <a
-                href="https://github.com/anthropics/skills"
-                rel="noreferrer"
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                anthropics/skills
-              </a>{" "}
-              is paperwork-track this sprint. Featured-listing is gated on
-              Claude Partner Network approval (60-day onboarding clock).
-            </p>
-          </CardContent>
-        </Card>
-
         <footer className="border-t border-border pt-6 text-xs text-muted-foreground">
-          ValidationKit v0.0.19 ·{" "}
-          <Link href="/" className="hover:text-foreground">Audit</Link>{" "}
-          ·{" "}
+          <Link href="/" className="hover:text-foreground">Audit</Link>
+          {" · "}
           <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
           {" · "}
           <Link href="/status" className="hover:text-foreground">Status</Link>

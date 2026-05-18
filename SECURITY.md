@@ -20,7 +20,7 @@ Send a private email to **kol.schoepe@gmail.com** with:
 
 ## What's in scope
 
-- This repository's code, especially anything under `apps/web/`, `packages/`, and the published `validationkit-cli` npm package.
+- This repository's code, especially anything under `apps/web/` and `packages/`.
 - The hosted production deployment at https://validationkit.vercel.app.
 - Audit-logic correctness issues that would mislead a customer about their repo's state (eg. a finding that hides a real issue, or a fix-generator that produces an unsafe patch).
 

@@ -39,15 +39,15 @@
       "id": "dogfood-self",
       "kind": "dogfood",
       "path": ".",
-      "vendor_mix": ["claude-md", "claude-agent", "claude-command"],
+      "vendor_mix": ["claude-md", "claude-command"],
       "expected": {
-        "min_files": 8,
-        "max_files": 30,
+        "min_files": 1,
+        "max_files": 10,
         "min_findings": 0,
         "max_findings": 3,
         "must_categories": []
       },
-      "notes": "Self-audit of validationkit repo. Reflects the repo we ship from; if this is dirty we lose credibility."
+      "notes": "Self-audit of the repo. After minimal-context refactor: CLAUDE.md + plan/execute commands."
     },
     {
       "id": "adv-broken-frontmatter",

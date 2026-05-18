@@ -49,8 +49,7 @@ export function DashboardTable({ rows }: { rows: DashboardScanRow[] }) {
           <div className="space-y-1">
             <p className="font-medium">No customer-repos yet.</p>
             <p className="text-sm text-muted-foreground max-w-md">
-              Cross-vendor audits live here. Your free tier covers 1 repo —
-              add yours below.
+              Audits live here. Your free tier covers 1 repo — add yours below.
             </p>
           </div>
           <div className="flex flex-col items-center gap-2 pt-2">

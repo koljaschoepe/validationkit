@@ -61,7 +61,7 @@ export default function Home() {
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <header className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Cross-vendor agent-file trust.
+            Agent-file audit.
           </h1>
           <p className="text-muted-foreground text-lg">
             Paste a public GitHub repo. Get a deterministic audit of all 12 agent-file

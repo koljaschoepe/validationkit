@@ -80,7 +80,7 @@ export default async function PublicPricingPage({
       <main className="mx-auto max-w-5xl space-y-10 px-4 py-10 sm:px-6">
         <header className="space-y-3 text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Cross-vendor agent-file audit — pricing
+            Agent-file audit — pricing
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Flat tiers. No per-repo metering. No usage surprises. The free

@@ -95,9 +95,8 @@ export default async function BipPage({ searchParams }: BipPageProps) {
       <header>
         <h1>Build-in-Public — Post Generator</h1>
         <p>
-          Three drafts per report. Skeptic-Mentor voice
-          (concession-then-critique). Specific numbers, not vibe-scores. Copy
-          and tweak before posting.
+          Three drafts per report. Concession-then-critique voice. Specific
+          numbers, not vibe-scores. Copy and tweak before posting.
         </p>
       </header>
 
