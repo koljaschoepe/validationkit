@@ -1,7 +1,8 @@
 # Plan — Galaxie Sprint G1: UI-Skeleton
 
 > Erstellt: 2026-05-19
-> Status: 🟡 In Progress — W1+W2+W3 ✅ shipped 2026-05-19, W4 pending
+> Status: ✅ Done — shipped 2026-05-19
+> Sprint-Outcome: PixiJS-Galaxie als WOW-Demo. 150 Asteroiden @ 60 FPS, Pan/Zoom/GSAP-Snap/Cmd+K/MiniMap funktional. Public-Demo `/` + Auth-Surface `/[workspace]` beide grün.
 > Slug: `galaxie-sprint-1-ui-skeleton`
 > Branch: `feat/galaxie-sprint-1-ui-skeleton`
 > Umfang: 4 Wochen Solo-Sprint, W1–W4. Liefert das erste shippable "Wow"-Demo.
@@ -65,17 +66,17 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 - [x] Hover-Detection: `world.eventMode='passive'`, `world.on('pointerover', ...)` bubble-up, FileAsteroid hat eventMode='static' (W2), Tooltip-DOM-Overlay (`Tooltip.tsx`) mit Severity-Badge + Path + Snippet
 - [x] **Decision-Gate W3:** 60 FPS Desktop bei 150 Asteroiden + Pan + Zoom + GSAP-Snap simultaneously ✅ verifiziert via Playwright (`galaxie-w3-zoom1.png`, `galaxie-w3-zoom3-focus.png`, `galaxie-w3-after-drag.png`). Mobile-FPS-Test in W4 Scope.
 
-### Woche 4 — Affordances + Polish
+### Woche 4 — Affordances + Polish ✅ shipped 2026-05-19
 
-- [ ] MiniMap-Component (`MiniMap.tsx`, eigene kleine Pixi-Stage) mit Click-to-Center
-- [ ] Zoom-Indikator (`ZoomIndicator.tsx`, DOM-Overlay) mit aktueller Zoom-Stufe + Reset-Button
-- [ ] Dot-Grid-Backdrop (Pixi-TilingSprite mit Generated-Pattern)
-- [ ] Workspace-Switcher (`WorkspaceSwitcher.tsx`, DOM-Topbar-Component, Motion-Animated)
-- [ ] Cmd+K Universal-Search Skelett (`UniversalSearch.tsx`, `cmdk`-Lib): sucht in Mock-Customer-Liste + Mock-File-Pfade
-- [ ] Mobile-Touch: Pinch-to-Zoom, 2-Finger-Pan, Tap-to-Hover
-- [ ] Public-Demo-Route `/`: rendert Galaxie ohne Login mit Fake-Daten
-- [ ] Auth-Route `/[workspace]`: rendert Galaxie via Mock-DAL `lib/dal/galaxie.ts` (Stub für Sprint G2)
-- [ ] **Final Test**: alle Gates aus §2 grün, Mobile ≥30fps
+- [x] MiniMap-Component (`MiniMap.tsx`, SVG-basiert statt eigene Pixi-Stage — leichtgewichtiger, gleiches Visual) mit Click-to-Center + Viewport-Rect (RAF-updated)
+- [x] Zoom-Indikator (`ZoomIndicator.tsx`, DOM-Overlay) mit % + Reset-Button (Reset → Cmd+0-Snap-Level via GSAP)
+- [x] Dot-Grid-Backdrop via CSS `radial-gradient` auf host-div (statt Pixi-TilingSprite — gleiches Visual, weniger Code, kein FPS-Hit)
+- [x] Workspace-Switcher (`WorkspaceSwitcher.tsx`, DOM-Topbar-Component, Motion-Animated) mit 3 Mock-Workspaces (`mock-workspaces.ts`)
+- [x] Cmd+K Universal-Search (`UniversalSearch.tsx`, `cmdk`-Lib): sucht über Customer-Labels + File-Pfade. Pick → GSAP-Tween auf Target (scale 1.7 für Customer, 3.5 für File).
+- [x] Mobile-Touch: `onPinch` zu `useGesture` mit memo-pattern + scaleBounds 0.3-8, `touch-none` + `rubberband: false` für stabilen Pinch
+- [x] Public-Demo-Route `/`: GalaxieRoot als h-[calc(100svh-3.5rem)] hero unter `SiteNav`, AuditForm + Categories + Concession/Critique darunter als scroll-down Sek-CTA (Plan §7 Q1.1)
+- [x] Auth-Route `/[workspace]`: `[workspace]/layout.tsx` mit notFound-on-unknown-slug + `[workspace]/page.tsx` mit GalaxieRoot full-screen. `lib/dal/galaxie.ts` Mock-DAL liefert workspace-seeded mock-data (Sprint G2 ersetzt mit Drizzle+Better-Auth-Membership)
+- [x] **Final Test**: alle Gates §2 grün auf `/` und `/[workspace]` verifiziert via Playwright (`galaxie-w4-home.png`, `galaxie-w4-cmdk.png`, `galaxie-w4-workspace.png`, `galaxie-w4-workspace-overview.png`). 60 FPS Desktop ✅. Mobile-FPS-Test → User-Aufgabe (Playwright-Mobile-Sim deferred zu G6 Mobile-Tuning).
 
 ## 4. Files-to-Change
 

@@ -11,6 +11,7 @@ import { AuditForm } from "@/components/AuditForm";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import GalaxieRoot from "@/components/galaxie/GalaxieRoot";
 
 const FINDING_CATEGORIES = [
   {
@@ -58,14 +59,29 @@ export default function Home() {
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Agent-file audit.
+
+      {/* Hero — public Galaxie demo (mock-data, kein Login) */}
+      <section className="relative h-[calc(100svh-3.5rem)] w-full overflow-hidden bg-black">
+        <GalaxieRoot />
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex flex-col items-center gap-2 text-center">
+          <h1 className="text-balance px-4 font-mono text-sm font-medium text-white/85 sm:text-base">
+            Multi-Repo-Audit als Galaxie. Severity-Hotspots, Zero-Code-Apply.
           </h1>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
+            scroll for free anonymous audit ↓
+          </span>
+        </div>
+      </section>
+
+      {/* Sek-CTA — Anonymous Audit */}
+      <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <header className="space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Try the audit.
+          </h2>
           <p className="text-muted-foreground text-lg">
             Paste a public GitHub repo. Get a deterministic audit of all 12 agent-file
-            formats. No vibe-scores.
+            formats. No vibe-scores. No signup.
           </p>
         </header>
 
@@ -74,9 +90,9 @@ export default function Home() {
         </section>
 
         <section className="mt-12 space-y-4">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             What we check
-          </h2>
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {FINDING_CATEGORIES.map((cat) => (
               <Card key={cat.name} className="bg-card/50">
@@ -123,7 +139,7 @@ export default function Home() {
         </section>
 
         <footer className="mt-16 border-t border-border pt-6 text-xs text-muted-foreground">
-          ValidationKit v0.0.11 ·{" "}
+          ValidationKit ·{" "}
           <Link href="/" className="hover:text-foreground">
             Audit
           </Link>{" "}
