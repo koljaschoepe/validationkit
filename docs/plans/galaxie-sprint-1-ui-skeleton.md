@@ -1,8 +1,9 @@
 # Plan — Galaxie Sprint G1: UI-Skeleton
 
 > Erstellt: 2026-05-19
-> Status: 🟢 Approved (Pre-Work liefert ADRs als Foundation)
+> Status: 🟡 In Progress — W1 ✅ shipped 2026-05-19, W2–W4 pending
 > Slug: `galaxie-sprint-1-ui-skeleton`
+> Branch: `feat/galaxie-sprint-1-ui-skeleton`
 > Umfang: 4 Wochen Solo-Sprint, W1–W4. Liefert das erste shippable "Wow"-Demo.
 
 ---
@@ -34,15 +35,15 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 
 ## 3. Schritte
 
-### Woche 1 — PixiJS-Setup + Skeleton
+### Woche 1 — PixiJS-Setup + Skeleton ✅ shipped 2026-05-19
 
-- [ ] Dependencies installieren: `pixi.js@^8 @pixi/react@^8 gsap@^3 motion @use-gesture/react @react-spring/web`
-- [ ] `apps/web/src/components/galaxie/` Ordner anlegen
-- [ ] `GalaxieScene.tsx` als `'use client'` Component mit Pixi-Application-Setup
-- [ ] Dynamic-Import-Wrapper `GalaxieRoot.tsx` für SSR-Bypass: `dynamic(() => import('./GalaxieScene'), { ssr: false })`
-- [ ] Pixi-Application mountet auf `<canvas>`, fills viewport, resizes on window-resize
-- [ ] FPS-Counter (debug-only via `?debug=1` URL-param)
-- [ ] **Smoke-Test**: leeres Galaxie-Canvas rendert in dev-server, kein Hydration-Fehler
+- [x] Dependencies installieren: `pixi.js@^8 @pixi/react@^8 gsap@^3 motion @use-gesture/react @react-spring/web @pixi/filter-glow`
+- [x] `apps/web/src/components/galaxie/` Ordner anlegen (+ `pixi/` Subordner, `lib/galaxie/`, `lib/dal/`)
+- [x] `GalaxieScene.tsx` als `'use client'` Component mit Pixi-Application-Setup (extend({Container, Graphics, Text}))
+- [x] Dynamic-Import-Wrapper `GalaxieRoot.tsx` für SSR-Bypass: `dynamic(() => import('./GalaxieScene'), { ssr: false })`
+- [x] Pixi-Application mountet auf `<canvas>`, fills viewport, resizes on window-resize (state-driven width/height)
+- [x] FPS-Counter (debug-only via `?debug=1` URL-param) — verifiziert via Playwright: 60 FPS bei leerem Canvas
+- [x] **Smoke-Test**: leeres Galaxie-Canvas rendert in dev-server, kein Hydration-Fehler (HTTP 200, dev-Route `/galaxie-dev`, Playwright-Console 0 errors außer favicon-404)
 
 ### Woche 2 — Display-Objects + Layout
 
@@ -137,14 +138,11 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 - `git checkout main` = voller Rollback. Keine DB-Migration in diesem Sprint.
 - Bestehende Routen (`/dashboard`, `/customers`, etc.) bleiben unverändert. Sprint G1 berührt sie nicht.
 
-## 7. Open Questions
+## 7. Open Questions — RESOLVED 2026-05-19
 
-- **Q1.1:** Wo lebt der Public-Demo-Galaxie-Inhalt? `/` als neue Public-Galaxie-Demo überschreibt aktuellen Anonymous-Audit-Form. Soll der Audit-Form als Sekundär-CTA bleiben (Toggle?), oder ganz raus aus `/`?
-  - **Default:** Audit-Form bleibt als Sekundär-CTA unter der Galaxie.
-- **Q1.2:** `app/[workspace]/layout.tsx` in Sprint G1 — bauen wir schon den Slug-Hijacking-Check ein, oder erst Sprint G2?
-  - **Default:** Skelett ohne Auth-Check in G1, voller Check in G2 (DAL-Pattern wird dort eingeführt).
-- **Q1.3:** Welche Pixi-Filter-Library für Glow? `@pixi/filter-glow` oder native `BlurFilter + alpha-Trick`?
-  - **Default:** `@pixi/filter-glow` (offiziell, gut getestet).
+- **Q1.1:** ✅ Audit-Form bleibt als Sekundär-CTA unter der Galaxie auf `/`. Galaxie ist Hero.
+- **Q1.2:** ✅ Skelett ohne Auth-Check in G1. Voller Slug-Hijacking-Check + Membership-Gate kommt in G2 zusammen mit DAL-Pattern.
+- **Q1.3:** ✅ `@pixi/filter-glow` für Severity-Glow auf Asteroiden.
 
 ## 8. Sprint-Demo (W4-Ende)
 
