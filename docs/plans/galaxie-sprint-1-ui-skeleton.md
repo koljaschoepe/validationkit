@@ -1,7 +1,7 @@
 # Plan — Galaxie Sprint G1: UI-Skeleton
 
 > Erstellt: 2026-05-19
-> Status: 🟡 In Progress — W1+W2 ✅ shipped 2026-05-19, W3+W4 pending
+> Status: 🟡 In Progress — W1+W2+W3 ✅ shipped 2026-05-19, W4 pending
 > Slug: `galaxie-sprint-1-ui-skeleton`
 > Branch: `feat/galaxie-sprint-1-ui-skeleton`
 > Umfang: 4 Wochen Solo-Sprint, W1–W4. Liefert das erste shippable "Wow"-Demo.
@@ -55,15 +55,15 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 - [x] Asteroiden rendern mit Severity-Farbe + Glow-Filter via `pixi-filters@^6` (swap aus Q1.3 — `@pixi/filter-glow@5` v8-inkompatibel)
 - [x] **Test**: 150 Asteroiden rendern verifiziert via Playwright (60 FPS @ 1280×720, screenshot in galaxie-w2-150-asteroids.png), 14/14 vitest grün (3 + 5 + 6)
 
-### Woche 3 — Camera + Pan/Zoom + Drill-In
+### Woche 3 — Camera + Pan/Zoom + Drill-In ✅ shipped 2026-05-19
 
-- [ ] `Camera.ts` Class: position (x, y), scale (zoom), pan(dx, dy), zoom(factor, anchor)
-- [ ] Pan via Drag mit `@use-gesture/react` `useDrag`
-- [ ] Zoom via Wheel + Pinch mit `useWheel` + `usePinch`
-- [ ] Camera-Constraints (min-zoom=0.1, max-zoom=10, world-bounds)
-- [ ] GSAP-Camera-Tween für Snap-to-Zoom-Level (Cmd+0 = home, Cmd+1/2/3/4 = Levels)
-- [ ] Hover-Detection via Pixi `eventMode='static'` + Tooltip-React-Overlay
-- [ ] **Decision-Gate W3:** wenn 150 Asteroiden <30fps Desktop → STOP, fallback-Diskussion zu tldraw
+- [x] `Camera.ts` Class: imperative state (x, y, scale), `panBy`, `zoomAt(factor, anchor)` mit anchor-fix-mathe, `clamp`, `applyTo(world, vcX, vcY)` — 6/6 vitest
+- [x] Pan via `useGesture` `onDrag` mit `delta`-Akkumulation → `camera.panBy` + `applyCamera`
+- [x] Zoom via `useGesture` `onWheel` mit anchor-relative zoom (mouse position − viewport-center) → `camera.zoomAt`. Pinch deferred zu W4 Mobile-Tuning.
+- [x] Camera-Constraints: minZoom 0.3, maxZoom 8, panHalfWidth/Height 2000 — clamp pro mutation
+- [x] GSAP-Camera-Tween: 5 zoom-snap-levels Cmd+0/1/2/3/4, levels 2–4 fokussieren echte Customer-Cluster aus mock-layout (deterministic). `gsap.to(cameraRef.current, ...onUpdate=applyCamera)`, ease power2.out, 0.7s
+- [x] Hover-Detection: `world.eventMode='passive'`, `world.on('pointerover', ...)` bubble-up, FileAsteroid hat eventMode='static' (W2), Tooltip-DOM-Overlay (`Tooltip.tsx`) mit Severity-Badge + Path + Snippet
+- [x] **Decision-Gate W3:** 60 FPS Desktop bei 150 Asteroiden + Pan + Zoom + GSAP-Snap simultaneously ✅ verifiziert via Playwright (`galaxie-w3-zoom1.png`, `galaxie-w3-zoom3-focus.png`, `galaxie-w3-after-drag.png`). Mobile-FPS-Test in W4 Scope.
 
 ### Woche 4 — Affordances + Polish
 
