@@ -199,15 +199,89 @@ function ReadyBlock({ solution }: { solution: SolutionRow }) {
         </div>
       ) : null}
 
+      <ApplyButton solutionId={solution.id} />
+    </div>
+  );
+}
+
+function ApplyButton({ solutionId }: { solutionId: string }) {
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState<{
+    ok: boolean;
+    mode?: string;
+    targetUrl?: string;
+    targetStatus?: string;
+    error?: string;
+  } | null>(null);
+
+  async function onClick() {
+    setPending(true);
+    setResult(null);
+    try {
+      const { applySolutionAction } = await import('@/lib/apply-actions');
+      const r = await applySolutionAction(solutionId);
+      setResult(r);
+    } catch (e) {
+      setResult({ ok: false, error: (e as Error).message });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (result?.ok) {
+    return <ApplySuccess result={result} />;
+  }
+
+  return (
+    <div className="space-y-2">
       <button
         type="button"
-        disabled
-        title="Apply lands in Sprint G5 — GitHub-App-PR-Workflow"
-        className="inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40"
+        onClick={onClick}
+        disabled={pending}
+        className="inline-flex items-center gap-1.5 rounded border border-green-500/30 bg-green-500/15 px-3 py-1.5 text-xs text-green-200 transition hover:bg-green-500/25 disabled:opacity-50"
       >
-        <LockIcon className="size-3" />
-        Apply (Sprint G5)
+        <SparklesIcon className="size-3" />
+        {pending ? 'Applying…' : 'Apply solution'}
       </button>
+      <p className="text-[10px] text-white/40">
+        Default: writes patch to <code>/tmp/vk-patches/</code> via LocalGitClient.
+        Configure GitHub-App env vars to upgrade to PR dispatch.
+      </p>
+      {result && !result.ok ? (
+        <p className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1 text-[11px] text-red-300">
+          {result.error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ApplySuccess({
+  result,
+}: {
+  result: { mode?: string; targetUrl?: string; targetStatus?: string };
+}) {
+  return (
+    <div className="space-y-2 rounded border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 text-green-200">
+        <SparklesIcon className="size-3.5" />
+        <span className="font-medium">
+          Applied via {result.mode === 'local' ? 'local patch' : result.mode}
+        </span>
+      </div>
+      {result.targetUrl ? (
+        <p className="break-all font-mono text-[10px] text-white/70">
+          {result.targetUrl}
+        </p>
+      ) : null}
+      {result.targetStatus && result.targetStatus !== 'n/a' ? (
+        <p className="text-[10px] text-white/50">Status: {result.targetStatus}</p>
+      ) : null}
+      {result.mode === 'local' ? (
+        <p className="text-[10px] text-white/50">
+          Apply by hand: <code>cd &lt;repo&gt; && git apply &lt;path&gt;</code>
+        </p>
+      ) : null}
     </div>
   );
 }

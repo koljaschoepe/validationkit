@@ -31,4 +31,20 @@ describe('alphaFor', () => {
   it('returns 0.5 for unsupported', () => {
     expect(alphaFor('unsupported', null)).toBe(0.5);
   });
+
+  // Sprint G5 — dismissStatus dominates solutionStatus.
+  it('dismissed dominates over solution-status (alpha 0.2)', () => {
+    expect(alphaFor('ready', 'high', 'dismissed')).toBe(0.2);
+    expect(alphaFor('none', null, 'dismissed')).toBe(0.2);
+  });
+
+  it('snoozed dominates over solution-status (alpha 0.3)', () => {
+    expect(alphaFor('ready', 'high', 'snoozed')).toBe(0.3);
+    expect(alphaFor('none', null, 'snoozed')).toBe(0.3);
+  });
+
+  it('active passes through to solution-status mapping', () => {
+    expect(alphaFor('ready', 'high', 'active')).toBe(1.0);
+    expect(alphaFor('none', null, 'active')).toBe(0.6);
+  });
 });

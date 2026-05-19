@@ -133,6 +133,8 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
   );
 
   // Build FileNode[] — one per finding.
+  // Sprint G5 — lazy-expire snooze: if snoozed_until < now, treat as active.
+  const now = new Date();
   const reposById = new Map(reposRows.map((r) => [r.id, r]));
   const files: FileNode[] = [];
   for (const f of findingsRows) {
@@ -141,6 +143,10 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
     const repo = reposById.get(repoId);
     if (!repo) continue;
     const sol = solutionStatusMap.get(f.id);
+    let dismissStatus = (f.dismissStatus as 'active' | 'dismissed' | 'snoozed') ?? 'active';
+    if (dismissStatus === 'snoozed' && f.snoozedUntil && f.snoozedUntil < now) {
+      dismissStatus = 'active';
+    }
     files.push({
       id: f.id,
       repoId,
@@ -150,12 +156,16 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
       findingSnippet: f.detail.slice(0, 240),
       solutionStatus: sol?.status ?? 'none',
       ...(sol?.confidence ? { solutionConfidence: sol.confidence } : {}),
+      dismissStatus,
+      ...(f.dismissReason ? { dismissReason: f.dismissReason } : {}),
+      ...(f.snoozedUntil ? { snoozedUntil: f.snoozedUntil } : {}),
     });
   }
 
-  // Aggregate per repo.
+  // Aggregate per repo — Sprint G5 excludes dismissed.
   const sevByRepo = new Map<string, Severity[]>();
   for (const f of files) {
+    if (f.dismissStatus === 'dismissed') continue;
     const arr = sevByRepo.get(f.repoId) ?? [];
     arr.push(f.severity);
     sevByRepo.set(f.repoId, arr);

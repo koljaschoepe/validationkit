@@ -1,9 +1,15 @@
-import type { SolutionStatus } from '@/lib/galaxie/types';
+import type { DismissStatus, SolutionStatus } from '@/lib/galaxie/types';
 
 /**
  * Visual alpha-mapping for solution status + confidence on FileAsteroid.
  * Kept in a non-"use server" file so it can be imported by client-components
  * (FileAsteroid) and by tests without bundling Drizzle.
+ *
+ * Sprint G5 — dismiss/snooze dominate solution-status:
+ *   dismissed → 0.20 (strongest dim, grayed-out)
+ *   snoozed   → 0.30
+ *
+ * Otherwise solution-status:
  *   ready+high  → 1.00
  *   ready+mid   → 0.85
  *   ready+low   → 0.70
@@ -16,7 +22,10 @@ import type { SolutionStatus } from '@/lib/galaxie/types';
 export function alphaFor(
   status: SolutionStatus | undefined,
   confidence: 'low' | 'mid' | 'high' | null | undefined,
+  dismissStatus?: DismissStatus,
 ): number {
+  if (dismissStatus === 'dismissed') return 0.2;
+  if (dismissStatus === 'snoozed') return 0.3;
   if (status === 'ready') {
     if (confidence === 'high') return 1.0;
     if (confidence === 'mid') return 0.85;

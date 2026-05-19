@@ -30,6 +30,8 @@ export type SolutionStatus =
   | 'failed'
   | 'unsupported';
 
+export type DismissStatus = 'active' | 'dismissed' | 'snoozed';
+
 export interface FileNode {
   id: string;
   repoId: string;
@@ -40,6 +42,10 @@ export interface FileNode {
   /** Sprint G4 — Solution-cache-status for confidence-opacity render. */
   solutionStatus?: SolutionStatus;
   solutionConfidence?: 'low' | 'mid' | 'high';
+  /** Sprint G5 — dismiss + snooze state. Auto-expires when snoozedUntil < now. */
+  dismissStatus?: DismissStatus;
+  dismissReason?: string;
+  snoozedUntil?: Date;
 }
 
 export interface GalaxieData {

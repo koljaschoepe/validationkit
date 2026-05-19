@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { AddRepoForm } from "@/components/AddRepoForm";
+import { ApplyModeSelector } from "@/components/ApplyModeSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,6 @@ export default async function CustomerDetailPage({
               <span>·</span>
               <SeverityBadge severity={customer.aggregateSeverity} />
               <span>·</span>
-              <Badge variant="secondary" className="font-mono text-[10px]">
-                apply mode: {customer.defaultApplyMode}
-              </Badge>
               {customer.githubOrg ? (
                 <>
                   <span>·</span>
@@ -66,6 +64,20 @@ export default async function CustomerDetailPage({
             </div>
           </div>
         </header>
+
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Apply mode
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Default for new solutions in this customer's repos. PR = review-friendly.
+            Direct = commit straight to main (only if you trust auto-fixes here).
+          </p>
+          <ApplyModeSelector
+            customerId={customer.id}
+            current={customer.defaultApplyMode as "pr" | "direct"}
+          />
+        </section>
 
         <section className="space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">

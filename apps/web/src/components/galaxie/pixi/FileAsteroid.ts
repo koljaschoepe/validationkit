@@ -13,22 +13,30 @@ export class FileAsteroid extends Container {
     this.x = node.x;
     this.y = node.y;
     this.label = file.id;
-    this.alpha = alphaFor(file.solutionStatus, file.solutionConfidence);
+    this.alpha = alphaFor(
+      file.solutionStatus,
+      file.solutionConfidence,
+      file.dismissStatus,
+    );
 
-    const color = severityPixiColor(file.severity);
+    // Sprint G5 — dismissed findings render in neutral gray, no glow.
+    const dimmed = file.dismissStatus === 'dismissed';
+    const color = dimmed ? 0x404040 : severityPixiColor(file.severity);
     const g = new Graphics();
     g.circle(0, 0, 2.4).fill({ color });
     this.addChild(g);
 
-    this.filters = [
-      new GlowFilter({
-        distance: 6,
-        outerStrength: file.solutionStatus === 'ready' ? 2.4 : 1.6,
-        innerStrength: 0,
-        color,
-        quality: 0.2,
-      }),
-    ];
+    if (!dimmed) {
+      this.filters = [
+        new GlowFilter({
+          distance: 6,
+          outerStrength: file.solutionStatus === 'ready' ? 2.4 : 1.6,
+          innerStrength: 0,
+          color,
+          quality: 0.2,
+        }),
+      ];
+    }
 
     this.eventMode = 'static';
     this.cursor = 'pointer';

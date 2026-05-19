@@ -238,6 +238,37 @@ export interface AddRepoUnderCustomerInput {
   githubFullName?: string;
 }
 
+export async function updateCustomerApplyMode(
+  userId: string,
+  customerId: string,
+  mode: "pr" | "direct",
+): Promise<AddCustomerResult> {
+  if (!isDbEnabled()) return { ok: false, error: "DB not configured." };
+  if (mode !== "pr" && mode !== "direct") {
+    return { ok: false, error: `Invalid apply mode: ${mode}` };
+  }
+  const db = getDb();
+  const customerRows = await db
+    .select({ workspaceId: schema.customer.workspaceId })
+    .from(schema.customer)
+    .where(eq(schema.customer.id, customerId))
+    .limit(1);
+  const customer = customerRows[0];
+  if (!customer) return { ok: false, error: "Customer not found." };
+
+  if (!(await userIsWorkspaceMember(customer.workspaceId, userId))) {
+    return { ok: false, error: "Not authorized." };
+  }
+
+  await db
+    .update(schema.customer)
+    .set({ defaultApplyMode: mode, updatedAt: new Date() })
+    .where(eq(schema.customer.id, customerId));
+
+  updateTag(galaxieWorkspaceTag(customer.workspaceId));
+  return { ok: true };
+}
+
 export async function addRepoUnderCustomer(
   userId: string,
   input: AddRepoUnderCustomerInput,

@@ -71,6 +71,13 @@
       "when": 1779199873272,
       "tag": "0009_nice_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779200904021,
+      "tag": "0010_open_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

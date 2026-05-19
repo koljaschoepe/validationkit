@@ -311,10 +311,81 @@ export const finding = pgTable(
     deterministic: boolean("deterministic").notNull(),
     confidence: varchar("confidence", { length: 10 }),
     citations: jsonb("citations").notNull().default(sql`'[]'::jsonb`),
+    // Sprint G5 — dismiss + snooze.
+    // dismissStatus ∈ 'active' | 'dismissed' | 'snoozed' (auto-expires when snoozed_until < now()).
+    // dismissReason ∈ 'false-positive' | 'acceptable-risk' | 'wont-fix' (nullable).
+    dismissStatus: varchar("dismiss_status", { length: 20 })
+      .notNull()
+      .default("active"),
+    dismissReason: varchar("dismiss_reason", { length: 40 }),
+    snoozedUntil: timestamp("snoozed_until", { withTimezone: true }),
   },
-  // Sprint G2 — composite index for `WHERE scan_id = ? AND severity = ?` aggregates.
-  (t) => [index("finding_scan_severity_idx").on(t.scanId, t.severity)],
+  (t) => [
+    index("finding_scan_severity_idx").on(t.scanId, t.severity),
+    index("finding_scan_dismiss_idx").on(t.scanId, t.dismissStatus),
+  ],
 );
+
+// Sprint G5 — append-only audit-trail for apply/dismiss/snooze decisions.
+// One row per action. PR-status updates happen via in-place column updates
+// on the most recent apply row (target_status); the row itself is immutable.
+export const applyAction = pgTable("apply_action", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  solutionId: uuid("solution_id").references(() => solution.id, {
+    onDelete: "set null",
+  }),
+  findingId: uuid("finding_id")
+    .notNull()
+    .references(() => finding.id, { onDelete: "cascade" }),
+  repoId: uuid("repo_id").references(() => repo.id, { onDelete: "set null" }),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  // 'pr' | 'direct' | 'local' for decision='apply'; 'n/a' for dismiss/snooze/undo.
+  mode: varchar("mode", { length: 20 }).notNull(),
+  // 'apply' | 'dismiss' | 'snooze' | 'undo-dismiss' | 'undo-snooze'.
+  decision: varchar("decision", { length: 20 }).notNull(),
+  reason: text("reason"),
+  // For mode='pr' or 'direct': PR url / commit url.
+  targetUrl: text("target_url"),
+  // For mode='pr': PR number; for mode='direct': commit sha; for mode='local': patch file path.
+  targetRef: varchar("target_ref", { length: 200 }),
+  targetSha: varchar("target_sha", { length: 80 }),
+  // 'open' | 'merged' | 'closed' | 'draft' | 'unknown' (for mode='pr'; mutates in place).
+  targetStatus: varchar("target_status", { length: 20 }),
+  snoozeUntil: timestamp("snooze_until", { withTimezone: true }),
+  decidedBy: text("decided_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  decidedAt: timestamp("decided_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const applyActionRelations = relations(applyAction, ({ one }) => ({
+  solution: one(solution, {
+    fields: [applyAction.solutionId],
+    references: [solution.id],
+  }),
+  finding: one(finding, {
+    fields: [applyAction.findingId],
+    references: [finding.id],
+  }),
+  repo: one(repo, {
+    fields: [applyAction.repoId],
+    references: [repo.id],
+  }),
+  workspace: one(workspace, {
+    fields: [applyAction.workspaceId],
+    references: [workspace.id],
+  }),
+  decider: one(user, {
+    fields: [applyAction.decidedBy],
+    references: [user.id],
+  }),
+}));
 
 export const workspaceRelations = relations(workspace, ({ many, one }) => ({
   owner: one(user, { fields: [workspace.ownerId], references: [user.id] }),
