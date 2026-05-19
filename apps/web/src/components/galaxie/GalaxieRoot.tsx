@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { GalaxieData } from '@/lib/galaxie/types';
 import type { MockWorkspace } from '@/lib/galaxie/mock-workspaces';
+import type { OnboardingState } from './OnboardingBanner';
 
 // Pixi touches `window` at module-eval time → bypass SSR strictly via dynamic + ssr:false.
 // This wrapper MUST stay client-side; never import GalaxieScene directly from a server component.
@@ -23,6 +24,8 @@ export interface GalaxieRootProps {
   initialWorkspaceSlug?: string;
   /** Optional workspace list — overrides MOCK_WORKSPACES in the switcher. */
   workspaces?: MockWorkspace[];
+  /** Sprint G6 — onboarding-checklist state for the inline banner. */
+  onboarding?: OnboardingState;
 }
 
 export default function GalaxieRoot(props: GalaxieRootProps) {

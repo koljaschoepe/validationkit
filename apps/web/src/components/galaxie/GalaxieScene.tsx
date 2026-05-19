@@ -31,6 +31,8 @@ import { MiniMap } from './MiniMap';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { UniversalSearch, type SearchResult } from './UniversalSearch';
 import { Inspector } from './Inspector';
+import { OnboardingBanner, type OnboardingState } from './OnboardingBanner';
+import { EmptyGalaxie } from './EmptyGalaxie';
 
 extend({ Container, Graphics, Text });
 
@@ -44,12 +46,14 @@ interface GalaxieSceneProps {
   initialData?: GalaxieData;
   initialWorkspaceSlug?: string;
   workspaces?: MockWorkspace[];
+  onboarding?: OnboardingState;
 }
 
 export default function GalaxieScene({
   initialData,
   initialWorkspaceSlug,
   workspaces,
+  onboarding,
 }: GalaxieSceneProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
@@ -76,6 +80,11 @@ export default function GalaxieScene({
     () => initialData ?? generateMockGalaxieData(),
     [initialData],
   );
+
+  // Sprint G6 — empty-state when the real workspace has 0 customers.
+  // Mock-data always has customers, so the public demo skips this branch.
+  const isEmptyRealWorkspace =
+    initialData !== undefined && initialData.customers.length === 0;
   const galaxieLayout = useMemo(() => computeLayout(galaxieData), [galaxieData]);
   const layoutById = useMemo(
     () => new Map<string, LayoutNode>(galaxieLayout.nodes.map((n) => [n.id, n])),
@@ -282,6 +291,10 @@ export default function GalaxieScene({
     return galaxieData.files.find((f) => f.id === inspectorFileId) ?? null;
   }, [inspectorFileId, galaxieData.files]);
 
+  if (isEmptyRealWorkspace) {
+    return <EmptyGalaxie />;
+  }
+
   return (
     <div
       ref={hostRef}
@@ -292,6 +305,7 @@ export default function GalaxieScene({
         backgroundSize: '28px 28px',
       }}
     >
+      {onboarding ? <OnboardingBanner state={onboarding} /> : null}
       {size && (
         <>
           <Application

@@ -100,7 +100,7 @@ export function Inspector({
   return (
     <div
       ref={panelRef}
-      className="pointer-events-auto absolute right-0 top-0 z-30 flex h-full w-[380px] flex-col border-l border-white/10 bg-black/85 backdrop-blur"
+      className="pointer-events-auto absolute z-30 flex flex-col border-white/10 bg-black/85 backdrop-blur right-0 bottom-0 sm:top-0 left-0 sm:left-auto h-[70vh] sm:h-full w-full sm:w-[380px] border-t sm:border-t-0 sm:border-l rounded-t-lg sm:rounded-none"
     >
       <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div className="min-w-0 flex-1">

@@ -19,6 +19,50 @@ export interface WorkspaceMeta {
   role: 'owner' | 'admin' | 'member';
 }
 
+export interface WorkspaceCounts {
+  customerCount: number;
+  repoCount: number;
+  scanCount: number;
+  writeEnabledRepoCount: number;
+}
+
+export async function getWorkspaceCounts(
+  workspaceId: string,
+): Promise<WorkspaceCounts> {
+  if (!isDbEnabled()) {
+    return {
+      customerCount: 0,
+      repoCount: 0,
+      scanCount: 0,
+      writeEnabledRepoCount: 0,
+    };
+  }
+  const db = getDb();
+  const [customers, repos, scans] = await Promise.all([
+    db
+      .select({ id: schema.customer.id })
+      .from(schema.customer)
+      .where(eq(schema.customer.workspaceId, workspaceId)),
+    db
+      .select({
+        id: schema.repo.id,
+        writeAccessGranted: schema.repo.writeAccessGranted,
+      })
+      .from(schema.repo)
+      .where(eq(schema.repo.workspaceId, workspaceId)),
+    db
+      .select({ id: schema.scan.id })
+      .from(schema.scan)
+      .where(eq(schema.scan.workspaceId, workspaceId)),
+  ]);
+  return {
+    customerCount: customers.length,
+    repoCount: repos.length,
+    scanCount: scans.length,
+    writeEnabledRepoCount: repos.filter((r) => r.writeAccessGranted).length,
+  };
+}
+
 const VALID_SEVERITIES = new Set<Severity>(SEVERITY_BANDS);
 
 export function normalizeSeverity(s: string | null | undefined): Severity {
