@@ -2,8 +2,14 @@
 
 import { Application, extend } from '@pixi/react';
 import { Container, Graphics, Text } from 'pixi.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
+import { computeLayout } from '@/lib/galaxie/layout';
+import type { LayoutNode } from '@/lib/galaxie/types';
+import { CustomerStar } from './pixi/CustomerStar';
+import { RepoMoon } from './pixi/RepoMoon';
+import { FileAsteroid } from './pixi/FileAsteroid';
 
 extend({ Container, Graphics, Text });
 
@@ -34,11 +40,61 @@ export default function GalaxieScene() {
           typeof window !== 'undefined' ? window.devicePixelRatio : 1
         }
       >
-        {/* W2 will fill this with Customer/Repo/File pixi-children */}
+        <GalaxieWorld centerX={size.w / 2} centerY={size.h / 2} />
       </Application>
       {isDebug && <FPSCounter />}
     </div>
   );
+}
+
+function GalaxieWorld({
+  centerX,
+  centerY,
+}: {
+  centerX: number;
+  centerY: number;
+}) {
+  const worldRef = useRef<Container | null>(null);
+
+  useEffect(() => {
+    const world = worldRef.current;
+    if (!world) return;
+
+    const data = generateMockGalaxieData();
+    const layout = computeLayout(data);
+    const byId = new Map<string, LayoutNode>(
+      layout.nodes.map((n) => [n.id, n]),
+    );
+
+    const children: Container[] = [];
+
+    for (const c of data.customers) {
+      const ln = byId.get(c.id);
+      if (!ln) continue;
+      children.push(new CustomerStar(c, ln));
+    }
+    for (const r of data.repos) {
+      const ln = byId.get(r.id);
+      if (!ln) continue;
+      children.push(new RepoMoon(r, ln));
+    }
+    for (const f of data.files) {
+      const ln = byId.get(f.id);
+      if (!ln) continue;
+      children.push(new FileAsteroid(f, ln));
+    }
+
+    for (const c of children) world.addChild(c);
+
+    return () => {
+      for (const c of children) {
+        world.removeChild(c);
+        c.destroy({ children: true });
+      }
+    };
+  }, []);
+
+  return <pixiContainer ref={worldRef} x={centerX} y={centerY} />;
 }
 
 function FPSCounter() {

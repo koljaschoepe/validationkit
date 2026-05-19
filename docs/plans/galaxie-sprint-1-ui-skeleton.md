@@ -1,7 +1,7 @@
 # Plan — Galaxie Sprint G1: UI-Skeleton
 
 > Erstellt: 2026-05-19
-> Status: 🟡 In Progress — W1 ✅ shipped 2026-05-19, W2–W4 pending
+> Status: 🟡 In Progress — W1+W2 ✅ shipped 2026-05-19, W3+W4 pending
 > Slug: `galaxie-sprint-1-ui-skeleton`
 > Branch: `feat/galaxie-sprint-1-ui-skeleton`
 > Umfang: 4 Wochen Solo-Sprint, W1–W4. Liefert das erste shippable "Wow"-Demo.
@@ -45,15 +45,15 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 - [x] FPS-Counter (debug-only via `?debug=1` URL-param) — verifiziert via Playwright: 60 FPS bei leerem Canvas
 - [x] **Smoke-Test**: leeres Galaxie-Canvas rendert in dev-server, kein Hydration-Fehler (HTTP 200, dev-Route `/galaxie-dev`, Playwright-Console 0 errors außer favicon-404)
 
-### Woche 2 — Display-Objects + Layout
+### Woche 2 — Display-Objects + Layout ✅ shipped 2026-05-19
 
-- [ ] Type-Definitionen: `Customer`, `Repo`, `FileNode` in `lib/galaxie/types.ts`
-- [ ] Mock-Data-Service: `lib/galaxie/mock-data.ts` mit 3 Customers × 5 Repos × 10 Files (deterministisch generiert via Hash-Seed)
-- [ ] Layout-Algorithmus `lib/galaxie/layout.ts`: deterministisches Force-Directed (hash-based seed) → JSON `{id, x, y, level}[]`
-- [ ] Pixi-Components: `CustomerStar.ts`, `RepoMoon.ts`, `FileAsteroid.ts` (Pixi-Container-Subclasses)
-- [ ] Severity-Color-Map in `lib/galaxie/severity-colors.ts` (Kill=#dc2626 / Weak=#ea580c / Mid=#eab308 / Strong=#3b82f6 / Exceptional=#fbbf24)
-- [ ] Asteroiden rendern mit Severity-Farbe + Glow-Filter (`@pixi/filter-glow`)
-- [ ] **Test**: 150 Asteroiden rendern, FPS-Counter zeigt ≥60fps Desktop
+- [x] Type-Definitionen: `Customer`, `Repo`, `FileNode`, `Severity`, `LayoutNode` in `lib/galaxie/types.ts`
+- [x] Mock-Data-Service: `lib/galaxie/mock-data.ts` mit 3 Customers × 5 Repos × 10 Files = 150 Files, deterministisch via mulberry32-PRNG + DJB-Hash-Seed, 3 Severity-Mix-Profile (kill-heavy / mixed / strong-heavy)
+- [x] Layout-Algorithmus `lib/galaxie/layout.ts`: deterministisch, 3-Level-Orbit (Customer→Repo→File), pure-func ohne Pixi-Deps → 168 Nodes
+- [x] Pixi-Components: `pixi/CustomerStar.ts` (32/20/11px concentric), `pixi/RepoMoon.ts` (9/5.5px), `pixi/FileAsteroid.ts` (2.4px + GlowFilter)
+- [x] Severity-Color-Map in `lib/galaxie/severity-colors.ts` (Hex + Pixi-Number-Map + helpers)
+- [x] Asteroiden rendern mit Severity-Farbe + Glow-Filter via `pixi-filters@^6` (swap aus Q1.3 — `@pixi/filter-glow@5` v8-inkompatibel)
+- [x] **Test**: 150 Asteroiden rendern verifiziert via Playwright (60 FPS @ 1280×720, screenshot in galaxie-w2-150-asteroids.png), 14/14 vitest grün (3 + 5 + 6)
 
 ### Woche 3 — Camera + Pan/Zoom + Drill-In
 
@@ -142,7 +142,7 @@ Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom
 
 - **Q1.1:** ✅ Audit-Form bleibt als Sekundär-CTA unter der Galaxie auf `/`. Galaxie ist Hero.
 - **Q1.2:** ✅ Skelett ohne Auth-Check in G1. Voller Slug-Hijacking-Check + Membership-Gate kommt in G2 zusammen mit DAL-Pattern.
-- **Q1.3:** ✅ `@pixi/filter-glow` für Severity-Glow auf Asteroiden.
+- **Q1.3:** ✅ Glow-Filter aktiv. In W2 von `@pixi/filter-glow@5` (legacy `@pixi/core`-Import, Pixi-v8-inkompatibel) auf `pixi-filters@^6` umgeschwenkt (offizielles v8-Sammel-Package, `GlowFilter`-Export identisch).
 
 ## 8. Sprint-Demo (W4-Ende)
 
