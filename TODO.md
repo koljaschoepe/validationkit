@@ -117,11 +117,47 @@
 
 ---
 
-## Phase Galaxie — Currently Active (Mai 2026 →)
+## Phase Galaxie — ✅ shipped 2026-05-19
 
-Siehe `docs/roadmap/phase-galaxie.md` für Sprint-Detail. Aktuell:
-- Pre-Work: `docs/plans/galaxie-pre-work.md` (Doc-Konsolidierung + ADRs + Sprint-G1-Plan)
-- Sprint G1: `docs/plans/galaxie-sprint-1-ui-skeleton.md` (PixiJS-Galaxie, W1-4)
+Komplette 6-Sprint-Roadmap aus `docs/roadmap/phase-galaxie.md` ausgeliefert.
+Alle Plan-Files in `docs/plans/done/`:
+
+- [x] Pre-Work: `galaxie-pre-work.md` (Doc-Konsolidierung + ADRs)
+- [x] Sprint G1: `galaxie-sprint-1-ui-skeleton.md` (PixiJS-Galaxie W1-4, 60fps@150 Asteroiden, Pan/Zoom/GSAP-Snap, MiniMap, Cmd+K)
+- [x] Sprint G2: `galaxie-sprint-2-data-binding.md` (Customer-Schema + DAL + Membership-Gate, Migration 0008)
+- [x] Sprint G3: `galaxie-sprint-3-inspector.md` (Inspector-Panel, Click-Drill-In, /customers refactor)
+- [x] Sprint G4: `galaxie-sprint-4-ai-solutions.md` (lazy @vk/fixes integration, Solution-Cache, Confidence-Opacity, Migration 0009)
+- [x] Sprint G5: `galaxie-sprint-5-apply.md` (Apply/Dismiss/Snooze via @vk/pr-workflow LocalGitClient, apply_action audit-trail, Migration 0010)
+- [x] Sprint G6: `galaxie-sprint-6-polish.md` (Next 16 proxy.ts, /settings-Subtree, OnboardingBanner, EmptyGalaxie, Quadtree-Lib, Mobile-Inspector, Lighthouse-Script)
+
+Tests: 79/79 vitest apps/web · pnpm typecheck + build grün.
+
+## Beta-Launch Pre-Reqs (User-Side, kein Claude-Code)
+
+- [ ] **GitHub-App registrieren** via `docs/setup/github-app-checklist.md` (~30 min). Setzt `GITHUB_APP_ID/CLIENT_ID/PRIVATE_KEY` in `.env.local` (prod: Vercel-Env).
+- [ ] **Vercel-Account + Deploy**: Repo connecten, Env-Vars setzen, Domain claimen.
+- [ ] **Stripe-Webhook**: URL in Stripe-Dashboard auf `<domain>/api/stripe/webhook` setzen.
+- [ ] **Erste 5 Customer-Outreach**: läuft im separaten Strategy-Framework, nicht hier.
+- [ ] **Manueller Lighthouse-Audit-Run**: `apps/web/scripts/lighthouse-audit.sh` gegen Prod-URL. Goal ≥85 Desktop.
+- [ ] **Branch-Merges**: alle 6 Sprint-Branches in `main` (kann Solo direkt, kein PR-Review nötig).
+
+## Re-Open-Triggers (würden eine neue Phase auslösen)
+
+Aus `docs/roadmap/phase-galaxie.md`:
+- W6 Galaxie Mobile <30fps → Reduced-Motion-Toggle als G7-Pflicht.
+- W12 LLM-Solution accept-rate <70% → Multi-Pass-Upgrade in eigenem Sprint.
+- W16 GitHub-App-Registration verzögert → G5-Apply-Fallback auf Copy-to-Clipboard-Mode.
+- Konkurrent shippt vergleichbare Galaxie → Differentiator-Audit + Strategie-Update.
+
+## Post-Galaxie / Phase-Future
+
+`docs/roadmap/phase-future.md` wird **erst nach Beta-Launch-Feedback** skizziert. Themen-Backlog:
+- Skill-Distribution-Workflow (`@vk/skills` Package)
+- Multi-Workspace-Aggregation (für Mega-Agencies mit Sub-Tenancies)
+- Self-Hosted-OSS-Variante
+- AAIF-Membership
+- Multi-Pass AI-Solutions
+- Compliance-Tier (SOC-2 light)
 
 ## Parking-Lot
 
@@ -134,6 +170,7 @@ Siehe `docs/roadmap/phase-galaxie.md` für Sprint-Detail. Aktuell:
 - Validation-Handbook v0.5 → v1.0 (nach 10+ Engagements)
 - Stripe Test-Mode Setup
 - Vercel Hobby-Account erstellen (nach 1. Cash-Engagement)
+- `/customers/[id]/access` customer-scoped Refactor (G6.H deferred)
 
 ---
 
