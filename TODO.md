@@ -1,13 +1,13 @@
 # TODO — Free-Form Ideen-Capture
 
-> Volatile. Source-of-Truth ist `STATUS.md` + `docs/roadmap/phase-0.md`.
-> Ideen, die >1h Work oder strategisch sind → in RFC / Feature-Spec promoten.
+> Volatile. Source-of-Truth ist `docs/vision.md` + `docs/roadmap/phase-galaxie.md` + `docs/plans/`.
+> Ideen, die >1h Work oder strategisch sind → in `docs/plans/<slug>.md` promoten.
 
 ---
 
-## Phase 0 — Currently Active
+## Phase 0 — Foundation (shipped 2026-05-16)
 
-(siehe `docs/roadmap/phase-0.md` für Wochen-Detail)
+(historische Sprint-History, Vollständigkeits halber unten erhalten)
 
 ### Week 1 (2026-05-16 → 2026-05-22)
 - [ ] GitHub-Org `validationkit-ai` reservieren
@@ -117,9 +117,15 @@
 
 ---
 
-## Phase 1+ Parking-Lot
+## Phase Galaxie — Currently Active (Mai 2026 →)
 
-(Ideen, die nicht-Phase-0 sind. Werden in W13 in `docs/roadmap/phase-1.md` sortiert.)
+Siehe `docs/roadmap/phase-galaxie.md` für Sprint-Detail. Aktuell:
+- Pre-Work: `docs/plans/galaxie-pre-work.md` (Doc-Konsolidierung + ADRs + Sprint-G1-Plan)
+- Sprint G1: `docs/plans/galaxie-sprint-1-ui-skeleton.md` (PixiJS-Galaxie, W1-4)
+
+## Parking-Lot
+
+(Ideen, die noch keiner aktiven Phase zugeordnet sind.)
 
 - npm-Namespace `validationkit` reservieren (nach Gate-Pass)
 - Domain-WHOIS-Check `sondr.ai`

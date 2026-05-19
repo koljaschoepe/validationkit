@@ -1,6 +1,6 @@
 # Contributing to ValidationKit
 
-ValidationKit is solo-maintained until M18 ([PRD §9](docs/PRD.md)). Contributions land via PR; I review one batch a week. **Read the [PRD](docs/PRD.md) before opening a non-trivial PR** — most "obvious improvements" are deliberately out-of-scope until a future phase.
+ValidationKit is solo-maintained until further notice. Contributions land via PR; I review one batch a week. **Read [docs/vision.md](docs/vision.md) and the active sprint plan in `docs/plans/` before opening a non-trivial PR** — most "obvious improvements" are deliberately out-of-scope until a future phase.
 
 ## What lands fast
 
@@ -8,16 +8,16 @@ ValidationKit is solo-maintained until M18 ([PRD §9](docs/PRD.md)). Contributio
 - Parser improvements for a vendor format we already classify (`@vk/parser/src/`).
 - New deterministic audit-rule cases (`packages/audit/src/rules/`).
 - Eval-fixture additions to `eval/golden-set/` with an explicit `expected:` block in the manifest.
-- Typos in docs / changelog / inline comments.
+- Typos in docs / inline comments.
 - Translation of brand-voice copy from EN → DE or vice-versa.
 
 ## What lands slow (or doesn't)
 
-- New top-level features. The roadmap is locked sprint-by-sprint in `docs/roadmap/phase-*.md`; new features need an ADR in `docs/decisions/`. Open an issue first.
-- Refactors with no functional benefit. The codebase is 3 months old; structure changes daily. Refactor PRs get rebased into oblivion.
+- New top-level features. The active phase is locked sprint-by-sprint in `docs/roadmap/phase-galaxie.md`; new features need an ADR in `docs/adrs/` and a plan in `docs/plans/`. Open an issue first.
+- Refactors with no functional benefit. The codebase is young; structure changes daily. Refactor PRs get rebased into oblivion.
 - New workspace packages. Each `packages/<name>/` is a discrete deploy unit and adds CI minutes. Justify the split in the PR description.
-- "AI Review" / "Multi-Model Compare" marketing copy without an eval-pass on the 30-file golden-set (Constraint #14).
-- DM-automation features, LinkedIn / Instagram outreach helpers (PRD #3 — load-bearing).
+- "AI Review" / "Multi-Model Compare" marketing copy without an eval-pass on the golden-set.
+- DM-automation features, LinkedIn / Instagram outreach helpers (out-of-scope — strategy/sales live in a separate framework, not this repo).
 
 ## Before opening a PR
 
@@ -57,15 +57,13 @@ Add `Signed-off-by: Your Name <you@example.com>` to every commit (the `git commi
 
 ## Brand voice
 
-Any PR touching user-facing copy (docs, app UI, marketing emails, commit-message body, CHANGELOG entries) follows the **Skeptic-Mentor + Concession-then-Critique** pattern:
+Any PR touching user-facing copy (docs, app UI, marketing emails, commit-message body) follows the **Skeptic-Mentor + Concession-then-Critique** pattern:
 
 - Lead with the concession (what's actually working / what the user is right about).
 - Follow with the critique (what's load-bearing wrong / what they're missing).
-- Cite specific numbers when claiming anything (PRD §11 — "3.2% Cold-Email-Reply is Hunter.io 2026 Median" beats "low reply rate").
-- **No** "AI-powered", "revolutionary", "10x your X" — drops reply-rate by 35% (Klenty 2026).
-- **No** emojis unless explicitly requested. The codebase compiles fine without them.
-
-When in doubt, run the copy through `.claude/agents/brand-voice-keeper.md` first.
+- Cite specific numbers when claiming anything.
+- **No** "AI-powered", "revolutionary", "10x your X".
+- **No** emojis unless explicitly requested.
 
 ## Security
 

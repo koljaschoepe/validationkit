@@ -1,0 +1,159 @@
+# Plan — Galaxie Sprint G1: UI-Skeleton
+
+> Erstellt: 2026-05-19
+> Status: 🟢 Approved (Pre-Work liefert ADRs als Foundation)
+> Slug: `galaxie-sprint-1-ui-skeleton`
+> Umfang: 4 Wochen Solo-Sprint, W1–W4. Liefert das erste shippable "Wow"-Demo.
+
+---
+
+## 1. Ziel
+
+Eine spielerische "Galaxie"-Navigation rendert visuell mit Mock-Daten. Pan, Zoom, Hover, Severity-Color-Coding funktionieren. Das ist die öffentlich vorzeigbare WOW-Demo nach 4 Wochen — kein Apply, keine AI-Solutions, keine echten DB-Daten.
+
+## 2. Endzustand
+
+**Routen:**
+- `/` zeigt **Public Galaxie-Demo** mit 3 fake-Customers × 5 fake-Repos × 10 fake-Files = 150 Asteroiden. Lead-Magnet, viral-shareable.
+- `/[workspace]` zeigt **Auth-Galaxie** mit Mock-DAL (selbe Fake-Daten, aber via DAL geladen — bereitet Sprint G2 vor).
+
+**Funktional:**
+- Pan via Drag/Touch, Zoom via Wheel/Pinch, Camera-Constraints (min/max Zoom-Level).
+- 4 Zoom-Snap-Levels via Keyboard Cmd+0/1/2/3/4 + Mouse-Wheel-Detection.
+- Severity-Color-Coding (Kill=Rot, Weak=Orange, Mid=Gelb, Strong=Blau, Exceptional=Gold).
+- Hover-Tooltip pro Asteroid mit Finding-Snippet.
+- MiniMap unten-rechts mit Click-to-Center.
+- Workspace-Switcher Topbar (mit Mock-Workspaces).
+- Cmd+K Universal-Search-Skelett (sucht über Mock-Daten).
+- Dot-Grid-Backdrop.
+- Zoom-Indikator oben-rechts.
+
+**Performance-Gate:**
+- 60fps Desktop bei 150 Asteroiden (M1 MacBook Air Baseline)
+- ≥30fps Mobile (iPhone 13 Baseline)
+
+## 3. Schritte
+
+### Woche 1 — PixiJS-Setup + Skeleton
+
+- [ ] Dependencies installieren: `pixi.js@^8 @pixi/react@^8 gsap@^3 motion @use-gesture/react @react-spring/web`
+- [ ] `apps/web/src/components/galaxie/` Ordner anlegen
+- [ ] `GalaxieScene.tsx` als `'use client'` Component mit Pixi-Application-Setup
+- [ ] Dynamic-Import-Wrapper `GalaxieRoot.tsx` für SSR-Bypass: `dynamic(() => import('./GalaxieScene'), { ssr: false })`
+- [ ] Pixi-Application mountet auf `<canvas>`, fills viewport, resizes on window-resize
+- [ ] FPS-Counter (debug-only via `?debug=1` URL-param)
+- [ ] **Smoke-Test**: leeres Galaxie-Canvas rendert in dev-server, kein Hydration-Fehler
+
+### Woche 2 — Display-Objects + Layout
+
+- [ ] Type-Definitionen: `Customer`, `Repo`, `FileNode` in `lib/galaxie/types.ts`
+- [ ] Mock-Data-Service: `lib/galaxie/mock-data.ts` mit 3 Customers × 5 Repos × 10 Files (deterministisch generiert via Hash-Seed)
+- [ ] Layout-Algorithmus `lib/galaxie/layout.ts`: deterministisches Force-Directed (hash-based seed) → JSON `{id, x, y, level}[]`
+- [ ] Pixi-Components: `CustomerStar.ts`, `RepoMoon.ts`, `FileAsteroid.ts` (Pixi-Container-Subclasses)
+- [ ] Severity-Color-Map in `lib/galaxie/severity-colors.ts` (Kill=#dc2626 / Weak=#ea580c / Mid=#eab308 / Strong=#3b82f6 / Exceptional=#fbbf24)
+- [ ] Asteroiden rendern mit Severity-Farbe + Glow-Filter (`@pixi/filter-glow`)
+- [ ] **Test**: 150 Asteroiden rendern, FPS-Counter zeigt ≥60fps Desktop
+
+### Woche 3 — Camera + Pan/Zoom + Drill-In
+
+- [ ] `Camera.ts` Class: position (x, y), scale (zoom), pan(dx, dy), zoom(factor, anchor)
+- [ ] Pan via Drag mit `@use-gesture/react` `useDrag`
+- [ ] Zoom via Wheel + Pinch mit `useWheel` + `usePinch`
+- [ ] Camera-Constraints (min-zoom=0.1, max-zoom=10, world-bounds)
+- [ ] GSAP-Camera-Tween für Snap-to-Zoom-Level (Cmd+0 = home, Cmd+1/2/3/4 = Levels)
+- [ ] Hover-Detection via Pixi `eventMode='static'` + Tooltip-React-Overlay
+- [ ] **Decision-Gate W3:** wenn 150 Asteroiden <30fps Desktop → STOP, fallback-Diskussion zu tldraw
+
+### Woche 4 — Affordances + Polish
+
+- [ ] MiniMap-Component (`MiniMap.tsx`, eigene kleine Pixi-Stage) mit Click-to-Center
+- [ ] Zoom-Indikator (`ZoomIndicator.tsx`, DOM-Overlay) mit aktueller Zoom-Stufe + Reset-Button
+- [ ] Dot-Grid-Backdrop (Pixi-TilingSprite mit Generated-Pattern)
+- [ ] Workspace-Switcher (`WorkspaceSwitcher.tsx`, DOM-Topbar-Component, Motion-Animated)
+- [ ] Cmd+K Universal-Search Skelett (`UniversalSearch.tsx`, `cmdk`-Lib): sucht in Mock-Customer-Liste + Mock-File-Pfade
+- [ ] Mobile-Touch: Pinch-to-Zoom, 2-Finger-Pan, Tap-to-Hover
+- [ ] Public-Demo-Route `/`: rendert Galaxie ohne Login mit Fake-Daten
+- [ ] Auth-Route `/[workspace]`: rendert Galaxie via Mock-DAL `lib/dal/galaxie.ts` (Stub für Sprint G2)
+- [ ] **Final Test**: alle Gates aus §2 grün, Mobile ≥30fps
+
+## 4. Files-to-Change
+
+| Datei | Was passiert |
+|---|---|
+| `apps/web/package.json` | Add pixi.js, @pixi/react, gsap, motion, @use-gesture/react, @react-spring/web, cmdk, @pixi/filter-glow |
+| `apps/web/src/components/galaxie/GalaxieRoot.tsx` | NEW: Dynamic-Wrapper für SSR-Bypass |
+| `apps/web/src/components/galaxie/GalaxieScene.tsx` | NEW: Hauptkomponente mit Pixi-App |
+| `apps/web/src/components/galaxie/MiniMap.tsx` | NEW: Mini-Map |
+| `apps/web/src/components/galaxie/ZoomIndicator.tsx` | NEW: Zoom-Anzeige |
+| `apps/web/src/components/galaxie/WorkspaceSwitcher.tsx` | NEW: Topbar-Switcher |
+| `apps/web/src/components/galaxie/UniversalSearch.tsx` | NEW: Cmd+K-Search |
+| `apps/web/src/components/galaxie/Tooltip.tsx` | NEW: Hover-Tooltip |
+| `apps/web/src/components/galaxie/pixi/CustomerStar.ts` | NEW: Pixi-Container für Customer |
+| `apps/web/src/components/galaxie/pixi/RepoMoon.ts` | NEW: Pixi-Container für Repo |
+| `apps/web/src/components/galaxie/pixi/FileAsteroid.ts` | NEW: Pixi-Container für File |
+| `apps/web/src/components/galaxie/pixi/Camera.ts` | NEW: Camera-Class mit pan/zoom |
+| `apps/web/src/lib/galaxie/types.ts` | NEW: TypeScript-Types |
+| `apps/web/src/lib/galaxie/mock-data.ts` | NEW: deterministische Fake-Daten |
+| `apps/web/src/lib/galaxie/layout.ts` | NEW: deterministischer Force-Directed-Algorithmus |
+| `apps/web/src/lib/galaxie/severity-colors.ts` | NEW: Severity → Hex-Color Mapping |
+| `apps/web/src/lib/dal/galaxie.ts` | NEW: Stub-DAL für Sprint G2 Vorbereitung |
+| `apps/web/src/app/page.tsx` | UPDATE: zeige Public-Demo-Galaxie statt Audit-Form (oder als Sekundär-CTA) |
+| `apps/web/src/app/[workspace]/page.tsx` | NEW: Auth-Galaxie-Route mit Mock-DAL |
+| `apps/web/src/app/[workspace]/layout.tsx` | NEW: Workspace-Layout-Wrapper (Stub, ohne Auth-Check für Sprint G1) |
+
+## 5. Test-Plan
+
+**Manuell (alle 4 Wochen am Sprint-Ende):**
+- [ ] `pnpm dev` startet, `http://localhost:3000/` lädt mit Galaxie
+- [ ] Pan/Zoom/Hover funktionieren in Chrome + Safari + Firefox
+- [ ] Cmd+0/1/2/3/4 snappen auf richtige Zoom-Level mit GSAP-Tween
+- [ ] MiniMap + ZoomIndicator + Cmd+K rendern + reagieren
+- [ ] FPS-Counter zeigt ≥60fps Desktop, ≥30fps Mobile (Chrome DevTools CPU-Throttle 4x)
+- [ ] Mobile (iPhone-Sim oder echtes Device): Pinch-Zoom + 2-Finger-Pan funktioniert
+- [ ] `?debug=1` zeigt FPS-Counter
+
+**Automatisch:**
+- [ ] `pnpm typecheck` grün (alle neuen Files Typescript-clean)
+- [ ] `pnpm test` grün (mindestens 1 Vitest pro neuer Library: layout.test.ts, mock-data.test.ts, severity-colors.test.ts)
+- [ ] `pnpm build` grün (turbo cache OK, kein SSR-Crash mit Pixi)
+
+**Verifizierungs-Grep:**
+- [ ] `grep -r "import.*pixi" apps/web/src/app/` → 0 Treffer (Pixi NIE direkt in app/-Routen, nur via dynamic-import-Wrapper)
+- [ ] `grep -r "motion.div\|motion.span" apps/web/src/components/galaxie/pixi/` → 0 Treffer (kein Motion innerhalb Canvas)
+
+## 6. Risiken + Rollback
+
+| Risiko | Severity | Mitigation |
+|---|---|---|
+| Pixi-SSR-Bypass-Boilerplate falsch → Build-Crash mit "window is not defined" | Strong | W1 Smoke-Test prüft Build. Standard-Pattern `'use client' + dynamic(ssr:false)`. |
+| 150 Asteroiden <60fps Desktop | Strong | W3 Decision-Gate. Plan B = tldraw-Switch (Sprint-Extension um 1 Woche). |
+| Mobile <30fps mit Pinch+Pan | Mid | W4 prüft. Mitigation: Asteroiden-Count auf Mobile auf 50 reduzieren, oder Reduced-Motion-Toggle. |
+| GSAP-Tween auf Pixi crasht React-Tree | Mid | Strict-Convention: GSAP NIE im React-Render-Cycle. Sentinel-Test in vitest. |
+| Cache-Components-Build crasht mit `'use cache'` + dynamic-import | Mid | W1 Build-Test. Falls Crash: dynamic-import in einer eigenen Route ohne `'use cache'` isolieren. |
+| Lighthouse-Performance bricht (LCP, CLS) durch Pixi-Canvas | Mid | W4 Lighthouse-Check. Mitigation: SSR-Skeleton-SVG bis Canvas mountet (FOUC-Vermeidung). |
+
+**Rollback:**
+- Branch heißt `feat/galaxie-sprint-1-ui-skeleton`.
+- `git checkout main` = voller Rollback. Keine DB-Migration in diesem Sprint.
+- Bestehende Routen (`/dashboard`, `/customers`, etc.) bleiben unverändert. Sprint G1 berührt sie nicht.
+
+## 7. Open Questions
+
+- **Q1.1:** Wo lebt der Public-Demo-Galaxie-Inhalt? `/` als neue Public-Galaxie-Demo überschreibt aktuellen Anonymous-Audit-Form. Soll der Audit-Form als Sekundär-CTA bleiben (Toggle?), oder ganz raus aus `/`?
+  - **Default:** Audit-Form bleibt als Sekundär-CTA unter der Galaxie.
+- **Q1.2:** `app/[workspace]/layout.tsx` in Sprint G1 — bauen wir schon den Slug-Hijacking-Check ein, oder erst Sprint G2?
+  - **Default:** Skelett ohne Auth-Check in G1, voller Check in G2 (DAL-Pattern wird dort eingeführt).
+- **Q1.3:** Welche Pixi-Filter-Library für Glow? `@pixi/filter-glow` oder native `BlurFilter + alpha-Trick`?
+  - **Default:** `@pixi/filter-glow` (offiziell, gut getestet).
+
+## 8. Sprint-Demo (W4-Ende)
+
+Wenn alle Gates grün:
+- Public-Demo-Galaxie auf `https://validationkit-preview.vercel.app/` deployt (User-Anfrage erforderlich für Deploy!)
+- Build-in-Public-Post mit 30-sec Loom-Video (Pan + Zoom + Cmd+K)
+- Plan-File nach `docs/plans/done/galaxie-sprint-1-ui-skeleton.md`
+- Master-Plan-Status-Update: "Sprint G1 ✅ Done"
+
+---
+
+**Ausführungs-Trigger:** `/execute galaxie-sprint-1-ui-skeleton` (nach User-Review)

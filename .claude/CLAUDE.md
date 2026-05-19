@@ -6,6 +6,17 @@ Skills-Registry, Customer-Workspaces, Billing.
 
 Solo-Developer-Projekt, deployed auf Vercel.
 
+## Aktive Vision (Mai 2026 →): Galaxie-Refactor
+
+UI wird zu spielerischer **"Galaxie"-Navigation** umgebaut:
+**Workspace → Customer (Planet) → Repo (Mond) → File (Asteroid)**, mit
+Severity-Hotspots, Zero-Code-Apply via PR. Render-Stack: PixiJS v8 + GSAP.
+Multi-Tenant via URL-Slug `/[workspace]/...`.
+
+Master-Plan: [docs/plans/master-vision-galaxie.md](../docs/plans/master-vision-galaxie.md).
+Volle Vision: [docs/vision.md](../docs/vision.md).
+Sprint-Reihenfolge: [docs/roadmap/phase-galaxie.md](../docs/roadmap/phase-galaxie.md).
+
 ## Tech-Stack
 
 | Layer       | Wahl                                       |
@@ -33,6 +44,9 @@ Solo-Developer-Projekt, deployed auf Vercel.
 | `packages/billing/`           | Stripe-Tier-Definitionen                 |
 | `packages/inngest/`           | Background-Jobs + Cron                   |
 | `eval/`                       | Golden-Set + Conflict-Eval (CI-Gate)     |
+| `docs/vision.md`              | Master-Vision (warum, Persona, UI)       |
+| `docs/roadmap/phase-*.md`     | Sprint-Reihenfolge pro Phase             |
+| `docs/adrs/NNNN-*.md`         | Architektur-Decision-Log                 |
 | `docs/plans/`                 | Aktive Feature-Pläne                     |
 | `docs/plans/done/`            | Archivierte erledigte Pläne              |
 

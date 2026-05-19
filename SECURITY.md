@@ -34,7 +34,7 @@ Send a private email to **kol.schoepe@gmail.com** with:
 
 ## Bug-bounty status
 
-**There is no bug-bounty program in 2026.** This project is solo-maintained pre-revenue ([PRD §9](docs/PRD.md)). I cannot pay cash rewards. I will:
+**There is no bug-bounty program in 2026.** This project is solo-maintained pre-revenue. I cannot pay cash rewards. I will:
 
 - Credit you publicly in the security-advisory and the next release notes (unless you ask me not to).
 - Send you a small "thank you" in the form of a free Agency-tier subscription once the hosted product reaches GA, if you want it.
