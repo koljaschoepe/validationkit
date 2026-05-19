@@ -17,5 +17,9 @@ export class RepoMoon extends Container {
     g.circle(0, 0, 9).fill({ color, alpha: 0.22 });
     g.circle(0, 0, 5.5).fill({ color });
     this.addChild(g);
+
+    // Sprint G3 — click for drill-in tween.
+    this.eventMode = 'static';
+    this.cursor = 'pointer';
   }
 }

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MoreHorizontal, ExternalLink } from "lucide-react";
+import { ChevronRightIcon, FolderIcon } from "lucide-react";
 import { isAuthEnabled } from "@vk/auth";
 import { SiteNav } from "@/components/SiteNav";
 import { AddCustomerForm } from "@/components/AddCustomerForm";
 import { getSessionUser } from "@/lib/session";
-import { listCustomers } from "@/lib/customers";
+import { listCustomers } from "@/lib/customer-dal";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -16,15 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { SeverityBadge } from "@/components/ui/severity-badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
   if (!isAuthEnabled()) redirect("/login");
@@ -40,8 +34,9 @@ export default async function CustomersPage() {
         <header className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Per-customer repo list with latest audit severity. The
-            Operations-Wedge promise (PRD §3): 5–30 customer-repos, kept aligned.
+            Each customer is one client of yours with one or more repos
+            grouped underneath. The Galaxie surfaces them as planets with
+            severity hotspots; this view is the tabular twin for bulk edits.
           </p>
         </header>
 
@@ -50,8 +45,8 @@ export default async function CustomersPage() {
             <CardContent className="py-10 text-center space-y-3">
               <p className="font-medium">No customers yet.</p>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Add one below, or install the GitHub App on a repo — installs
-                auto-create customer rows once the install-webhook lands.
+                Add one below to start. Each customer is a client-org-level
+                grouping; repos attach to a customer.
               </p>
             </CardContent>
           </Card>
@@ -61,70 +56,47 @@ export default async function CustomersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Label</TableHead>
-                    <TableHead>Root</TableHead>
-                    <TableHead className="w-28">Last audit</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead className="w-28">Slug</TableHead>
+                    <TableHead className="w-20 text-right">Repos</TableHead>
                     <TableHead className="w-28">Severity</TableHead>
-                    <TableHead className="w-16 text-right">Scans</TableHead>
-                    <TableHead className="w-28">Write access</TableHead>
+                    <TableHead className="w-28">Apply mode</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {customers.map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.label}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {c.rootPath}
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/customers/c/${c.id}` as never}
+                          className="hover:underline"
+                        >
+                          {c.label}
+                        </Link>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {c.latestScanAt
-                          ? c.latestScanAt.toISOString().slice(0, 10)
-                          : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {c.latestScanSeverity ? (
-                          <SeverityBadge severity={c.latestScanSeverity} />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {c.slug}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {c.scanCount}
+                        {c.repoCount}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={c.writeAccessGranted ? "default" : "secondary"}
-                        >
-                          {c.writeAccessGranted ? "write" : "read-only"}
+                        <SeverityBadge severity={c.aggregateSeverity} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-mono text-[10px]">
+                          {c.defaultApplyMode}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-7">
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/customers/${c.id}`}>
-                                <ExternalLink className="size-3.5" />
-                                Open
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
-                              Re-audit (Sprint 0.12)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
-                              Drift against canonical (Sprint 0.12)
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem disabled className="text-destructive">
-                              Delete (Sprint 0.13)
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/customers/c/${c.id}` as never}
+                          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Open
+                          <ChevronRightIcon className="size-3.5" />
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -138,11 +110,14 @@ export default async function CustomersPage() {
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Add customer
           </h2>
+          <p className="text-xs text-muted-foreground max-w-2xl">
+            Just the label first. You attach repos in the customer detail page.
+          </p>
           <AddCustomerForm />
         </section>
 
         <footer className="border-t border-border pt-6 text-xs text-muted-foreground">
-          ValidationKit v0.0.11 ·{" "}
+          ValidationKit ·{" "}
           <Link href="/" className="hover:text-foreground">Audit</Link> ·{" "}
           <Link href="/drift" className="hover:text-foreground">Drift</Link> ·{" "}
           <Link href="/customers" className="hover:text-foreground">Customers</Link>

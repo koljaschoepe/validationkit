@@ -10,7 +10,7 @@ import {
   useState,
   type MutableRefObject,
 } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useGesture } from '@use-gesture/react';
 import gsap from 'gsap';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
@@ -30,6 +30,7 @@ import { ZoomIndicator } from './ZoomIndicator';
 import { MiniMap } from './MiniMap';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { UniversalSearch, type SearchResult } from './UniversalSearch';
+import { Inspector } from './Inspector';
 
 extend({ Container, Graphics, Text });
 
@@ -50,10 +51,16 @@ export default function GalaxieScene({
   initialWorkspaceSlug,
   workspaces,
 }: GalaxieSceneProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const isDebug = searchParams?.get('debug') === '1';
+  const fileParam = searchParams?.get('file') ?? null;
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [inspectorFileId, setInspectorFileId] = useState<string | null>(
+    fileParam,
+  );
   const switcherWorkspaces = workspaces ?? MOCK_WORKSPACES;
   const [workspace, setWorkspace] = useState(
     initialWorkspaceSlug ?? switcherWorkspaces[0]?.slug ?? DEFAULT_WORKSPACE_SLUG,
@@ -181,17 +188,25 @@ export default function GalaxieScene({
     return () => window.removeEventListener('keydown', handleKey);
   }, [tweenTo]);
 
-  const handleSearchPick = useCallback(
-    (res: SearchResult) => {
-      const targetNode =
-        res.kind === 'file' && res.file
-          ? layoutById.get(res.file.id)
-          : layoutById.get(res.customer.id);
-      if (!targetNode) return;
-      const scale = res.kind === 'file' ? 3.5 : 1.7;
-      tweenTo({ x: -targetNode.x * scale, y: -targetNode.y * scale, scale });
+  // Sprint G3 — single helper to derive a tween target from a node id.
+  const tweenToNode = useCallback(
+    (nodeId: string, scale: number) => {
+      const node = layoutById.get(nodeId);
+      if (!node) return;
+      tweenTo({ x: -node.x * scale, y: -node.y * scale, scale });
     },
     [tweenTo, layoutById],
+  );
+
+  const handleSearchPick = useCallback(
+    (res: SearchResult) => {
+      if (res.kind === 'file' && res.file) {
+        tweenToNode(res.file.id, 3.5);
+      } else {
+        tweenToNode(res.customer.id, 1.7);
+      }
+    },
+    [tweenToNode],
   );
 
   const handleMiniMapJump = useCallback(
@@ -201,6 +216,71 @@ export default function GalaxieScene({
     },
     [tweenTo],
   );
+
+  // Sprint G3 — click-handlers wired into GalaxieWorld via props.
+  const openInspector = useCallback(
+    (fileId: string) => {
+      setInspectorFileId(fileId);
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      params.set('file', fileId);
+      // Cast: Next 16 typed-routes can't express dynamic query strings here.
+      router.replace(
+        `${pathname}?${params.toString()}` as never,
+        { scroll: false },
+      );
+    },
+    [router, pathname, searchParams],
+  );
+
+  const closeInspector = useCallback(() => {
+    setInspectorFileId(null);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    params.delete('file');
+    const qs = params.toString();
+    router.replace((qs ? `${pathname}?${qs}` : pathname) as never, {
+      scroll: false,
+    });
+  }, [router, pathname, searchParams]);
+
+  const handleCustomerClick = useCallback(
+    (customerId: string) => tweenToNode(customerId, 1.7),
+    [tweenToNode],
+  );
+
+  const handleRepoClick = useCallback(
+    (repoId: string) => tweenToNode(repoId, 3.5),
+    [tweenToNode],
+  );
+
+  const handleFileClick = useCallback(
+    (fileId: string) => {
+      openInspector(fileId);
+      tweenToNode(fileId, 5);
+    },
+    [openInspector, tweenToNode],
+  );
+
+  // Deep-link: on first mount, if ?file=… is set, zoom to that file.
+  const deepLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    if (!fileParam) return;
+    if (!size) return;
+    if (!layoutById.has(fileParam)) {
+      // Unknown id — silently strip from URL.
+      closeInspector();
+      deepLinkAppliedRef.current = true;
+      return;
+    }
+    tweenToNode(fileParam, 5);
+    deepLinkAppliedRef.current = true;
+  }, [fileParam, size, layoutById, tweenToNode, closeInspector]);
+
+  // The actual FileNode for the open inspector, looked up from data.
+  const inspectorFile = useMemo(() => {
+    if (!inspectorFileId) return null;
+    return galaxieData.files.find((f) => f.id === inspectorFileId) ?? null;
+  }, [inspectorFileId, galaxieData.files]);
 
   return (
     <div
@@ -231,6 +311,9 @@ export default function GalaxieScene({
               centerY={size.h / 2}
               camera={cameraRef.current}
               onHover={setTooltip}
+              onCustomerClick={handleCustomerClick}
+              onRepoClick={handleRepoClick}
+              onFileClick={handleFileClick}
               data={galaxieData}
               layoutById={layoutById}
             />
@@ -254,7 +337,10 @@ export default function GalaxieScene({
           />
           <UniversalSearch onPick={handleSearchPick} data={galaxieData} />
 
-          {tooltip && <GalaxieTooltip state={tooltip} />}
+          {inspectorFile && (
+            <Inspector file={inspectorFile} onClose={closeInspector} />
+          )}
+          {tooltip && !inspectorFile && <GalaxieTooltip state={tooltip} />}
           {isDebug && <FPSCounter />}
           {isDebug && <KeyHintOverlay />}
         </>
@@ -269,6 +355,9 @@ function GalaxieWorld({
   centerY,
   camera,
   onHover,
+  onCustomerClick,
+  onRepoClick,
+  onFileClick,
   data,
   layoutById,
 }: {
@@ -277,6 +366,9 @@ function GalaxieWorld({
   centerY: number;
   camera: Camera;
   onHover: (state: TooltipState | null) => void;
+  onCustomerClick: (id: string) => void;
+  onRepoClick: (id: string) => void;
+  onFileClick: (id: string) => void;
   data: GalaxieData;
   layoutById: Map<string, LayoutNode>;
 }) {
@@ -315,19 +407,34 @@ function GalaxieWorld({
       if (e.target instanceof FileAsteroid) onHover(null);
     };
 
+    // Sprint G3 — click-drill-in via pointertap (useGesture drag has
+    // filterTaps:true so clean clicks bubble here without being eaten).
+    const onTap = (e: FederatedPointerEvent) => {
+      const target = e.target;
+      if (target instanceof FileAsteroid) {
+        onFileClick(target.file.id);
+      } else if (target instanceof RepoMoon) {
+        onRepoClick(target.repo.id);
+      } else if (target instanceof CustomerStar) {
+        onCustomerClick(target.customer.id);
+      }
+    };
+
     world.on('pointerover', onOver);
     world.on('pointerout', onOut);
+    world.on('pointertap', onTap);
 
     return () => {
       world.off('pointerover', onOver);
       world.off('pointerout', onOut);
+      world.off('pointertap', onTap);
       for (const c of children) {
         world.removeChild(c);
         c.destroy({ children: true });
       }
       worldRef.current = null;
     };
-  }, [worldRef, onHover, data, layoutById]);
+  }, [worldRef, onHover, onCustomerClick, onRepoClick, onFileClick, data, layoutById]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);

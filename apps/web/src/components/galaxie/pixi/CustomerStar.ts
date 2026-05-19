@@ -18,5 +18,9 @@ export class CustomerStar extends Container {
     g.circle(0, 0, 20).fill({ color, alpha: 0.32 });
     g.circle(0, 0, 11).fill({ color });
     this.addChild(g);
+
+    // Sprint G3 — click for drill-in tween.
+    this.eventMode = 'static';
+    this.cursor = 'pointer';
   }
 }

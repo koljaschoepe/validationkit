@@ -1,0 +1,138 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ChevronLeftIcon } from "lucide-react";
+import { isAuthEnabled } from "@vk/auth";
+import { SiteNav } from "@/components/SiteNav";
+import { getSessionUser } from "@/lib/session";
+import { getCustomerById } from "@/lib/customer-dal";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { SeverityBadge } from "@/components/ui/severity-badge";
+import { AddRepoForm } from "@/components/AddRepoForm";
+
+export const dynamic = "force-dynamic";
+
+export default async function CustomerDetailPage({
+  params,
+}: {
+  params: Promise<{ customerId: string }>;
+}) {
+  if (!isAuthEnabled()) redirect("/login");
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const { customerId } = await params;
+  const result = await getCustomerById(user.id, customerId);
+  if (!result) notFound();
+  const { customer, repos } = result;
+
+  return (
+    <>
+      <SiteNav />
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-8">
+        <Link
+          href="/customers"
+          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeftIcon className="size-3.5" />
+          All customers
+        </Link>
+
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight">{customer.label}</h1>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="font-mono">{customer.slug}</span>
+              <span>·</span>
+              <SeverityBadge severity={customer.aggregateSeverity} />
+              <span>·</span>
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                apply mode: {customer.defaultApplyMode}
+              </Badge>
+              {customer.githubOrg ? (
+                <>
+                  <span>·</span>
+                  <span className="font-mono">github: {customer.githubOrg}</span>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </header>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Repos ({repos.length})
+          </h2>
+          {repos.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No repos for this customer yet.
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Label</TableHead>
+                      <TableHead>Root</TableHead>
+                      <TableHead className="w-28">Latest audit</TableHead>
+                      <TableHead className="w-28">Severity</TableHead>
+                      <TableHead className="w-28">Apply</TableHead>
+                      <TableHead className="w-16" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {repos.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.label}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.rootPath}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {r.latestScanAt
+                            ? r.latestScanAt.toISOString().slice(0, 10)
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <SeverityBadge severity={r.aggregateSeverity} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-mono text-[10px]">
+                            {r.applyMode}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link
+                            href={`/customers/${r.id}`}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Open
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Add repo under {customer.label}
+          </h2>
+          <AddRepoForm customerId={customer.id} />
+        </section>
+      </main>
+    </>
+  );
+}
