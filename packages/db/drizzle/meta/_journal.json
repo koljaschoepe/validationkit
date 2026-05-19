@@ -64,6 +64,13 @@
       "when": 1779196289158,
       "tag": "0008_puzzling_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779199873272,
+      "tag": "0009_nice_firebrand",
+      "breakpoints": true
     }
   ]
 }

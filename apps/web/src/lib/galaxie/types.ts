@@ -23,6 +23,13 @@ export interface Repo {
   aggregateSeverity: Severity;
 }
 
+export type SolutionStatus =
+  | 'none'
+  | 'pending'
+  | 'ready'
+  | 'failed'
+  | 'unsupported';
+
 export interface FileNode {
   id: string;
   repoId: string;
@@ -30,6 +37,9 @@ export interface FileNode {
   path: string;
   severity: Severity;
   findingSnippet: string;
+  /** Sprint G4 — Solution-cache-status for confidence-opacity render. */
+  solutionStatus?: SolutionStatus;
+  solutionConfidence?: 'low' | 'mid' | 'high';
 }
 
 export interface GalaxieData {

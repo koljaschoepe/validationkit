@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from 'pixi-filters';
 import { severityPixiColor } from '@/lib/galaxie/severity-colors';
 import type { FileNode, LayoutNode } from '@/lib/galaxie/types';
+import { alphaFor } from '@/lib/solution-alpha';
 
 export class FileAsteroid extends Container {
   readonly file: FileNode;
@@ -12,6 +13,7 @@ export class FileAsteroid extends Container {
     this.x = node.x;
     this.y = node.y;
     this.label = file.id;
+    this.alpha = alphaFor(file.solutionStatus, file.solutionConfidence);
 
     const color = severityPixiColor(file.severity);
     const g = new Graphics();
@@ -21,14 +23,13 @@ export class FileAsteroid extends Container {
     this.filters = [
       new GlowFilter({
         distance: 6,
-        outerStrength: 1.6,
+        outerStrength: file.solutionStatus === 'ready' ? 2.4 : 1.6,
         innerStrength: 0,
         color,
         quality: 0.2,
       }),
     ];
 
-    // W3 will wire hover-tooltip on this event surface.
     this.eventMode = 'static';
     this.cursor = 'pointer';
   }

@@ -10,6 +10,7 @@ import type {
 } from '@/lib/galaxie/types';
 import { SEVERITY_BANDS } from '@/lib/galaxie/types';
 import { galaxieWorkspaceTag, userWorkspacesTag } from '@/lib/cache-tags';
+import { listSolutionStatusByFinding } from '@/lib/solution-dal';
 
 export interface WorkspaceMeta {
   id: string;
@@ -126,6 +127,11 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
           .from(schema.finding)
           .where(inArray(schema.finding.scanId, scanIds));
 
+  // Sprint G4 — bulk-load solution status for all findings in one roundtrip.
+  const solutionStatusMap = await listSolutionStatusByFinding(
+    findingsRows.map((f) => f.id),
+  );
+
   // Build FileNode[] — one per finding.
   const reposById = new Map(reposRows.map((r) => [r.id, r]));
   const files: FileNode[] = [];
@@ -134,6 +140,7 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
     if (!repoId) continue;
     const repo = reposById.get(repoId);
     if (!repo) continue;
+    const sol = solutionStatusMap.get(f.id);
     files.push({
       id: f.id,
       repoId,
@@ -141,6 +148,8 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
       path: f.title || f.category,
       severity: normalizeSeverity(f.severity),
       findingSnippet: f.detail.slice(0, 240),
+      solutionStatus: sol?.status ?? 'none',
+      ...(sol?.confidence ? { solutionConfidence: sol.confidence } : {}),
     });
   }
 

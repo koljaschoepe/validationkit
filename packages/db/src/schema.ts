@@ -354,6 +354,42 @@ export const scanRelations = relations(scan, ({ one, many }) => ({
 
 export const findingRelations = relations(finding, ({ one }) => ({
   scan: one(scan, { fields: [finding.scanId], references: [scan.id] }),
+  solution: one(solution, { fields: [finding.id], references: [solution.findingId] }),
+}));
+
+// Sprint G4 — cached AI solutions, 1:1 with finding. Generation is lazy
+// (on-demand when the user opens the inspector). Status transitions are:
+//   pending → ready | failed | unsupported.
+// `unsupported` means @vk/fixes has no generator for the category yet
+// (e.g. conflicting-rules).
+export const solution = pgTable("solution", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  findingId: uuid("finding_id")
+    .notNull()
+    .unique()
+    .references(() => finding.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  patch: text("patch"),
+  rationale: text("rationale"),
+  confidence: varchar("confidence", { length: 10 }),
+  deterministic: boolean("deterministic"),
+  filesTouched: jsonb("files_touched").notNull().default(sql`'[]'::jsonb`),
+  generatorVersion: varchar("generator_version", { length: 40 }),
+  failureReason: text("failure_reason"),
+  generatedAt: timestamp("generated_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const solutionRelations = relations(solution, ({ one }) => ({
+  finding: one(finding, {
+    fields: [solution.findingId],
+    references: [finding.id],
+  }),
 }));
 
 export const installRequestRelations = relations(installRequest, ({ one }) => ({
