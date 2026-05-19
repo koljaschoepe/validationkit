@@ -79,11 +79,49 @@ export const workspace = pgTable("workspace", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const repo = pgTable("repo", {
+// Sprint G2 — Customer as a first-class layer between workspace and repo.
+// ADR-0001 (C2): "1 Customer = 1 Kunden-Org mit N Repos" is the chosen model.
+// `default_apply_mode` carries forward to Sprint G5 PR-vs-Direct apply UX.
+export const customer = pgTable(
+  "customer",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    defaultApplyMode: varchar("default_apply_mode", { length: 20 })
+      .notNull()
+      .default("pr"),
+    githubOrg: text("github_org"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("customer_workspace_slug_unique").on(t.workspaceId, t.slug),
+    index("customer_workspace_idx").on(t.workspaceId),
+  ],
+);
+
+export const repo = pgTable(
+  "repo",
+  {
   id: uuid("id").primaryKey().defaultRandom(),
   workspaceId: uuid("workspace_id")
     .notNull()
     .references(() => workspace.id, { onDelete: "cascade" }),
+  // Sprint G2 — repo now belongs to a customer (nullable during backfill window).
+  customerId: uuid("customer_id").references(() => customer.id, {
+    onDelete: "set null",
+  }),
+  // Sprint G2 — per-repo apply mode override (falls back to customer.defaultApplyMode).
+  applyMode: varchar("apply_mode", { length: 20 }).notNull().default("pr"),
   label: varchar("label", { length: 200 }).notNull(),
   rootPath: text("root_path").notNull(),
   writeAccessGranted: boolean("write_access_granted").notNull().default(false),
@@ -106,7 +144,9 @@ export const repo = pgTable("repo", {
   // Opt-in HMAC secret for /api/notify-update. Per-repo, rotated by re-issuing.
   notifySecret: varchar("notify_secret", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+  },
+  (t) => [index("repo_customer_idx").on(t.customerId)],
+);
 
 export const installRequest = pgTable("install_request", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -257,30 +297,48 @@ export const scan = pgTable("scan", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const finding = pgTable("finding", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  scanId: uuid("scan_id")
-    .notNull()
-    .references(() => scan.id, { onDelete: "cascade" }),
-  category: varchar("category", { length: 40 }).notNull(),
-  severity: varchar("severity", { length: 20 }).notNull(),
-  title: text("title").notNull(),
-  detail: text("detail").notNull(),
-  deterministic: boolean("deterministic").notNull(),
-  confidence: varchar("confidence", { length: 10 }),
-  citations: jsonb("citations").notNull().default(sql`'[]'::jsonb`),
-});
+export const finding = pgTable(
+  "finding",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    scanId: uuid("scan_id")
+      .notNull()
+      .references(() => scan.id, { onDelete: "cascade" }),
+    category: varchar("category", { length: 40 }).notNull(),
+    severity: varchar("severity", { length: 20 }).notNull(),
+    title: text("title").notNull(),
+    detail: text("detail").notNull(),
+    deterministic: boolean("deterministic").notNull(),
+    confidence: varchar("confidence", { length: 10 }),
+    citations: jsonb("citations").notNull().default(sql`'[]'::jsonb`),
+  },
+  // Sprint G2 — composite index for `WHERE scan_id = ? AND severity = ?` aggregates.
+  (t) => [index("finding_scan_severity_idx").on(t.scanId, t.severity)],
+);
 
 export const workspaceRelations = relations(workspace, ({ many, one }) => ({
   owner: one(user, { fields: [workspace.ownerId], references: [user.id] }),
+  customers: many(customer),
   repos: many(repo),
   scans: many(scan),
+}));
+
+export const customerRelations = relations(customer, ({ one, many }) => ({
+  workspace: one(workspace, {
+    fields: [customer.workspaceId],
+    references: [workspace.id],
+  }),
+  repos: many(repo),
 }));
 
 export const repoRelations = relations(repo, ({ one, many }) => ({
   workspace: one(workspace, {
     fields: [repo.workspaceId],
     references: [workspace.id],
+  }),
+  customer: one(customer, {
+    fields: [repo.customerId],
+    references: [customer.id],
   }),
   scans: many(scan),
 }));

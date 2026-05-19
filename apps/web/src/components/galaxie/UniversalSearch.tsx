@@ -3,8 +3,7 @@
 import { Command } from 'cmdk';
 import { useEffect, useMemo, useState } from 'react';
 import { SearchIcon } from 'lucide-react';
-import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
-import type { Customer, FileNode } from '@/lib/galaxie/types';
+import type { Customer, FileNode, GalaxieData } from '@/lib/galaxie/types';
 import { severityHex } from '@/lib/galaxie/severity-colors';
 
 export interface SearchResult {
@@ -16,8 +15,10 @@ export interface SearchResult {
 
 export function UniversalSearch({
   onPick,
+  data,
 }: {
   onPick: (result: SearchResult) => void;
+  data: GalaxieData;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -34,10 +35,7 @@ export function UniversalSearch({
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const { customers, files } = useMemo(() => {
-    const data = generateMockGalaxieData();
-    return { customers: data.customers, files: data.files };
-  }, []);
+  const { customers, files } = data;
 
   const customerById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),

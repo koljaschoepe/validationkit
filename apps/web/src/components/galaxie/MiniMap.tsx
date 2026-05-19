@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
-import { computeLayout } from '@/lib/galaxie/layout';
+import { useEffect, useRef } from 'react';
 import { severityHex } from '@/lib/galaxie/severity-colors';
+import type { GalaxieData, LayoutNode } from '@/lib/galaxie/types';
 import type { Camera } from './pixi/Camera';
 
 const SIZE = 160;
@@ -14,19 +13,18 @@ export function MiniMap({
   camera,
   viewportSize,
   onJump,
+  data,
+  layoutById,
 }: {
   camera: Camera;
   viewportSize: { w: number; h: number };
   onJump: (worldX: number, worldY: number) => void;
+  data: GalaxieData;
+  layoutById: Map<string, LayoutNode>;
 }) {
   const rectRef = useRef<SVGRectElement>(null);
-
-  const { layout, files, repos, customers, nodeById } = useMemo(() => {
-    const data = generateMockGalaxieData();
-    const layout = computeLayout(data);
-    const nodeById = new Map(layout.nodes.map((n) => [n.id, n]));
-    return { ...data, layout, nodeById };
-  }, []);
+  const { customers, repos, files } = data;
+  const nodeById = layoutById;
 
   // Animate viewport-rect via RAF
   useEffect(() => {

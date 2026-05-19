@@ -11,13 +11,15 @@ import {
 export function WorkspaceSwitcher({
   current,
   onChange,
+  workspaces,
 }: {
   current: string;
   onChange: (slug: string) => void;
+  workspaces?: MockWorkspace[];
 }) {
   const [open, setOpen] = useState(false);
-  const active =
-    MOCK_WORKSPACES.find((w) => w.slug === current) ?? MOCK_WORKSPACES[0]!;
+  const list = workspaces ?? MOCK_WORKSPACES;
+  const active = list.find((w) => w.slug === current) ?? list[0]!;
 
   return (
     <div className="pointer-events-auto absolute left-2 top-2 z-20">
@@ -42,7 +44,7 @@ export function WorkspaceSwitcher({
             transition={{ duration: 0.12 }}
             className="mt-1 min-w-[180px] rounded border border-white/10 bg-black/85 p-1 font-mono text-xs text-white/85 shadow-xl backdrop-blur"
           >
-            {MOCK_WORKSPACES.map((w) => (
+            {list.map((w) => (
               <button
                 key={w.slug}
                 type="button"

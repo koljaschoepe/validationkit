@@ -5,6 +5,7 @@ import { Container, Graphics, Text, type FederatedPointerEvent } from 'pixi.js';
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type MutableRefObject,
@@ -14,8 +15,12 @@ import { useGesture } from '@use-gesture/react';
 import gsap from 'gsap';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
 import { computeLayout } from '@/lib/galaxie/layout';
-import type { LayoutNode } from '@/lib/galaxie/types';
-import { DEFAULT_WORKSPACE_SLUG } from '@/lib/galaxie/mock-workspaces';
+import type { GalaxieData, LayoutNode } from '@/lib/galaxie/types';
+import {
+  DEFAULT_WORKSPACE_SLUG,
+  MOCK_WORKSPACES,
+  type MockWorkspace,
+} from '@/lib/galaxie/mock-workspaces';
 import { Camera } from './pixi/Camera';
 import { CustomerStar } from './pixi/CustomerStar';
 import { RepoMoon } from './pixi/RepoMoon';
@@ -34,43 +39,57 @@ interface ZoomLevel {
   scale: number;
 }
 
-function computeZoomLevels(): ZoomLevel[] {
-  const data = generateMockGalaxieData();
-  const layout = computeLayout(data);
-  const customers = layout.nodes.filter((n) => n.level === 1);
-  const focus = (
-    c: { x: number; y: number } | undefined,
-    scale: number,
-  ): ZoomLevel =>
-    c ? { x: -c.x * scale, y: -c.y * scale, scale } : { x: 0, y: 0, scale };
-  return [
-    { x: 0, y: 0, scale: 0.45 }, // 0 — overview
-    { x: 0, y: 0, scale: 1.0 }, // 1 — default
-    focus(customers[0], 1.7),
-    focus(customers[1], 1.7),
-    focus(customers[2], 1.7),
-  ];
+interface GalaxieSceneProps {
+  initialData?: GalaxieData;
+  initialWorkspaceSlug?: string;
+  workspaces?: MockWorkspace[];
 }
 
-const ZOOM_LEVELS = computeZoomLevels();
-
-export default function GalaxieScene() {
+export default function GalaxieScene({
+  initialData,
+  initialWorkspaceSlug,
+  workspaces,
+}: GalaxieSceneProps = {}) {
   const searchParams = useSearchParams();
   const isDebug = searchParams?.get('debug') === '1';
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [workspace, setWorkspace] = useState(DEFAULT_WORKSPACE_SLUG);
+  const switcherWorkspaces = workspaces ?? MOCK_WORKSPACES;
+  const [workspace, setWorkspace] = useState(
+    initialWorkspaceSlug ?? switcherWorkspaces[0]?.slug ?? DEFAULT_WORKSPACE_SLUG,
+  );
 
   const cameraRef = useRef<Camera>(new Camera());
   const worldRef = useRef<Container | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
-  // Cache mock-layout for search jumps + minimap (so we don't regen per pick).
-  const layoutCacheRef = useRef<Map<string, LayoutNode> | null>(null);
-  if (!layoutCacheRef.current) {
-    const data = generateMockGalaxieData();
-    const layout = computeLayout(data);
-    layoutCacheRef.current = new Map(layout.nodes.map((n) => [n.id, n]));
-  }
+
+  // Data + layout are stable for the lifetime of the component.
+  // Switching workspaces is a hard nav (server re-render), so useMemo is fine here.
+  const galaxieData = useMemo(
+    () => initialData ?? generateMockGalaxieData(),
+    [initialData],
+  );
+  const galaxieLayout = useMemo(() => computeLayout(galaxieData), [galaxieData]);
+  const layoutById = useMemo(
+    () => new Map<string, LayoutNode>(galaxieLayout.nodes.map((n) => [n.id, n])),
+    [galaxieLayout],
+  );
+
+  const zoomLevels = useMemo<ZoomLevel[]>(() => {
+    const customers = galaxieLayout.nodes.filter((n) => n.level === 1);
+    const focus = (
+      c: { x: number; y: number } | undefined,
+      scale: number,
+    ): ZoomLevel =>
+      c ? { x: -c.x * scale, y: -c.y * scale, scale } : { x: 0, y: 0, scale };
+    return [
+      { x: 0, y: 0, scale: 0.45 },
+      { x: 0, y: 0, scale: 1.0 },
+      focus(customers[0], 1.7),
+      focus(customers[1], 1.7),
+      focus(customers[2], 1.7),
+    ];
+  }, [galaxieLayout]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -156,7 +175,7 @@ export default function GalaxieScene() {
       const idx = ['0', '1', '2', '3', '4'].indexOf(e.key);
       if (idx === -1) return;
       e.preventDefault();
-      tweenTo(ZOOM_LEVELS[idx]!);
+      tweenTo(zoomLevels[idx]!);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -164,15 +183,15 @@ export default function GalaxieScene() {
 
   const handleSearchPick = useCallback(
     (res: SearchResult) => {
-      const cache = layoutCacheRef.current;
-      if (!cache) return;
       const targetNode =
-        res.kind === 'file' && res.file ? cache.get(res.file.id) : cache.get(res.customer.id);
+        res.kind === 'file' && res.file
+          ? layoutById.get(res.file.id)
+          : layoutById.get(res.customer.id);
       if (!targetNode) return;
       const scale = res.kind === 'file' ? 3.5 : 1.7;
       tweenTo({ x: -targetNode.x * scale, y: -targetNode.y * scale, scale });
     },
-    [tweenTo],
+    [tweenTo, layoutById],
   );
 
   const handleMiniMapJump = useCallback(
@@ -212,20 +231,28 @@ export default function GalaxieScene() {
               centerY={size.h / 2}
               camera={cameraRef.current}
               onHover={setTooltip}
+              data={galaxieData}
+              layoutById={layoutById}
             />
           </Application>
 
-          <WorkspaceSwitcher current={workspace} onChange={setWorkspace} />
+          <WorkspaceSwitcher
+            current={workspace}
+            onChange={setWorkspace}
+            workspaces={switcherWorkspaces}
+          />
           <ZoomIndicator
             camera={cameraRef.current}
-            onReset={() => tweenTo(ZOOM_LEVELS[1]!)}
+            onReset={() => tweenTo(zoomLevels[1]!)}
           />
           <MiniMap
             camera={cameraRef.current}
             viewportSize={size}
             onJump={handleMiniMapJump}
+            data={galaxieData}
+            layoutById={layoutById}
           />
-          <UniversalSearch onPick={handleSearchPick} />
+          <UniversalSearch onPick={handleSearchPick} data={galaxieData} />
 
           {tooltip && <GalaxieTooltip state={tooltip} />}
           {isDebug && <FPSCounter />}
@@ -242,12 +269,16 @@ function GalaxieWorld({
   centerY,
   camera,
   onHover,
+  data,
+  layoutById,
 }: {
   worldRef: MutableRefObject<Container | null>;
   centerX: number;
   centerY: number;
   camera: Camera;
   onHover: (state: TooltipState | null) => void;
+  data: GalaxieData;
+  layoutById: Map<string, LayoutNode>;
 }) {
   const localRef = useRef<Container | null>(null);
 
@@ -256,23 +287,17 @@ function GalaxieWorld({
     if (!world) return;
     worldRef.current = world;
 
-    const data = generateMockGalaxieData();
-    const layout = computeLayout(data);
-    const byId = new Map<string, LayoutNode>(
-      layout.nodes.map((n) => [n.id, n]),
-    );
-
     const children: Container[] = [];
     for (const c of data.customers) {
-      const ln = byId.get(c.id);
+      const ln = layoutById.get(c.id);
       if (ln) children.push(new CustomerStar(c, ln));
     }
     for (const r of data.repos) {
-      const ln = byId.get(r.id);
+      const ln = layoutById.get(r.id);
       if (ln) children.push(new RepoMoon(r, ln));
     }
     for (const f of data.files) {
-      const ln = byId.get(f.id);
+      const ln = layoutById.get(f.id);
       if (ln) children.push(new FileAsteroid(f, ln));
     }
     for (const c of children) world.addChild(c);
@@ -302,7 +327,7 @@ function GalaxieWorld({
       }
       worldRef.current = null;
     };
-  }, [worldRef, onHover]);
+  }, [worldRef, onHover, data, layoutById]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);

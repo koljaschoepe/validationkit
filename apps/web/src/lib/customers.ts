@@ -1,11 +1,12 @@
 "use server";
 
 import { desc, eq, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import type { SeverityBand } from "@vk/core";
 import { getSessionUser } from "./session";
 import { ensureDefaultWorkspace } from "./workspaces";
+import { galaxieWorkspaceTag } from "./cache-tags";
 
 export interface CustomerSummary {
   id: string;
@@ -77,6 +78,8 @@ export async function addCustomer(
   if (!row) return { ok: false, error: "Failed to add customer." };
 
   revalidatePath("/customers");
+  // Sprint G2 — flush the Galaxie cache so /[workspace] picks up the new repo.
+  updateTag(galaxieWorkspaceTag(workspaceId));
   return { ok: true, id: row.id };
 }
 

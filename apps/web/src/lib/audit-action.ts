@@ -3,7 +3,8 @@
 import path from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { galaxieWorkspaceTag } from "./cache-tags";
 import { scanRepository } from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import { getDb, isDbEnabled, schema } from "@vk/db";
@@ -271,6 +272,9 @@ async function maybePersist(
       }),
     );
   }
+
+  // Sprint G2 — flush the Galaxie cache so the new scan + findings show up.
+  updateTag(galaxieWorkspaceTag(workspaceId));
 
   return row.id;
 }
