@@ -59,6 +59,49 @@ jobs:
       - name: Build
         run: pnpm build
 
+  integration:
+    name: Integration tests (Postgres-Service)
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Nova-3b Sub-A: integration-Pool läuft nur auf main-Push (Tier-Split, Master Q4).
+    # PR-Path bleibt schnell (typecheck + lint + unit-tests + eval + build).
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vk
+          POSTGRES_PASSWORD: vk_local
+          POSTGRES_DB: validationkit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run migrations against test DB
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgres://vk:vk_local@127.0.0.1:5432/validationkit_test
+      - name: Run unit + integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: postgres://vk:vk_local@127.0.0.1:5432/validationkit_test
+
   lighthouse:
     name: Lighthouse-CI (Perf 85 / A11y 95 / BP 95)
     needs: gates
