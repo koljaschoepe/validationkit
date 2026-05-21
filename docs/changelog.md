@@ -4,6 +4,24 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Sub-Plan-B: SaaS-Pricing Sub-B — Stripe Meters + Credits + Webhooks (✅ 2026-05-21)
+
+Stripe-Integration komplett auf Workspace-Architektur + Credit-System.
+
+- Sub-Plan-B: `docs/plans/done/saas-pricing-sub-b-stripe-credits.md`
+- `scripts/stripe-test-setup.ts` — Bootstrap-Script provisioniert 1 Product, 8 Tier-Prices (4 Tiers × 2 Cycles), 2 Pre-Paid-Pack-Prices, 2 Meters + Meter-Prices. Idempotent via lookup_keys.
+- `apps/web/src/lib/stripe.ts` erweitert: `prepaidPackPriceId`, `meterIdFor`, `meterEventName`, `MeterKind`.
+- `apps/web/src/lib/stripe-meters.ts` NEW — Meter-Event-Wrapper mit 2-Layer-Idempotenz (DB-Log + Stripe-API-side dedupe).
+- DB Migration 0014: `stripe_meter_event_log` (PK = identifier, workspaceId-scoped).
+- Webhook 6 Events: `checkout.session.completed` (+prepaid-pack-branch), `customer.subscription.created/updated/deleted`, `invoice.created` (synchroner Meter-Flush via `flushPendingForCustomer`), `invoice.paid` (monthly_grant + reset), `invoice.payment_failed` (past_due).
+- Pre-Paid-Pack-Checkout-Flow: `createPrepaidPackCheckoutSession` (`mode=payment`), `buyPrepaidPackAction`, 12-Monats-Expiry via `prepaidCreditExpirer`-Cron (täglich 02:00 UTC).
+- Inngest neue Jobs: `credit-aggregator` (alle 5min, batched Meter-Submission), `prepaid-credit-expirer` (daily).
+- Reconcile-Cron: 5min-Settle-Window + workspace-Level drift-detection.
+- `docs/operations/stripe-go-live.md` — KYC + USt-IdNr + OSS + Live-Mode-Switch-Checkliste.
+- `.env.example` rewritten für neue 4-Tier-Konvention + Pre-Paid-Packs + Meters + BYOK_ENCRYPTION_KEY.
+- 222 Tests grün, root typecheck grün.
+- 3 Deferred: msw-Webhook-Integration-Tests, Stripe-CLI-E2E (Manual-Check), Stripe-Dashboard Tax+Portal-Setup (User-Aufgabe vor Live-Mode).
+
 ## Sub-Plan-A: SaaS-Pricing Sub-A — DB + Metering (✅ 2026-05-21)
 
 Backend-Foundation für das neue 4-Tier Hybrid-Pricing-System.

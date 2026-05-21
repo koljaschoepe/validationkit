@@ -14,6 +14,9 @@ import {
   billingBaseUrl,
   getStripe,
   isStripeEnabled,
+  prepaidPackCredits,
+  prepaidPackPriceId,
+  type PrepaidPackSize,
   priceIdFor,
 } from "./stripe";
 
@@ -137,6 +140,88 @@ export async function createBillingPortalSession(): Promise<ActionResult> {
 
 export async function openBillingPortalAction(): Promise<void> {
   const result = await createBillingPortalSession();
+  if (!result.ok) {
+    redirect(
+      `/billing?status=error&reason=${encodeURIComponent(result.error)}`,
+    );
+  }
+  redirect(result.url as never);
+}
+
+// Sub-Plan-B — pre-paid credit pack checkout. Separate `mode=payment` session
+// (not a subscription) so the invoice flows through `invoice.paid` once and
+// triggers a one-time credit grant in the webhook.
+export async function createPrepaidPackCheckoutSession(
+  packSize: PrepaidPackSize,
+): Promise<ActionResult> {
+  if (!isDbEnabled()) {
+    return { ok: false, error: "Database is not enabled on this deployment." };
+  }
+  if (!isStripeEnabled()) {
+    return { ok: false, error: "Stripe is not configured." };
+  }
+  const priceId = prepaidPackPriceId(packSize);
+  if (!priceId) {
+    return {
+      ok: false,
+      error: `Pre-paid pack price for size ${packSize} is not configured (STRIPE_PRICE_PACK_${packSize}).`,
+    };
+  }
+  const user = await getSessionUser();
+  if (!user) {
+    return { ok: false, error: "Sign in before purchasing credits." };
+  }
+
+  const { id: workspaceId } = await ensureDefaultWorkspace(user.id);
+  const snap = await ensureSubscription(workspaceId);
+  const stripe = getStripe();
+  const baseUrl = billingBaseUrl();
+  const credits = prepaidPackCredits(packSize);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: [{ price: priceId, quantity: 1 }],
+    customer: snap.stripeCustomerId ?? undefined,
+    customer_email: snap.stripeCustomerId ? undefined : user.email,
+    client_reference_id: workspaceId,
+    payment_intent_data: {
+      metadata: {
+        workspaceId,
+        userId: user.id,
+        credits: String(credits),
+        kind: "prepaid_pack",
+      },
+    },
+    metadata: {
+      workspaceId,
+      userId: user.id,
+      credits: String(credits),
+      kind: "prepaid_pack",
+    },
+    allow_promotion_codes: true,
+    automatic_tax: { enabled: true },
+    customer_update: snap.stripeCustomerId ? { address: "auto" } : undefined,
+    tax_id_collection: { enabled: true },
+    success_url: `${baseUrl}/billing?status=pack_success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/billing?status=pack_cancelled`,
+  });
+  if (!session.url) {
+    return { ok: false, error: "Stripe did not return a checkout URL." };
+  }
+  return { ok: true, url: session.url };
+}
+
+export async function buyPrepaidPackAction(formData: FormData): Promise<void> {
+  const raw = String(formData.get("size") ?? "");
+  const sizeNum = Number(raw);
+  if (sizeNum !== 100 && sizeNum !== 500) {
+    redirect(
+      `/billing?status=error&reason=${encodeURIComponent("Invalid pack size.")}`,
+    );
+  }
+  const result = await createPrepaidPackCheckoutSession(
+    sizeNum as PrepaidPackSize,
+  );
   if (!result.ok) {
     redirect(
       `/billing?status=error&reason=${encodeURIComponent(result.error)}`,

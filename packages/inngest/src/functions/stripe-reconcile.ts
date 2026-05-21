@@ -85,12 +85,25 @@ export const stripeReconcile: any = inngest.createFunction(
             tier: schema.subscription.tier,
             status: schema.subscription.status,
             workspaceId: schema.subscription.workspaceId,
+            updatedAt: schema.subscription.updatedAt,
           })
           .from(schema.subscription)
           .where(eq(schema.subscription.workspaceId, workspaceId))
           .limit(1);
 
         const dbRow = rows[0];
+
+        // Sub-Plan-B: 5-minute settle window — webhook delivery + replay
+        // takes a moment; treat anything updated in the last 5 minutes as
+        // still propagating and not a real drift.
+        if (
+          dbRow &&
+          dbRow.updatedAt &&
+          Date.now() - dbRow.updatedAt.getTime() < 5 * 60 * 1000
+        ) {
+          continue;
+        }
+
         const tierDrift = !dbRow || dbRow.tier !== tier;
         const statusDrift = !dbRow || dbRow.status !== sub.status;
 

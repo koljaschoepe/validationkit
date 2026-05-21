@@ -99,6 +99,13 @@
       "when": 1779725000000,
       "tag": "0013_saas_pricing_redesign",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779739000000,
+      "tag": "0014_stripe_meter_event_log",
+      "breakpoints": true
     }
   ]
 }

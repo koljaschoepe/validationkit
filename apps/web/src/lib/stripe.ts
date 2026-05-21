@@ -66,6 +66,47 @@ export function priceIdFor(
   return null;
 }
 
+// Sub-Plan-B — pre-paid credit packs (one-time `mode=payment` checkout).
+export type PrepaidPackSize = 100 | 500;
+
+export function prepaidPackPriceId(size: PrepaidPackSize): string | null {
+  return process.env[`STRIPE_PRICE_PACK_${size}`] ?? null;
+}
+
+export function prepaidPackCredits(size: PrepaidPackSize): number {
+  return size;
+}
+
+// Sub-Plan-B — Stripe meter IDs (provisioned by scripts/stripe-test-setup.ts).
+export type MeterKind = "overage" | "ai_markup";
+
+const METER_EVENT_NAMES: Record<MeterKind, string> = {
+  overage: "audit_credit_overage",
+  ai_markup: "ai_cost_markup_microcents",
+};
+
+const METER_ENV_KEY: Record<MeterKind, string> = {
+  overage: "STRIPE_METER_AUDIT_CREDIT_OVERAGE",
+  ai_markup: "STRIPE_METER_AI_COST_MARKUP_MICROCENTS",
+};
+
+const METER_PRICE_ENV_KEY: Record<MeterKind, string> = {
+  overage: "STRIPE_PRICE_OVERAGE_CREDIT_EUR",
+  ai_markup: "STRIPE_PRICE_AI_MARKUP_MICROCENT_EUR",
+};
+
+export function meterIdFor(kind: MeterKind): string | null {
+  return process.env[METER_ENV_KEY[kind]] ?? null;
+}
+
+export function meterPriceIdFor(kind: MeterKind): string | null {
+  return process.env[METER_PRICE_ENV_KEY[kind]] ?? null;
+}
+
+export function meterEventName(kind: MeterKind): string {
+  return METER_EVENT_NAMES[kind];
+}
+
 export function billingBaseUrl(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ??

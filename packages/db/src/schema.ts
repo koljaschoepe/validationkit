@@ -742,3 +742,46 @@ export const prepaidCreditGrantRelations = relations(
     }),
   }),
 );
+
+// Sub-Plan-B — idempotency log for Stripe Meter-Event submissions. Identifier
+// is the dedupe key sent to Stripe (Stripe also dedupes server-side on the
+// same key, so this is the second layer). credit_ledger_id traces back to
+// the ledger row that triggered the submission (overage / ai_markup events).
+export const stripeMeterEventLog = pgTable(
+  "stripe_meter_event_log",
+  {
+    identifier: varchar("identifier", { length: 80 }).primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    eventName: varchar("event_name", { length: 60 }).notNull(),
+    value: bigint("value", { mode: "number" }).notNull(),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 80 }).notNull(),
+    creditLedgerId: uuid("credit_ledger_id").references(() => creditLedger.id, {
+      onDelete: "set null",
+    }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("stripe_meter_event_log_workspace_idx").on(
+      t.workspaceId,
+      t.submittedAt,
+    ),
+  ],
+);
+
+export const stripeMeterEventLogRelations = relations(
+  stripeMeterEventLog,
+  ({ one }) => ({
+    workspace: one(workspace, {
+      fields: [stripeMeterEventLog.workspaceId],
+      references: [workspace.id],
+    }),
+    creditLedger: one(creditLedger, {
+      fields: [stripeMeterEventLog.creditLedgerId],
+      references: [creditLedger.id],
+    }),
+  }),
+);
