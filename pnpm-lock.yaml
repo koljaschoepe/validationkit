@@ -360,6 +360,9 @@ importers:
       '@vk/audit':
         specifier: workspace:*
         version: link:../audit
+      '@vk/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@vk/billing':
         specifier: workspace:*
         version: link:../billing
@@ -381,6 +384,9 @@ importers:
       inngest:
         specifier: ^4.4.0
         version: 4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
+      react:
+        specifier: ^19.2.0
+        version: 19.2.6
       stripe:
         specifier: ^22.1.1
         version: 22.1.1(@types/node@22.19.19)
@@ -388,6 +394,9 @@ importers:
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.19
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

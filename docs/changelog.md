@@ -4,6 +4,23 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## SaaS-Pricing V2 Polish-Pack — Email + Pack-Modal (✅ 2026-05-21)
+
+Polish-Pack auf Master SaaS-Pricing-Redesign. Schließt 3 von 4 Sub-C-Deferrals.
+
+- **3 React-Email-Templates** in `packages/auth/src/emails/`:
+  - `PrepaidPackExpireWarning.tsx` — 1-day pre-expiry heads-up (30d/7d variants ready, only 1d wired in V2)
+  - `SubscriptionPastDue.tsx` — Stripe-Portal CTA bei `invoice.payment_failed`
+  - `PlanChangeConfirmation.tsx` — Upgrade / Downgrade / Cancellation
+- `packages/auth/src/emails/sender.ts` (NEW) — `sendTransactionalEmail()` Wrapper mit nodemailer-Transport (Resend SMTP prod, Mailpit dev). Soft-fails ohne Transport für Tests.
+- `packages/auth/src/emails/styles.ts` (NEW) — Linear-Aesthetic shared style constants.
+- `prepaid-credit-expirer` Cron erweitert: 1-day-Warning-Mail mit Dedup via `event`-Table (`type=prepaid_pack_warning`, 48h-Lookback).
+- Stripe-Webhook erweitert: `invoice.payment_failed` triggert Past-Due-Mail, `customer.subscription.updated` triggert Plan-Change-Mail (skip if tier unchanged), `customer.subscription.deleted` triggert Cancellation-Mail.
+- `BuyCreditPackModal.tsx` (NEW) — Modal-Alternative zu inline-forms auf billing-page; Radio-Pick (100 / 500) + Stripe-Checkout-Redirect.
+- `packages/inngest` jetzt mit `@vk/auth` + `react` deps für Email-Calls.
+- 222 Tests grün, root typecheck grün, alle Builds grün.
+- Deferred: V2.4 IntensitySelector-Integration (kein workspace-internal Audit-Trigger-Form existiert — ready-to-import wenn der entsteht); 30d/7d-Warnings (V3, brauchen state-Spalten in prepaid_credit_grant); Playwright-E2E + credits.test.ts DB-Integration (V3).
+
 ## Master SaaS-Pricing-Redesign — Sub-Plan-C: UI + Compliance (✅ 2026-05-21)
 
 User-facing layer komplett — Master-Plan ist damit shippable.

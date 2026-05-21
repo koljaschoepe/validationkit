@@ -1,10 +1,40 @@
+import * as React from "react";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import { TIERS, type TierId, grantCredits } from "@vk/billing";
 import { flushPendingForCustomer } from "@vk/inngest";
+import {
+  PlanChangeConfirmation,
+  SubscriptionPastDue,
+  sendTransactionalEmail,
+} from "@vk/auth";
 import { getStripe, isStripeEnabled } from "@/lib/stripe";
+
+function billingUrlForWorkspace(slug: string): string {
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.AUTH_BASE_URL ??
+    "http://localhost:3000";
+  return `${base}/${slug}/settings/billing`;
+}
+
+async function fetchWorkspaceContact(workspaceId: string): Promise<
+  { email: string; workspaceName: string; slug: string } | null
+> {
+  const rows = await getDb()
+    .select({
+      email: schema.user.email,
+      workspaceName: schema.workspace.name,
+      slug: schema.workspace.slug,
+    })
+    .from(schema.workspace)
+    .innerJoin(schema.user, eq(schema.workspace.ownerId, schema.user.id))
+    .where(eq(schema.workspace.id, workspaceId))
+    .limit(1);
+  return rows[0] ?? null;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -175,6 +205,17 @@ async function handleSubscriptionUpdated(
     (await lookupWorkspaceByCustomer(stringOrNull(sub.customer)));
   if (!workspaceId) return;
   const tier = (sub.metadata?.tier as TierId | undefined) ?? "free";
+
+  // Detect tier change before we overwrite the DB row, so the email knows
+  // the old + new label. Skip the email if tier didn't actually change.
+  const db = getDb();
+  const prior = await db
+    .select({ tier: schema.subscription.tier })
+    .from(schema.subscription)
+    .where(eq(schema.subscription.workspaceId, workspaceId))
+    .limit(1);
+  const previousTier = (prior[0]?.tier as TierId | undefined) ?? "free";
+
   await applyTierToWorkspace({
     workspaceId,
     tier,
@@ -182,6 +223,31 @@ async function handleSubscriptionUpdated(
     stripeCustomerId: stringOrNull(sub.customer),
     stripeSubscriptionId: sub.id,
     currentPeriodEnd: periodEndFromSubscription(sub),
+  });
+
+  if (previousTier === tier) return;
+  const contact = await fetchWorkspaceContact(workspaceId);
+  if (!contact) return;
+  const tierOrder: TierId[] = ["free", "starter", "pro", "agency"];
+  const previousIdx = tierOrder.indexOf(previousTier);
+  const newIdx = tierOrder.indexOf(tier);
+  const kind: "upgrade" | "downgrade" =
+    newIdx > previousIdx ? "upgrade" : "downgrade";
+  await sendTransactionalEmail({
+    to: contact.email,
+    subject:
+      kind === "upgrade"
+        ? `Welcome to ${TIERS[tier].label}`
+        : `Plan updated to ${TIERS[tier].label}`,
+    react: React.createElement(PlanChangeConfirmation, {
+      workspaceName: contact.workspaceName,
+      previousTierLabel: TIERS[previousTier].label,
+      newTierLabel: TIERS[tier].label,
+      newCreditsPerCycle: TIERS[tier].creditsPerCycle,
+      kind,
+      effectiveAt: periodEndFromSubscription(sub) ?? new Date(),
+      billingUrl: billingUrlForWorkspace(contact.slug),
+    }),
   });
 }
 
@@ -192,6 +258,17 @@ async function handleSubscriptionDeleted(
     (sub.metadata?.workspaceId as string | undefined) ??
     (await lookupWorkspaceByCustomer(stringOrNull(sub.customer)));
   if (!workspaceId) return;
+
+  // Capture the prior tier for the cancellation email before the row is
+  // reset to free.
+  const db = getDb();
+  const prior = await db
+    .select({ tier: schema.subscription.tier })
+    .from(schema.subscription)
+    .where(eq(schema.subscription.workspaceId, workspaceId))
+    .limit(1);
+  const previousTier = (prior[0]?.tier as TierId | undefined) ?? "free";
+
   await applyTierToWorkspace({
     workspaceId,
     tier: "free",
@@ -199,6 +276,23 @@ async function handleSubscriptionDeleted(
     stripeCustomerId: stringOrNull(sub.customer),
     stripeSubscriptionId: null,
     currentPeriodEnd: null,
+  });
+
+  if (previousTier === "free") return;
+  const contact = await fetchWorkspaceContact(workspaceId);
+  if (!contact) return;
+  await sendTransactionalEmail({
+    to: contact.email,
+    subject: "Subscription canceled",
+    react: React.createElement(PlanChangeConfirmation, {
+      workspaceName: contact.workspaceName,
+      previousTierLabel: TIERS[previousTier].label,
+      newTierLabel: TIERS.free.label,
+      newCreditsPerCycle: TIERS.free.creditsPerCycle,
+      kind: "canceled",
+      effectiveAt: periodEndFromSubscription(sub) ?? new Date(),
+      billingUrl: billingUrlForWorkspace(contact.slug),
+    }),
   });
 }
 
@@ -265,10 +359,35 @@ async function handleInvoicePaymentFailed(
   );
   if (!workspaceId) return;
   const db = getDb();
+  const subRow = await db
+    .select({ tier: schema.subscription.tier })
+    .from(schema.subscription)
+    .where(eq(schema.subscription.workspaceId, workspaceId))
+    .limit(1);
   await db
     .update(schema.subscription)
     .set({ status: "past_due", updatedAt: new Date() })
     .where(eq(schema.subscription.workspaceId, workspaceId));
+
+  // V2 polish — email the workspace owner so they can update their card
+  // before Stripe gives up. Soft-fail: we never block the webhook on email.
+  const contact = await fetchWorkspaceContact(workspaceId);
+  if (!contact) return;
+  const tier = (subRow[0]?.tier as TierId | undefined) ?? "free";
+  const amount = ((invoice.amount_due ?? 0) / 100).toFixed(2);
+  const attempts =
+    (invoice as unknown as { attempt_count?: number }).attempt_count ?? 1;
+  await sendTransactionalEmail({
+    to: contact.email,
+    subject: `Payment failed for ${contact.workspaceName}`,
+    react: React.createElement(SubscriptionPastDue, {
+      workspaceName: contact.workspaceName,
+      tierLabel: TIERS[tier].label,
+      amountDueEur: `€${amount}`,
+      attemptCount: attempts,
+      billingUrl: billingUrlForWorkspace(contact.slug),
+    }),
+  });
 }
 
 interface ApplyTierInput {
