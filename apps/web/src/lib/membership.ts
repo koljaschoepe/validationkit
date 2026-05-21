@@ -1,7 +1,6 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 
@@ -155,7 +154,11 @@ export async function inviteAdmin(
     });
   }
 
-  revalidatePath(`/customers/${workspaceId}/access`);
+  // Removed 2026-05-21 (customer-route-rename Phase D.2): this revalidatePath
+  // never matched a real route — `workspaceId` is not a customer-id, and the
+  // route /customers/<workspaceId>/access doesn't exist. Membership-changes
+  // can rely on the next navigation to refresh; if cache-eager-revalidate is
+  // needed, target `workspaceTag(workspaceId)` via revalidateTag instead.
   return { ok: true };
 }
 
@@ -218,7 +221,8 @@ export async function revokeMember(
     .update(schema.membership)
     .set({ status: "revoked" })
     .where(eq(schema.membership.id, membershipId));
-  revalidatePath(`/customers/${workspaceId}/access`);
+  // revalidatePath removed 2026-05-21 (customer-route-rename Phase D.2) —
+  // the path /customers/<workspaceId>/access never matched a real route.
   return { ok: true };
 }
 

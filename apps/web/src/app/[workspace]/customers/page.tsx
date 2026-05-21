@@ -78,7 +78,7 @@ export default async function CustomersPage({
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
                         <Link
-                          href={`/${ws.slug}/customers/c/${c.id}`}
+                          href={`/${ws.slug}/customers/${c.id}`}
                           className="hover:underline"
                         >
                           {c.label}
@@ -100,7 +100,7 @@ export default async function CustomersPage({
                       </TableCell>
                       <TableCell className="text-right">
                         <Link
-                          href={`/${ws.slug}/customers/c/${c.id}`}
+                          href={`/${ws.slug}/customers/${c.id}`}
                           className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground"
                         >
                           Open

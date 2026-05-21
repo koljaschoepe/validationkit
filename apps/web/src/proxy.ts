@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   resolveLegacyRedirect,
+  resolveInternalCustomerRedirect,
   shouldAttemptRedirect,
 } from '@/lib/middleware-redirects';
 
@@ -26,6 +27,16 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!shouldAttemptRedirect(pathname)) return NextResponse.next();
 
+  // 1) Workspace-scoped internal redirects (customer-route-rename, May 2026).
+  //    These don't need a cookie — slug is in the path itself.
+  const internalTarget = resolveInternalCustomerRedirect(pathname);
+  if (internalTarget) {
+    const url = request.nextUrl.clone();
+    url.pathname = internalTarget;
+    return NextResponse.redirect(url, 308);
+  }
+
+  // 2) Legacy top-level redirects (workspace-route-consolidation, Sprint G6).
   const slug =
     request.cookies.get('vk_default_workspace_slug')?.value ?? null;
   const target = resolveLegacyRedirect(pathname, slug);

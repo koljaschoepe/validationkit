@@ -43,6 +43,28 @@ export function resolveLegacyRedirect(
   return null;
 }
 
+// customer-route-rename (May 21, 2026): the old /[workspace]/customers/c/<id>
+// pattern is dropped — Customer-Detail now lives at /[workspace]/customers/<id>
+// flat. Bookmarks that hit /<slug>/customers/c/<rest> get rewritten in-place.
+// This runs AFTER resolveLegacyRedirect in the proxy chain, so workspace-scoped
+// URLs that escaped the top-level legacy map are caught here.
+//
+// Note: we deliberately do NOT redirect /<slug>/customers/<UUID> → /<slug>/repos/<UUID>
+// — the new Customer-Detail route lives at /<slug>/customers/<customerId> and the
+// hard-map strategy can't disambiguate old-repo-bookmarks from new-customer-pages
+// without a DB lookup. Old repo-bookmarks 404 on the new Customer page (acceptable
+// per the customer-route-rename plan §10 risk mitigation).
+const INTERNAL_CUSTOMER_C_PATTERN = /^\/([^/]+)\/customers\/c\/(.+)$/;
+
+export function resolveInternalCustomerRedirect(
+  pathname: string,
+): string | null {
+  const match = pathname.match(INTERNAL_CUSTOMER_C_PATTERN);
+  if (!match) return null;
+  const [, slug, rest] = match;
+  return `/${slug}/customers/${rest}`;
+}
+
 /**
  * Decide whether the middleware should even attempt a redirect.
  * Skip api/ + _next/ + statically-public routes and prefixes-with-leading-segment

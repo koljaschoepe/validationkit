@@ -32,7 +32,7 @@ export default async function CustomerDetailPage({
   const { workspace: slug, customerId } = await params;
   if (!user) {
     redirect(
-      `/login?next=${encodeURIComponent(`/${slug}/customers/c/${customerId}`)}`,
+      `/login?next=${encodeURIComponent(`/${slug}/customers/${customerId}`)}`,
     );
   }
 
@@ -130,7 +130,7 @@ export default async function CustomerDetailPage({
                         </TableCell>
                         <TableCell className="text-right">
                           <Link
-                            href={`/${ws.slug}/customers/${r.id}`}
+                            href={`/${ws.slug}/repos/${r.id}`}
                             className="text-xs text-muted-foreground hover:text-foreground"
                           >
                             Open

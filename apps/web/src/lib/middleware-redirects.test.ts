@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   PUBLIC_TOP_LEVEL,
+  resolveInternalCustomerRedirect,
   resolveLegacyRedirect,
   shouldAttemptRedirect,
 } from './middleware-redirects';
@@ -32,6 +33,34 @@ describe('resolveLegacyRedirect', () => {
 
   it('returns null for unmapped paths', () => {
     expect(resolveLegacyRedirect('/random', 'acme')).toBeNull();
+  });
+});
+
+describe('resolveInternalCustomerRedirect (customer-route-rename May 21, 2026)', () => {
+  it('drops /c/ subpath: /<slug>/customers/c/<id> → /<slug>/customers/<id>', () => {
+    expect(resolveInternalCustomerRedirect('/acme/customers/c/abc-123')).toBe(
+      '/acme/customers/abc-123',
+    );
+  });
+
+  it('handles nested sub-paths beyond /c/<id>', () => {
+    expect(
+      resolveInternalCustomerRedirect('/acme/customers/c/abc/something-else'),
+    ).toBe('/acme/customers/abc/something-else');
+  });
+
+  it('returns null for already-flat customer-routes', () => {
+    expect(
+      resolveInternalCustomerRedirect('/acme/customers/abc-123'),
+    ).toBeNull();
+  });
+
+  it('returns null for repo-routes (already correctly named)', () => {
+    expect(resolveInternalCustomerRedirect('/acme/repos/abc-123')).toBeNull();
+  });
+
+  it('returns null for the workspace-customers list (no detail-id)', () => {
+    expect(resolveInternalCustomerRedirect('/acme/customers')).toBeNull();
   });
 });
 

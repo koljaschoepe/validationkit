@@ -16,20 +16,20 @@ function statusSeverity(status: string): SeverityBand {
   return "Mid";
 }
 
-export default async function CustomerDetailPage({
+export default async function RepoDetailPage({
   params,
 }: {
-  params: Promise<{ workspace: string; id: string }>;
+  params: Promise<{ workspace: string; repoId: string }>;
 }) {
   if (!isAuthEnabled()) redirect("/login");
   const user = await getSessionUser();
-  const { workspace: slug, id } = await params;
+  const { workspace: slug, repoId } = await params;
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/${slug}/customers/${id}`)}`);
+    redirect(`/login?next=${encodeURIComponent(`/${slug}/repos/${repoId}`)}`);
   }
 
   const ws = await resolveWorkspaceFromSlug(slug, user.id);
-  const data = await getRepo(ws.id, id);
+  const data = await getRepo(ws.id, repoId);
   if (!data) notFound();
 
   return (
@@ -55,7 +55,7 @@ export default async function CustomerDetailPage({
             ) : null}
           </p>
           <Link
-            href={`/${ws.slug}/customers/${id}/access`}
+            href={`/${ws.slug}/repos/${repoId}/access`}
             className="inline-block text-sm underline-offset-4 hover:underline"
           >
             → Access · members + pending install-requests

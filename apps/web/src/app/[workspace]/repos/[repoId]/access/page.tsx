@@ -32,14 +32,14 @@ const ROLE_LABEL: Record<Role, string> = {
 export default async function AccessPage({
   params,
 }: {
-  params: Promise<{ workspace: string; id: string }>;
+  params: Promise<{ workspace: string; repoId: string }>;
 }) {
   if (!isAuthEnabled()) redirect("/login");
   const user = await getSessionUser();
-  const { workspace: slug, id } = await params;
+  const { workspace: slug, repoId } = await params;
   if (!user) {
     redirect(
-      `/login?next=${encodeURIComponent(`/${slug}/customers/${id}/access`)}`,
+      `/login?next=${encodeURIComponent(`/${slug}/repos/${repoId}/access`)}`,
     );
   }
 
@@ -54,7 +54,7 @@ export default async function AccessPage({
     })
     .from(schema.repo)
     .where(
-      and(eq(schema.repo.id, id), eq(schema.repo.workspaceId, ws.id)),
+      and(eq(schema.repo.id, repoId), eq(schema.repo.workspaceId, ws.id)),
     )
     .limit(1);
   const row = repoRows[0];
@@ -72,7 +72,7 @@ export default async function AccessPage({
             <CardContent className="py-4 text-sm">
               You don&apos;t have admin access to this customer-repo.{" "}
               <Link
-                href={`/${ws.slug}/customers/${id}`}
+                href={`/${ws.slug}/repos/${repoId}`}
                 className="text-primary underline-offset-4 hover:underline"
               >
                 Back to customer
@@ -108,10 +108,10 @@ export default async function AccessPage({
             Workspace-level admin. Members listed here can decide
             install-requests against any repo in this workspace.{" "}
             <Link
-              href={`/${ws.slug}/customers/${id}`}
+              href={`/${ws.slug}/repos/${repoId}`}
               className="text-primary underline-offset-4 hover:underline"
             >
-              Back to customer
+              Back to repo
             </Link>
           </p>
         </header>

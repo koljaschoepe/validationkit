@@ -68,7 +68,7 @@ export async function addRepoAction(fd: FormData): Promise<ActionResult> {
     ...(githubFullName ? { githubFullName } : {}),
   });
   if (result.ok) {
-    revalidatePath(`/${ws.slug}/customers/c/${customerId}`);
+    revalidatePath(`/${ws.slug}/customers/${customerId}`);
   }
   return result;
 }
