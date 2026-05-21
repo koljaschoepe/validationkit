@@ -3,6 +3,7 @@ import { isAuthEnabled } from "@vk/auth";
 import { getSessionUser } from "@/lib/session";
 import { listUserWorkspaces } from "@/lib/dal/galaxie";
 import { auditAction } from "@/lib/audit-action";
+import { claimPendingMemberships } from "@/lib/membership";
 
 /**
  * Post-Homepage-Relaunch (May 2026): /dashboard collapsed into a redirect stub.
@@ -36,6 +37,14 @@ export default async function DashboardRedirect({
       );
     }
     redirect("/login");
+  }
+
+  // Nova-3a Bundle H (Sub-1 S2): back-fill any membership rows the user was
+  // invited to before they signed up. Idempotent — no-ops when there's
+  // nothing pending. This was the only sane entry point and was missing,
+  // leaving the invite flow effectively broken.
+  if (user.email) {
+    await claimPendingMemberships(user.id, user.email);
   }
 
   // Audit-intent path: visitor came from a magic-link that wants to re-run

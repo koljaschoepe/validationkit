@@ -254,40 +254,49 @@ export function HeroSection() {
               />
             ) : (
               <div
-                className="grid gap-4 px-4 pb-4 pt-4 sm:px-6 sm:gap-6 lg:grid-cols-[7fr_3fr]"
-                style={{ height: "calc(100svh - 3.5rem)" }}
+                className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-4 pt-4 sm:px-6"
+                style={{ minHeight: "calc(100svh - 3.5rem)" }}
               >
+                {/* Nova-3a Phase 2: prominent hero-row with label + URL pill.
+                    Moves the audit-input out of the small toolbar so it is
+                    visually the primary CTA. */}
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+                  <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    Audit Dein Repo →
+                  </p>
+                  <div className="w-full sm:max-w-xl">
+                    <RepoUrlPill
+                      pending={isPending}
+                      size="hero"
+                      onSubmit={handleAuditSubmit}
+                      error={stage === "error" ? actionState.error : undefined}
+                    />
+                  </div>
+                  {stage === "result" ? (
+                    <button
+                      type="button"
+                      onClick={handleResetToDemo}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card/80 px-2.5 font-mono type-mono-sm text-muted-foreground backdrop-blur hover:bg-muted/40 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+                    >
+                      <ArrowLeftIcon className="size-3.5" aria-hidden="true" />
+                      zurück zur Demo
+                    </button>
+                  ) : null}
+                </div>
+
+                <div
+                  className="grid flex-1 gap-4 sm:gap-6 lg:grid-cols-[7fr_3fr]"
+                  style={{ minHeight: "min(72vh, calc(100svh - 3.5rem - 6rem))" }}
+                >
                 {/* Galaxie-Pane — left, contains the toolbar + the
                     demo/live/result galaxie. */}
                 <div className="relative overflow-hidden rounded-xl border border-border bg-card/40">
-                  {/* Top toolbar: breadcrumb-or-back · pill · help · settings */}
-                  <div className="absolute inset-x-3 top-3 z-20 flex items-center gap-2">
-                    <div className="min-w-0 flex-shrink-0 max-w-[40%]">
-                      {stage === "result" ? (
-                        <button
-                          type="button"
-                          onClick={handleResetToDemo}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card/80 px-2.5 font-mono type-mono-sm text-muted-foreground backdrop-blur hover:bg-muted/40 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-                        >
-                          <ArrowLeftIcon
-                            className="size-3.5"
-                            aria-hidden="true"
-                          />
-                          zurück zur Demo
-                        </button>
-                      ) : (
-                        <BreadcrumbBar
-                          path={breadcrumbPath}
-                          onSelect={handleBreadcrumbSelect}
-                        />
-                      )}
-                    </div>
-
+                  {/* Top toolbar: breadcrumb · help · settings (pill moved up). */}
+                  <div className="absolute inset-x-3 top-3 z-20 flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <RepoUrlPill
-                        pending={isPending}
-                        onSubmit={handleAuditSubmit}
-                        error={stage === "error" ? actionState.error : undefined}
+                      <BreadcrumbBar
+                        path={breadcrumbPath}
+                        onSelect={handleBreadcrumbSelect}
                       />
                     </div>
 
@@ -401,6 +410,7 @@ export function HeroSection() {
                     node={activeNode}
                     onFixClick={() => setDialogOpen(true)}
                   />
+                </div>
                 </div>
               </div>
             )}

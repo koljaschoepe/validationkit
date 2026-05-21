@@ -23,7 +23,8 @@ export interface InstallRequestRow {
   requestedAt: Date;
   decidedAt: Date | null;
   decisionNote: string | null;
-  requesterId: string;
+  // Nullable post-Bundle-A: requester-user may have been deleted (set null).
+  requesterId: string | null;
   approverId: string | null;
 }
 

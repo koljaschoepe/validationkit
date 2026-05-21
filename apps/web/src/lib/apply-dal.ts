@@ -160,7 +160,7 @@ export async function applySolution(
 
   let dispatchUrl: string;
   let dispatchRef: string;
-  let dispatchStatus = "open";
+  let dispatchStatus: string;
   try {
     if (effectiveMode === "local") {
       const client = new LocalGitClient(

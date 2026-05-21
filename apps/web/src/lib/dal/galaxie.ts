@@ -9,7 +9,7 @@ import type {
   Severity,
 } from '@/lib/galaxie/types';
 import { SEVERITY_BANDS } from '@/lib/galaxie/types';
-import { galaxieWorkspaceTag, userWorkspacesTag } from '@/lib/cache-tags';
+import { galaxieWorkspaceTag } from '@/lib/cache-tags';
 import { listSolutionStatusByFinding } from '@/lib/solution-dal';
 
 export interface WorkspaceMeta {
@@ -297,7 +297,7 @@ export async function getGalaxieDataForWorkspace(
 async function resolveRole(
   workspaceId: string,
   userId: string,
-  ownerId: string,
+  ownerId: string | null,
 ): Promise<'owner' | 'admin' | 'member'> {
   const db = getDb();
   const rows = await db

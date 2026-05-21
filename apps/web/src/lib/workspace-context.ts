@@ -8,7 +8,10 @@ export interface ResolvedWorkspace {
   id: string;
   slug: string;
   name: string;
-  ownerId: string;
+  // Nullable post-Nova-3a-Bundle-A: legacy founder pointer; can become null if
+  // the founder user is deleted. Membership.role='owner' is the source of
+  // truth for RBAC checks.
+  ownerId: string | null;
 }
 
 /**

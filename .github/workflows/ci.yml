@@ -44,10 +44,8 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # Lint step is deferred — Next 16 removed `next lint`; ESLint flat-config
-      # setup is a follow-up sub-plan. See repo-health-and-workflow-overhaul §13.
-      # - name: Lint
-      #   run: pnpm lint
+      - name: Lint
+        run: pnpm --filter @vk/web lint
 
       - name: Unit tests
         run: pnpm test
@@ -61,13 +59,37 @@ jobs:
       - name: Build
         run: pnpm build
 
+  lighthouse:
+    name: Lighthouse-CI (Perf 85 / A11y 95 / BP 95)
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm --filter @vk/web build
+      - name: Run Lighthouse-CI
+        run: pnpm exec lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
   conflict-eval:
     name: LLM-conflict-eval (optional)
     needs: gates
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Only runs on push to main, and silently no-ops if ANTHROPIC_API_KEY secret is unset.
-    if: ${{ github.event_name == 'push' }}
+    # Now runs on both push to main AND pull_request. No-ops if ANTHROPIC_API_KEY secret is unset.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

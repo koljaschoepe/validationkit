@@ -24,17 +24,37 @@ const geistMono = Geist_Mono({
   adjustFontFallback: true,
 });
 
-// Force runtime rendering for every page.
-// Reason: Vercel Marketplace-Integration env vars (e.g. Neon DATABASE_URL)
-// are runtime-only — they are NOT exposed to the build process. Static
-// prerendering would freeze `isAuthEnabled() === false` into the HTML.
-// Phase-2 optimization: switch to per-route opt-in static where auth-irrelevant.
-export const dynamic = "force-dynamic";
+// Nova-3a Bundle B (Sub-6 K4): root-layout `force-dynamic` removed. Pages that
+// touch dynamic APIs (cookies(), headers(), DAL) opt-in to dynamic rendering
+// automatically. SiteNav reads `cookies()` via getSessionUser(), so any page
+// that mounts it stays dynamic. Pure marketing routes (e.g. legal/*) can now
+// statically prerender or use `'use cache'` for full edge-cached HTML.
 
 export const metadata: Metadata = {
-  title: "ValidationKit — Agent-File Audit",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
+  title: {
+    default: "ValidationKit — Agent-File Audit",
+    template: "%s · ValidationKit",
+  },
   description:
     "Point at a public GitHub repo. Get a deterministic audit of CLAUDE.md, AGENTS.md, .claude/agents, .cursor/rules, and 8 more vendor formats. No vibe scores.",
+  applicationName: "ValidationKit",
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName: "ValidationKit",
+    title: "ValidationKit — Agent-File Audit",
+    description:
+      "Deterministic audits for AGENTS.md, CLAUDE.md, and 8 more vendor formats. No vibe scores.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ValidationKit — Agent-File Audit",
+    description:
+      "Deterministic audits for AGENTS.md, CLAUDE.md, and 8 more vendor formats. No vibe scores.",
+  },
 };
 
 // Mobile viewport: width=device-width is mandatory or mobile browsers scale
@@ -48,7 +68,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={cn(geist.variable, geistMono.variable)}>
+    <html lang="de" className={cn(geist.variable, geistMono.variable)}>
       <body className="font-sans antialiased">
         <SkipToContent />
         <GlobalMotionConfig>

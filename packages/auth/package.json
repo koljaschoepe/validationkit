@@ -2,6 +2,9 @@
   "name": "@vk/auth",
   "version": "0.0.20",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,7 +33,7 @@
     "@react-email/render": "^2.0.8",
     "@vk/db": "workspace:*",
     "better-auth": "^1.6.11",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^8.0.7"
   },
   "peerDependencies": {
     "react": "^19",

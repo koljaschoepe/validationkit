@@ -44,7 +44,7 @@ export default async function CustomerDetailPage({
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-8">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-8">
         <Link
           href={`/${ws.slug}/customers`}
           className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground"

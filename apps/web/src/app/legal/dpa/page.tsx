@@ -14,7 +14,7 @@ export const metadata = {
 
 export default function DpaPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-12">
+    <main id="main-content" className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-12">
       <SiteNav />
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">

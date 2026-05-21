@@ -160,7 +160,7 @@ export function StaticGalaxieSVG({
           const ln = nodeById.get(f.id);
           if (!ln) return null;
           const dimmed = f.dismissStatus === "dismissed";
-          const color = dimmed ? "#404040" : SEVERITY_COLOR_VAR[f.severity];
+          const color = dimmed ? "var(--muted-foreground)" : SEVERITY_COLOR_VAR[f.severity];
           return (
             <g key={f.id}>
               <circle cx={ln.x} cy={ln.y} r={2.4} fill={color} />

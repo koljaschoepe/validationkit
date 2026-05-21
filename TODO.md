@@ -36,11 +36,13 @@
 
 - npm-Namespace `validationkit` reservieren (nach Gate-Pass)
 - Domain-WHOIS-Check
-- Customer-Route-Naming-Fix (`/customers/[id]` ist semantisch ein Repo) — Phase 3.8 als Sub-Plan
-- **ESLint Flat-Config-Setup** — Next 16 hat `next lint` entfernt, neuer Lint-Stack via `eslint@9` flat-config + `@next/eslint-plugin-next` muss aufgesetzt werden. Husky ist installiert und wartet auf lint-staged-Config. → Eigener Sub-Plan `/plan eslint-flat-config-setup`.
 - `@vk/fixes` → `@vk/audit/fixes` Sub-Export-Merge — Phase 2.3b (optional, OPTIONAL)
-- Stripe Test-Mode Setup
 - AAIF-Silver-Membership-Antrag (separates Framework)
+
+**Erledigte/promotete Items** (per Nova-3a Bundle F 2026-05-21):
+- ~~Customer-Route-Naming-Fix~~ ✓ siehe `docs/plans/done/customer-route-rename.md`
+- ~~ESLint Flat-Config-Setup~~ → wird in Nova-3a Bundle E geshippt (siehe `docs/plans/nova-3-repo-polish-and-prod-prep.md`)
+- ~~Stripe Test-Mode Setup~~ → wird in Nova-3a Phase 4 verifiziert (Bootstrap-Script existiert seit Sub-B SaaS-Pricing)
 
 ---
 

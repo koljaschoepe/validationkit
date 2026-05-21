@@ -1,9 +1,55 @@
 # Stripe Go-Live — Checkliste
 
-Stand: 2026-05-21
-Status: 🟡 Pre-Launch — code is wired, KYC + tax registrations are outstanding.
+Stand: 2026-05-21 (Nova-3a Phase 4 — Test-Mode-Walkthrough ergänzt)
+Status: 🟡 Pre-Launch — code is wired (✅ Test-Mode end-to-end), KYC + tax registrations are outstanding for Live-Mode.
 
 This document captures the **out-of-band** steps that gate a Live-Mode Stripe activation. Code is the easy part; tax + KYC + Stripe-Dashboard config sit outside the repo and need to happen in this order.
+
+Sections marked **✅ in Nova-3a** are wired in the repo and have been smoke-tested locally. Sections marked **🔵 deferred to production-live-connect-stub** are the actual Live-Mode-flip work.
+
+---
+
+## 0. Pre-Test-Mode — Erstaufsetzer-Walkthrough (✅ in Nova-3a)
+
+Brand-new check-out auf einem leeren Dev-Stack:
+
+```bash
+# 0.1 — Stripe-Test-Account-Key holen
+# Stripe-Dashboard (Test-Mode) → Developers → API keys → "Secret key"
+# Copy `sk_test_…` in die .env.local:
+echo 'STRIPE_SECRET_KEY="sk_test_REPLACE_ME"' >> .env.local
+# Stripe-Webhook-Secret kommt im nächsten Step aus `stripe listen`.
+
+# 0.2 — Lokales Stack hochfahren (Postgres + Mailpit + Inngest + Dragonfly)
+pnpm stack:up
+until docker exec vk-postgres pg_isready -U vk; do sleep 1; done
+
+# 0.3 — DB-Migrations applyen (inkl. Nova-3a-Bundle-A user-cascade-hardening)
+pnpm db:migrate
+
+# 0.4 — Stripe-Test-Mode-Bootstrap-Script: provisioniert Products + Prices
+#       + Meters in Test-Mode-Stripe. Idempotent via lookup_keys.
+pnpm stripe:setup-test
+# → schreibt .env.stripe-test-mode.generated mit 14 Vars
+#   (8 Tier-Prices + 2 Pack-Prices + 2 Meters + 2 Metered-Prices)
+
+# 0.5 — Generated env-vars in .env.local mergen (außer Header-Comments)
+cat .env.stripe-test-mode.generated >> .env.local
+
+# 0.6 — Stripe-CLI Webhook-Forwarding starten (eigenes Terminal)
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+# → druckt `whsec_…` — das ist der `STRIPE_WEBHOOK_SECRET`
+echo 'STRIPE_WEBHOOK_SECRET="whsec_REPLACE_FROM_STRIPE_LISTEN"' >> .env.local
+
+# 0.7 — Dev-Server starten (eigenes Terminal)
+pnpm --filter @vk/web dev
+# → http://localhost:3000 ist Live, /api/stripe/webhook nimmt jetzt
+#   echte Stripe-Test-Events entgegen.
+```
+
+**Verify:** `/pricing` → Click "Upgrade" auf einen Tier → Stripe Checkout mit Test-Card `4242 4242 4242 4242`, beliebige zukünftige Expiry, beliebige CVC → Redirect zu `/billing` → workspace.tier = "starter/pro/agency" + Plan-Change-Email landet in Mailpit (`http://localhost:8025`).
+
+**503-Fallback verifiziert** (Nova-3a Bundle E): wenn `STRIPE_SECRET_KEY` oder `STRIPE_WEBHOOK_SECRET` fehlt, returns `apps/web/src/app/api/stripe/webhook/route.ts:69,76` HTTP 503 statt 500. Die `/billing`-UI surfst entsprechend "Stripe not configured".
 
 ---
 

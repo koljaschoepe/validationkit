@@ -1,11 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Activity, CircleDot, CircleSlash } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { probeAll, type HealthStatus } from "@/lib/health-check";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Status",
+  description: "Live-Status der ValidationKit-Plattform — Database, Queue, LLM-Provider.",
+};
+
+// `probeAll()` does live I/O; the page is automatically dynamic. No
+// `force-dynamic` needed.
 
 const STATUS_TONE: Record<HealthStatus, string> = {
   green: "var(--color-sev-exceptional)",

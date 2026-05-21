@@ -6,37 +6,39 @@ Skills-Registry, Customer-Workspaces, Billing.
 
 Solo-Developer-Projekt, deployed auf Vercel.
 
-## Aktive Phase (Mai 2026 →): Nova-2 · Full-Product ✅ shipped (Shell)
+## Aktive Phase (Mai 2026 →): Nova-3a · Repo-Polish + Production-Code-Prep
 
-Phase Galaxie (G1–G6) + Phase Nova-2 (Master-Plan) sind abgeschlossen, leben in `docs/plans/done/`.
+Phase Nova-3a läuft in `docs/plans/nova-3-repo-polish-and-prod-prep.md` (basiert auf 12-Subagent-Audit unter `docs/audits/2026-05/`). Foundation-Cleanup + Landing-Hero-Polish + Stripe-Test-Mode-Verify. Tests-Critical-Paths + Workspace-Hub-Polish sind nach Nova-3b verschoben (eigener /plan-Cycle).
 
-**Phase Nova-2** (✅ 2026-05-20) hat das Frontend Linear/Vercel-Niveau gehoben:
-- **Foundation** — 3-Tier OKLCH-Tokens + ui-vk Komponenten-Library (PageShell, PageHeader, Card, EmptyState, StatTile, KeyboardHint, SettingsLayout)
-- **Hero-Polish** — SVG-Galaxie (PixiJS deprecated für Landing), Cooperative-Pan/Pinch, Lucide-Severity-Icons, GalaxieSettingsPopover
-- **App-Pages-Refactor** — Skip-Links, SiteNav active-state, Pricing/Billing/Login/Customers/Scans/Status/Trust auf neue Tokens
-- **Auth + Onboarding (Shell)** — Better-Auth 1.6 expiresIn/hashed/cookieCache, React-Email MagicLinkEmail, /auth/verify, LoginForm-Polish (resend-throttle + granular errors), ActivationChecklist (Right-Rail, 5 Items)
-- **Settings-Restructure (Shell)** — SettingsLayout 240px-Sidebar, /account/settings/* (5 Sections) + /[workspace]/settings/* (10 Sections in 4 Gruppen)
-- **Mobile-Adaptation** — RepoTreeView (Accordion) unter 768px, Vaul Bottom-Sheet Inspector, 44px touch-targets
-- **Quality** — optimizePackageImports (lucide + d3-*), font display:swap, GlobalMotionConfig reducedMotion="user", Lighthouse-CI 3 thresholds (Perf 85 / A11y 95 / BP 95)
+**Recently Shipped (Mai 2026):**
+- **SaaS-Pricing V2 Polish — Email + Pack-Modal** (✅ 2026-05-21) — 3 React-Email-Templates, BuyCreditPackModal, Stripe-Webhook-Erweiterung (`f159d2a`)
+- **SaaS-Pricing Sub-Plan-C — UI + Compliance** (✅ 2026-05-21) — /pricing rewritten, BYOK-Settings, Legal-Pages (`120e2ce`)
+- **SaaS-Pricing Sub-Plan-B — Stripe Meters + Credits + Webhooks** (✅ 2026-05-21) — Test-Mode-Bootstrap-Script, Meter-Idempotenz (`931e025`)
+- **SaaS-Pricing Sub-Plan-A — DB + Metering + Credits + BYOK** (✅ 2026-05-21) — `1f6487c`
+- **SaaS-Pricing-Redesign Master** (✅ 2026-05-20) — 4-Tier-Ladder + Credit-System (`docs/plans/done/saas-pricing-redesign.md`)
+- **Repo-Health + Workflow-Overhaul** (✅ 2026-05) — `docs/plans/done/repo-health-and-workflow-overhaul.md`
+- **Phase Nova-2 — Full-Product (Shell)** (✅ 2026-05-20) — 3-Tier OKLCH-Tokens + ui-vk Components + Hero-Polish + Auth/Onboarding + Settings-Restructure + Mobile-Adaptation + Lighthouse-CI-Config (Lighthouse-CI selbst NICHT eingerichtet — Nova-3a Bundle E). Plan: `docs/plans/done/nova/nova-2-full-product.md`
+- **Phase Galaxie G1–G6** (✅ 2026-05) — `docs/plans/done/galaxie/`
 
-**3 Sub-Pläne in Review** (gezielter Folge-/execute pro Bereich):
+**3 Nova-2 Sub-Pläne in Review** (gezielter Folge-/execute pro Bereich, NICHT in Nova-3a-Scope):
 - `docs/plans/nova-2-live-audit-flow.md` — anonymes Audit auf Landing
 - `docs/plans/nova-2-settings-backend.md` — DB-Schemas + APIs für die 6 NEW Settings-Sections
 - `docs/plans/nova-2-a11y-deep-sweep.md` — axe-core Playwright + Demo-Recording
 
 Style-Guide: [docs/design/linear-aesthetic.md](../docs/design/linear-aesthetic.md).
 Volle Vision: [docs/vision.md](../docs/vision.md).
+Letzter Repo-Audit: [docs/audits/2026-05/_synthesis.md](../docs/audits/2026-05/_synthesis.md) — 18 Kill · 59 Strong · 60 Mid (Stand 2026-05-21).
 
 ## Tech-Stack
 
 | Layer       | Wahl                                       |
 |-------------|--------------------------------------------|
 | Monorepo    | Turborepo + pnpm                           |
-| Web         | Next.js 16 + App Router + Cache Components |
+| Web         | Next.js 16 + App Router (Cache Components-Adoption ist Nova-3a-Goal — aktuell 0 `'use cache'`-Directives) |
 | Galaxie     | SVG + motion (Landing/Hero); PixiJS v8 + @pixi/react (legacy /[workspace], Nova-3+ Migration offen). KEIN R3F. |
 | Auth        | Better-Auth 1.6 + Magic-Link (Resend); Workspaces über eigene `workspace`+`membership`-Tabellen (kein Org-Plugin) |
-| DB          | Neon Postgres + Drizzle + pgvector         |
-| Cache       | Vercel Runtime Cache + Redis (dev)         |
+| DB          | Neon Postgres + Drizzle (pgvector im Vision-Stack, aber NOCH NICHT installiert — V2 nach Embeddings-Roadmap) |
+| Cache       | Vercel Runtime Cache (Redis im docker-compose für Local-DEV, aber kein Client-Wiring im Code — Phase-0-Note bleibt) |
 | Billing     | Stripe direkt + Stripe Tax                 |
 | Background  | Inngest Cloud + Cron                       |
 | LLM         | @ai-sdk/anthropic (primary), @ai-sdk/openai (opt-in Fallback via OPENAI_API_KEY) — siehe ADR-0005 |

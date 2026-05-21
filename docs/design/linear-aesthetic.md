@@ -1,8 +1,8 @@
 # Linear-Aesthetic — Style-Guide für Phase Nova
 
 > Erstellt: 2026-05-20
-> Status: 🟢 Living-Doc (wird in Nova-1/Nova-8 mit Tokens & Komponenten erweitert)
-> Phase: Nova (siehe `docs/plans/phase-nova-r3f-uplevel.md`)
+> Status: 🟢 Living-Doc (wird mit Tokens & Komponenten erweitert; Workspace-Hub-Polish in Nova-3b)
+> Phase: Nova (Foundation: `docs/plans/done/nova/nova-2-full-product.md`; Polish-Iteration: `docs/plans/nova-3-repo-polish-and-prod-prep.md`)
 
 Dieses Doc ist die single source of truth für visuelle Sprache, Schriften, Tokens und Motion in Phase Nova. Es dokumentiert, was schon im Bestand ist, und legt fest, was neu kommt.
 

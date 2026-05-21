@@ -30,7 +30,7 @@ interface ResultFile {
 async function loadResults(): Promise<ResultFile[]> {
   const repoRoot = process.cwd().replace(/\/apps\/web$/, "");
   const dir = path.join(repoRoot, "eval/conflicts/results");
-  let entries: string[] = [];
+  let entries: string[];
   try {
     entries = await readdir(dir);
   } catch {

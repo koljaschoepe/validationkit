@@ -2,6 +2,9 @@
   "name": "@vk/db",
   "version": "0.0.20",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +18,10 @@
       "default": "./dist/schema.js"
     }
   },
-  "files": ["dist", "drizzle"],
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -26,7 +32,6 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@vk/core": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5"
   },

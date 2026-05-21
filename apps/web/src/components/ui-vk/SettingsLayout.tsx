@@ -1,22 +1,19 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode } from 'react';
 import { ChevronLeftIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SettingsNavLink } from './SettingsNavLink';
 
 /**
- * SettingsLayout — Phase Nova-2 P5.
+ * SettingsLayout — Phase Nova-2 P5 (Nova-3a Bundle B Sub-6 S11 split).
  *
  * Linear-style sidebar settings: 240 px sidebar on the left, content
  * area capped at 720 px so forms read on a single column. Sections are
  * grouped (e.g. "Workspace", "Account") with a small mono-uppercase
  * group-heading.
  *
- * Active-state derives from `usePathname()` — bold + left-bar
- * indicator. Mobile (<768px) collapses sidebar to top-tabs (handled by
- * css: lg:flex below; on mobile we just stack).
+ * Server-Component: this shell does not call any client hooks. The
+ * active-state check sits in {@link SettingsNavLink}, which is the only
+ * `'use client'` boundary in the tree — preserves SSR-able settings pages.
  */
 
 export interface SettingsSection {
@@ -42,8 +39,6 @@ export function SettingsLayout({
   backLabel?: string;
   children: ReactNode;
 }) {
-  const pathname = usePathname();
-
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10 sm:px-8 sm:py-16 lg:flex-row lg:gap-12">
       <aside className="w-full shrink-0 lg:w-60">
@@ -64,28 +59,15 @@ export function SettingsLayout({
                 {group.label}
               </p>
               <ul className="space-y-0.5">
-                {group.sections.map((section) => {
-                  const isActive =
-                    pathname === section.href ||
-                    pathname.startsWith(`${section.href}/`);
-                  return (
-                    <li key={section.href}>
-                      <Link
-                        href={section.href as never}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={cn(
-                          'relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-                          isActive
-                            ? 'bg-secondary/60 font-medium text-foreground before:absolute before:-left-0.5 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-r before:bg-foreground'
-                            : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground',
-                        )}
-                      >
-                        <section.icon className="size-3.5" aria-hidden />
-                        {section.label}
-                      </Link>
-                    </li>
-                  );
-                })}
+                {group.sections.map((section) => (
+                  <li key={section.href}>
+                    <SettingsNavLink
+                      href={section.href}
+                      icon={section.icon}
+                      label={section.label}
+                    />
+                  </li>
+                ))}
               </ul>
             </div>
           ))}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { HowItWorks } from "@/components/landing/HowItWorks";
 
 export default function Home() {
   return (
@@ -9,7 +8,6 @@ export default function Home() {
       <SiteNav />
       <main id="main-content" aria-label="Main content">
         <HeroSection />
-        <HowItWorks />
       </main>
 
       <footer className="border-t border-border">

@@ -120,6 +120,19 @@ Marketing-Pages-Polish + Drift/Compare-Feature gedropt.
 
 ---
 
-## Phase Future (offen)
+## Phase Future (Backlog)
 
-Kein aktiver Plan. Themen-Backlog im `TODO.md` Parking-Lot.
+- **Nova-3b** — Tests-Critical-Paths (Stripe-Webhook, audit-action, API-Routes, DAL, session, billing, Audit-Rules) + UI-Konsistenz-Phase-3-Workspace-Hub-Polish (Sub-11 Polish-Liste mit 30 Items in 6 Sub-Phasen). Eigener `/plan`-Cycle, ~30h.
+- **Production-Live-Connect** — Stripe-Live + Vercel-Prod-Env + Domain + Resend-Prod + Inngest-Cloud + Sentry + Stripe-Tax-DE + KYC. Skelett: `docs/plans/production-live-connect-stub.md`.
+- Themen-Backlog im `TODO.md` Parking-Lot.
+
+---
+
+## Phase Nova-3a — Repo-Polish + Production-Code-Prep (🟡 In Execute, ab 2026-05-21)
+
+Aktive Phase. Foundation-Cleanup (Audit-getrieben) + Landing-Hero-Polish + Stripe-Test-Mode-Verify + Stub für Production-Live.
+
+- Plan: `docs/plans/nova-3-repo-polish-and-prod-prep.md`
+- Audit: `docs/audits/2026-05/` (12 Subagent-Reports + Synthese; 18 Kill · 59 Strong · 60 Mid)
+- Bundles A-H Cleanup + Phase 2 Landing-Polish + Phase 4 Stripe-Test-Mode.
+- Tests-Critical-Paths + Workspace-Hub-Polish → Nova-3b.

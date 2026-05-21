@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isAuthEnabled } from "@vk/auth";
 import { LoginForm } from "@/components/LoginForm";
 import { getSessionUser } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Login",
+  description: "Magic-Link Login für ValidationKit.",
+  robots: { index: false, follow: false },
+};
 
 export default async function LoginPage() {
   if (!isAuthEnabled()) {

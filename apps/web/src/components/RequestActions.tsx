@@ -23,7 +23,7 @@ export function RequestActions({ requestId }: { requestId: string }) {
         onClick={() => decide("approved")}
         style={{
           background: "var(--sev-strong)",
-          color: "#06231e",
+          color: "var(--background)",
           border: "none",
           padding: "0.25rem 0.7rem",
           borderRadius: "4px",

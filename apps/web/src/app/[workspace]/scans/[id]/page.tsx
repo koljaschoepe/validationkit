@@ -51,7 +51,7 @@ export default async function ScanDetailPage({
     row.rawReport !== null;
 
   return (
-    <main>
+    <main id="main-content">
       <header>
         <h1>Scan detail</h1>
         <p>

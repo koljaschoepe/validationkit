@@ -74,10 +74,10 @@ export function WorkspaceSwitcher({
 function planColor(plan: MockWorkspace['plan']): string {
   switch (plan) {
     case 'solo':
-      return '#3b82f6';
+      return 'var(--sev-exceptional)';
     case 'team':
-      return '#eab308';
+      return 'var(--sev-strong)';
     case 'agency':
-      return '#fbbf24';
+      return 'var(--sev-mid)';
   }
 }

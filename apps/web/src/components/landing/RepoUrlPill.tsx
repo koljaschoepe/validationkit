@@ -19,10 +19,16 @@ export function RepoUrlPill({
   pending,
   onSubmit,
   error,
+  size = "compact",
 }: {
   pending: boolean;
   onSubmit: (path: string) => void;
   error?: string;
+  /**
+   * Visual size. "compact" (default) fits inline toolbars; "hero" is the
+   * Nova-3a Phase-2 prominent variant for the landing-page audit-CTA.
+   */
+  size?: "compact" | "hero";
 }) {
   const [value, setValue] = useState("");
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -41,11 +47,17 @@ export function RepoUrlPill({
     onSubmit(trimmed);
   }
 
+  const isHero = size === "hero";
+
   return (
     <div className="w-full">
       <form
         onSubmit={handleSubmit}
-        className="flex h-9 w-full items-center gap-1 rounded-md border border-border bg-card/80 px-1.5 backdrop-blur focus-within:border-foreground/30"
+        className={
+          isHero
+            ? "flex h-11 w-full items-center gap-1 rounded-md border border-border bg-card/80 px-2 shadow-sm backdrop-blur focus-within:border-foreground/40"
+            : "flex h-9 w-full items-center gap-1 rounded-md border border-border bg-card/80 px-1.5 backdrop-blur focus-within:border-foreground/30"
+        }
       >
         <input
           type="text"
@@ -57,13 +69,21 @@ export function RepoUrlPill({
           autoComplete="off"
           spellCheck={false}
           disabled={pending}
-          className="h-full min-w-0 flex-1 bg-transparent px-2 font-mono type-mono-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-60"
+          className={
+            isHero
+              ? "h-full min-w-0 flex-1 bg-transparent px-2 font-mono type-body-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-60"
+              : "h-full min-w-0 flex-1 bg-transparent px-2 font-mono type-mono-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-60"
+          }
         />
         <button
           type="submit"
           disabled={pending || value.trim().length === 0}
           aria-label={pending ? "Audit läuft" : "Audit starten"}
-          className="inline-flex h-7 items-center justify-center rounded-md px-2 text-foreground transition-colors hover:bg-muted/40 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+          className={
+            isHero
+              ? "inline-flex h-8 items-center justify-center rounded-md bg-foreground px-3 text-background transition-colors hover:bg-foreground/90 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+              : "inline-flex h-7 items-center justify-center rounded-md px-2 text-foreground transition-colors hover:bg-muted/40 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+          }
         >
           {pending ? (
             <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />

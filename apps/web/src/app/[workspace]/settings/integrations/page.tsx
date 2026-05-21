@@ -34,7 +34,7 @@ export default async function SettingsIntegrationsPage() {
             </Badge>
           </div>
           {!githubReady ? (
-            <div className="rounded border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
+            <div className="rounded border border-sev-mid/30 bg-sev-mid/5 px-3 py-2 text-xs text-sev-mid">
               Set <code>GITHUB_APP_ID</code>, <code>GITHUB_APP_CLIENT_ID</code>,
               and <code>GITHUB_APP_PRIVATE_KEY</code> in <code>.env.local</code>.
               Walkthrough: <code>docs/setup/github-app-checklist.md</code>.

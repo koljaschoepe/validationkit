@@ -197,7 +197,7 @@ export default async function WorkspaceBillingPage({
                 usedPct >= 95
                   ? "bg-destructive"
                   : usedPct >= 80
-                    ? "bg-amber-500"
+                    ? "bg-sev-mid"
                     : "bg-primary",
               )}
               style={{ width: `${usedPct}%` }}

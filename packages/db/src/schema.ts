@@ -69,11 +69,15 @@ export const verification = pgTable("verification", {
 
 // ValidationKit-domain tables.
 
+// Nova-3a Bundle A (Sub-4 K2): ownerId is nullable + ON DELETE SET NULL so a
+// user-delete does NOT wipe the workspace. After a user delete, ownership
+// transfers to the membership row with role='owner' (validated in the DAL).
+// PII-scrub helper that runs on user-delete is a V2 item.
 export const workspace = pgTable("workspace", {
   id: uuid("id").primaryKey().defaultRandom(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  ownerId: text("owner_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
   name: varchar("name", { length: 200 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -147,9 +151,11 @@ export const installRequest = pgTable("install_request", {
   workspaceId: uuid("workspace_id")
     .notNull()
     .references(() => workspace.id, { onDelete: "cascade" }),
-  requesterId: text("requester_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  // Nova-3a Bundle A (Sub-4 K3): append-only compliance audit-trail. SET NULL
+  // preserves the request row when the requesting user is deleted (GDPR-safe).
+  requesterId: text("requester_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
   targetRepoLabel: varchar("target_repo_label", { length: 200 }).notNull(),
   targetRootPath: text("target_root_path").notNull(),
   requestedScope: varchar("requested_scope", { length: 10 }).notNull(), // 'read' | 'write'
@@ -220,9 +226,11 @@ export const installDecision = pgTable("install_decision", {
   installRequestId: uuid("install_request_id")
     .notNull()
     .references(() => installRequest.id, { onDelete: "cascade" }),
-  deciderId: text("decider_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  // Nova-3a Bundle A (Sub-4 K3): compliance audit-trail. SET NULL preserves
+  // the decision row when the deciding user is deleted (GDPR-safe).
+  deciderId: text("decider_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
   decision: varchar("decision", { length: 20 }).notNull(), // approve | reject | revoke
   reason: text("reason"),
   ipAddress: text("ip_address"),
@@ -342,9 +350,11 @@ export const applyAction = pgTable("apply_action", {
   // 'open' | 'merged' | 'closed' | 'draft' | 'unknown' (for mode='pr'; mutates in place).
   targetStatus: varchar("target_status", { length: 20 }),
   snoozeUntil: timestamp("snooze_until", { withTimezone: true }),
-  decidedBy: text("decided_by")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  // Nova-3a Bundle A (Sub-4 K3): compliance audit-trail for apply-actions.
+  // SET NULL preserves the apply history when the deciding user is deleted.
+  decidedBy: text("decided_by").references(() => user.id, {
+    onDelete: "set null",
+  }),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   decidedAt: timestamp("decided_at", { withTimezone: true })
@@ -563,9 +573,12 @@ export const dpaAcceptance = pgTable(
   "dpa_acceptance",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    // Nova-3a Bundle A (Sub-4 K3): compliance audit-trail. DPA-acceptance is
+    // append-only; SET NULL preserves the row when the accepting user is
+    // deleted (GDPR Art. 28 record-keeping).
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     dpaVersion: varchar("dpa_version", { length: 20 }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true })
       .notNull()

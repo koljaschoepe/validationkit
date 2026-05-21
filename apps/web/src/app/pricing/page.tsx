@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Check, Sparkles, Zap, Layers } from "lucide-react";
 import {
@@ -21,7 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Pricing",
+  description:
+    "4-Tier-Pricing für ValidationKit — Free / Starter / Pro / Agency. Audit-Credits + BYOK + Stripe-Tax. Transparente €-Preise mit VAT-Anzeige.",
+};
+
+// `headers()` call below (VAT-by-IP) opts the page into dynamic rendering
+// automatically. Explicit `force-dynamic` is therefore redundant.
 
 type SearchParams = Promise<{ cycle?: string }>;
 
@@ -58,7 +66,7 @@ export default async function PricingPage({
   const annualSavings = Math.round(ANNUAL_DISCOUNT * 100);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 py-12">
+    <main id="main-content" className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 py-12">
       <SiteNav />
 
       <header className="flex flex-col items-start gap-4">
@@ -200,8 +208,8 @@ export default async function PricingPage({
           </div>
           <p className="text-sm text-muted-foreground">
             Fast deterministic + small-model pass. GPT-5-nano scores findings
-            for 5 of the 6 audit rules. Ideal for nightly drift-checks and
-            high-volume CI integrations. ≈ €0.05 of AI-compute per run.
+            for 5 of the 6 audit rules. Ideal for nightly CI runs and
+            high-volume integrations. ≈ €0.05 of AI-compute per run.
           </p>
         </div>
         <div className="flex flex-col gap-2">

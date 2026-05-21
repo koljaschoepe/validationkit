@@ -62,7 +62,7 @@ export function CreditMeter({
             pct <= 5
               ? "bg-destructive"
               : pct <= 20
-                ? "bg-amber-500"
+                ? "bg-sev-mid"
                 : "bg-primary",
           )}
           style={{ width: `${100 - pct}%` }}
