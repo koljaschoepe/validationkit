@@ -10,7 +10,9 @@
 // arbitrary code injection.
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import { DEFAULT_INTENSITY, type Intensity } from "@vk/billing";
 import { providerModel, selectModel } from "../select.js";
+import { recordUsage, type MeteringContext } from "../usage.js";
 
 export interface ContextBloatSuggestionInput {
   filePath: string;
@@ -19,6 +21,10 @@ export interface ContextBloatSuggestionInput {
   budget: number;
   /** Section headings (one per `## ` line) we offer the LLM as choices. */
   candidateSections: string[];
+  /** Audit intensity — defaults to quick. Drives model + maxOutputTokens. */
+  intensity?: Intensity;
+  /** Optional metering hook (omit for anonymous audits). */
+  meteringContext?: MeteringContext;
 }
 
 export interface ContextBloatSuggestion {
@@ -55,17 +61,33 @@ function truncate(body: string, maxApproxTokens: number): string {
 export async function suggestContextBloatTrim(
   input: ContextBloatSuggestionInput,
 ): Promise<ContextBloatSuggestion | null> {
-  const selection = selectModel({ intent: "fix-suggestion" });
+  const selection = selectModel({
+    intensity: input.intensity ?? DEFAULT_INTENSITY,
+    intent: "fix-suggestion",
+  });
   if (!selection) return null;
   if (input.candidateSections.length === 0) return null;
 
   const model = providerModel(selection);
   try {
-    const { output } = await generateText({
+    const result = await generateText({
       model,
+      maxOutputTokens: selection.maxOutputTokens,
       output: Output.object({ schema: SuggestSchema }),
       prompt: buildPrompt(input),
     });
+    const { output, usage } = result;
+
+    if (input.meteringContext) {
+      await recordUsage({
+        meteringContext: input.meteringContext,
+        callSiteId: "context-bloat-llm",
+        provider: selection.provider,
+        model: selection.modelId,
+        usage,
+      });
+    }
+
     if (!output) return null;
     // Validate the heading is one of the candidates we offered.
     if (!input.candidateSections.includes(output.heading)) {

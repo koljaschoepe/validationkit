@@ -72,8 +72,11 @@ export const stripeReconcile: any = inngest.createFunction(
 
       for (const sub of page.data) {
         scanned += 1;
-        const userId = sub.metadata?.userId;
-        if (!userId) continue;
+        // Sub-Plan-A: subscriptions are workspace-scoped. Sub-Plan-B will
+        // expand this cron to flush pending meter events and handle Auto-
+        // Overage drifts; for now we just detect tier/status mismatches.
+        const workspaceId = sub.metadata?.workspaceId;
+        if (!workspaceId) continue;
         const tier = (sub.metadata?.tier as TierId | undefined) ?? "free";
 
         const rows = await db
@@ -81,10 +84,10 @@ export const stripeReconcile: any = inngest.createFunction(
             id: schema.subscription.id,
             tier: schema.subscription.tier,
             status: schema.subscription.status,
-            workspaceId: schema.subscription.id, // placeholder; workspaceId picked below
+            workspaceId: schema.subscription.workspaceId,
           })
           .from(schema.subscription)
-          .where(eq(schema.subscription.userId, userId))
+          .where(eq(schema.subscription.workspaceId, workspaceId))
           .limit(1);
 
         const dbRow = rows[0];
@@ -94,21 +97,13 @@ export const stripeReconcile: any = inngest.createFunction(
         if (!tierDrift && !statusDrift) continue;
         driftCount += 1;
 
-        const workspaceRows = await db
-          .select({ id: schema.workspace.id })
-          .from(schema.workspace)
-          .where(eq(schema.workspace.ownerId, userId))
-          .limit(1);
-        const workspaceId = workspaceRows[0]?.id;
-        if (!workspaceId) continue;
-
         await publishEvent({
           workspaceId,
           type: "audit.failed",
           payload: {
             source: "stripe-reconcile",
             kind: "subscription.drift",
-            userId,
+            workspaceId,
             stripeSubscriptionId: sub.id,
             stripeStatus: sub.status,
             stripeTier: tier,

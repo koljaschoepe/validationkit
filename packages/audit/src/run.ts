@@ -1,3 +1,4 @@
+import { DEFAULT_INTENSITY, type Intensity } from "@vk/billing";
 import {
   type AuditFinding,
   type AuditReport,
@@ -18,6 +19,7 @@ import {
   isLlmEnabled,
   llmDisabledFinding,
   checkConflictingRules,
+  type MeteringContext,
 } from "@vk/llm";
 
 export interface AuditConfig {
@@ -43,6 +45,16 @@ export interface RunAuditOptions {
    * bounds intact (PRD §6.5).
    */
   includeLLM?: boolean;
+  /**
+   * Audit intensity — drives LLM model selection (Quick=gpt-5-nano,
+   * Deep=Sonnet 4.6). Sub-Plan-A.
+   */
+  intensity?: Intensity;
+  /**
+   * When set, every LLM call appends an ai_usage_event row so the audit_run_cost
+   * rollup in Inngest can compute per-scan cost. Omit for anonymous audits.
+   */
+  meteringContext?: MeteringContext;
 }
 
 export async function runAudit(
@@ -61,7 +73,12 @@ export async function runAudit(
 
   if (opts.includeLLM) {
     if (isLlmEnabled()) {
-      findings.push(...(await checkConflictingRules(scan)));
+      findings.push(
+        ...(await checkConflictingRules(scan, {
+          intensity: opts.intensity ?? DEFAULT_INTENSITY,
+          meteringContext: opts.meteringContext,
+        })),
+      );
     } else {
       findings.push(llmDisabledFinding());
     }

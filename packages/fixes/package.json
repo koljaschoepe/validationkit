@@ -19,6 +19,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@vk/billing": "workspace:*",
     "@vk/core": "workspace:*",
     "@vk/llm": "workspace:*",
     "diff": "^7.0.0"

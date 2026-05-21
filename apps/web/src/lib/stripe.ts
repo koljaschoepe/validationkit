@@ -27,25 +27,23 @@ export function getStripe(): Stripe {
 /**
  * Per-tier × billing-cycle Stripe Price IDs. Wired via env at deploy time.
  *
- * Convention:
- *   STRIPE_PRICE_SOLO_INDIE_MONTHLY   = price_xxx (monthly recurring)
- *   STRIPE_PRICE_SOLO_INDIE_ANNUAL    = price_yyy (annual recurring, 20% off)
+ * Convention (Sub-Plan-A — new 4-tier ladder):
+ *   STRIPE_PRICE_STARTER_MONTHLY = price_xxx
+ *   STRIPE_PRICE_STARTER_ANNUAL  = price_yyy (20% off)
+ *   STRIPE_PRICE_PRO_MONTHLY / _ANNUAL
+ *   STRIPE_PRICE_AGENCY_MONTHLY / _ANNUAL
  *
- * Backwards-compat: STRIPE_PRICE_SOLO_INDIE (no suffix) maps to monthly.
+ * Sub-Plan-B introduces Meter-Prices + Pre-Paid-Packs on top.
  *
- * The founder creates one Stripe Product per tier and two recurring Prices
- * per Product (monthly + annual), then drops the IDs into Vercel env vars.
- * agency_scale_plus is annual-only — monthly env var stays unset.
+ * Backwards-compat: STRIPE_PRICE_<TIER> (no suffix) maps to monthly.
  */
 type PaidTier = Exclude<TierId, "free">;
 type CycleSuffix = "MONTHLY" | "ANNUAL";
 
 const TIER_ENV_NAME: Record<PaidTier, string> = {
-  solo_indie: "SOLO_INDIE",
-  solo_pro: "SOLO_PRO",
-  agency_pro: "AGENCY_PRO",
-  agency_scale: "AGENCY_SCALE",
-  agency_scale_plus: "AGENCY_SCALE_PLUS",
+  starter: "STARTER",
+  pro: "PRO",
+  agency: "AGENCY",
 };
 
 function envKeyFor(tier: PaidTier, suffix: CycleSuffix): string {

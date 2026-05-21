@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   index,
@@ -272,6 +273,13 @@ export const scan = pgTable("scan", {
   warningsCount: integer("warnings_count").notNull().default(0),
   rawScan: jsonb("raw_scan"),
   rawReport: jsonb("raw_report"),
+  // Sub-Plan-A — per-audit intensity ('quick' | 'deep') + cost rollup.
+  // Detailed line-items live in audit_run_cost (1:1) and ai_usage_event (1:N).
+  intensity: varchar("intensity", { length: 10 }).notNull().default("quick"),
+  creditsConsumed: integer("credits_consumed").notNull().default(0),
+  totalCostMicrocents: bigint("total_cost_microcents", { mode: "number" })
+    .notNull()
+    .default(0),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -372,6 +380,10 @@ export const workspaceRelations = relations(workspace, ({ many, one }) => ({
   customers: many(customer),
   repos: many(repo),
   scans: many(scan),
+  subscription: one(subscription, {
+    fields: [workspace.id],
+    references: [subscription.workspaceId],
+  }),
 }));
 
 export const customerRelations = relations(customer, ({ one, many }) => ({
@@ -486,23 +498,37 @@ export const eventRelations = relations(event, ({ one }) => ({
   }),
 }));
 
-// Sprint 0.13 — billing. One subscription row per user; auto-inserted as
-// 'free' on first dashboard hit, mutated by the Stripe webhook on plan changes.
-// Quota fields are mirrored from tier-config in @vk/billing so app-side gates
-// don't have to round-trip Stripe.
+// Sub-Plan-A (saas-pricing-sub-a-db-metering) — workspace-level billing.
+// Replaces the user-level subscription stub. Quota lives in credits now
+// (creditsQuotaPerCycle + creditsUsedThisPeriod), gated per intensity.
+// BYOK fields hold AES-256-GCM-encrypted provider keys; see
+// @vk/billing/byok-crypto. The migration drops legacy run-quota fields.
 export const subscription = pgTable("subscription", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
+  workspaceId: uuid("workspace_id")
     .notNull()
     .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
+    .references(() => workspace.id, { onDelete: "cascade" }),
   tier: varchar("tier", { length: 20 }).notNull().default("free"),
   status: varchar("status", { length: 20 }).notNull().default("active"),
   stripeCustomerId: varchar("stripe_customer_id", { length: 80 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 80 }),
-  paidReposQuota: integer("paid_repos_quota").notNull().default(1),
-  runsQuota: integer("runs_quota").notNull().default(20),
-  runsUsedThisPeriod: integer("runs_used_this_period").notNull().default(0),
+  // Credit-System (replaces legacy runs/paidRepos quotas).
+  creditsQuotaPerCycle: integer("credits_quota_per_cycle").notNull().default(3),
+  creditsUsedThisPeriod: integer("credits_used_this_period")
+    .notNull()
+    .default(0),
+  // BYOK (per ADR-0007). Encrypted via AES-256-GCM, key from BYOK_ENCRYPTION_KEY.
+  byokEnabled: boolean("byok_enabled").notNull().default(false),
+  byokProvider: varchar("byok_provider", { length: 20 }),
+  byokKeyCiphertext: text("byok_key_ciphertext"),
+  byokKeyIv: text("byok_key_iv"),
+  byokKeyAuthTag: text("byok_key_auth_tag"),
+  // Spend-control surfaces. autoOverageEnabled gates Stripe-metered overage.
+  // spendCapMicrocents=null means unlimited.
+  autoOverageEnabled: boolean("auto_overage_enabled").notNull().default(false),
+  spendCapMicrocents: bigint("spend_cap_microcents", { mode: "number" }),
+  defaultIntensity: varchar("default_intensity", { length: 10 }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -513,7 +539,10 @@ export const subscription = pgTable("subscription", {
 });
 
 export const subscriptionRelations = relations(subscription, ({ one }) => ({
-  user: one(user, { fields: [subscription.userId], references: [user.id] }),
+  workspace: one(workspace, {
+    fields: [subscription.workspaceId],
+    references: [workspace.id],
+  }),
 }));
 
 // Stripe webhook idempotency. Stripe retries the same event id; we upsert on
@@ -555,3 +584,161 @@ export const dpaAcceptance = pgTable(
 export const dpaAcceptanceRelations = relations(dpaAcceptance, ({ one }) => ({
   user: one(user, { fields: [dpaAcceptance.userId], references: [user.id] }),
 }));
+
+// Sub-Plan-A (saas-pricing-sub-a-db-metering) — append-only AI usage log.
+// One row per generateText call. Drives audit_run_cost rollups and Stripe
+// AI-cost-markup meter events (Sub-Plan-B).
+export const aiUsageEvent = pgTable(
+  "ai_usage_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    scanId: uuid("scan_id").references(() => scan.id, { onDelete: "set null" }),
+    callSiteId: varchar("call_site_id", { length: 40 }).notNull(),
+    provider: varchar("provider", { length: 20 }).notNull(),
+    model: varchar("model", { length: 60 }).notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    costMicrocents: bigint("cost_microcents", { mode: "number" })
+      .notNull()
+      .default(0),
+    byokFlag: boolean("byok_flag").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("ai_usage_event_workspace_created_idx").on(
+      t.workspaceId,
+      t.createdAt,
+    ),
+    index("ai_usage_event_scan_idx").on(t.scanId),
+  ],
+);
+
+export const aiUsageEventRelations = relations(aiUsageEvent, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [aiUsageEvent.workspaceId],
+    references: [workspace.id],
+  }),
+  scan: one(scan, { fields: [aiUsageEvent.scanId], references: [scan.id] }),
+}));
+
+// Sub-Plan-A — 1:1 rollup of AI cost per scan. credits_consumed is the
+// app-side enforcement number; total_cost_microcents reflects actual provider
+// spend; markup_microcents is the customer-billable add-on (Sub-Plan-B).
+export const auditRunCost = pgTable(
+  "audit_run_cost",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    scanId: uuid("scan_id")
+      .notNull()
+      .unique()
+      .references(() => scan.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    intensity: varchar("intensity", { length: 10 }).notNull(),
+    creditsConsumed: integer("credits_consumed").notNull(),
+    totalCostMicrocents: bigint("total_cost_microcents", { mode: "number" })
+      .notNull()
+      .default(0),
+    markupMicrocents: bigint("markup_microcents", { mode: "number" })
+      .notNull()
+      .default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("audit_run_cost_workspace_created_idx").on(
+      t.workspaceId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export const auditRunCostRelations = relations(auditRunCost, ({ one }) => ({
+  scan: one(scan, { fields: [auditRunCost.scanId], references: [scan.id] }),
+  workspace: one(workspace, {
+    fields: [auditRunCost.workspaceId],
+    references: [workspace.id],
+  }),
+}));
+
+// Sub-Plan-A — append-only credit ledger. Source-of-truth for the workspace
+// credit balance. balance_after is denormalized for fast reads — the row
+// after a transaction reflects the post-mutation balance.
+// Reasons (enum-like): monthly_grant | audit_consume | overage | prepaid_grant
+// | expiration | refund | manual_adjust.
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: varchar("reason", { length: 30 }).notNull(),
+    referenceId: text("reference_id"),
+    balanceAfter: integer("balance_after").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("credit_ledger_workspace_created_idx").on(
+      t.workspaceId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export const creditLedgerRelations = relations(creditLedger, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [creditLedger.workspaceId],
+    references: [workspace.id],
+  }),
+}));
+
+// Sub-Plan-A — Stripe Pre-Paid-Pack tracking. One row per pack purchase.
+// 12-month expiry per pack. Backed by Stripe Billing Credit-Grants
+// (Sub-Plan-B) for the customer-facing pool.
+export const prepaidCreditGrant = pgTable(
+  "prepaid_credit_grant",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    stripeInvoiceId: varchar("stripe_invoice_id", { length: 80 })
+      .notNull()
+      .unique(),
+    creditsGranted: integer("credits_granted").notNull(),
+    creditsRemaining: integer("credits_remaining").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("prepaid_credit_grant_workspace_expires_idx").on(
+      t.workspaceId,
+      t.expiresAt,
+    ),
+  ],
+);
+
+export const prepaidCreditGrantRelations = relations(
+  prepaidCreditGrant,
+  ({ one }) => ({
+    workspace: one(workspace, {
+      fields: [prepaidCreditGrant.workspaceId],
+      references: [workspace.id],
+    }),
+  }),
+);

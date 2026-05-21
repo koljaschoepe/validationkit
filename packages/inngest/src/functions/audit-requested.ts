@@ -1,14 +1,24 @@
-import { eq } from "drizzle-orm";
+import { eq, sum } from "drizzle-orm";
 import { scanRepository } from "@vk/parser";
 import { runAudit } from "@vk/audit";
+import {
+  consumeCredits,
+  creditsForIntensity,
+  DEFAULT_INTENSITY,
+  type Intensity,
+} from "@vk/billing";
 import { getDb, schema } from "@vk/db";
 import type { AuditFinding } from "@vk/core";
+import type { MeteringContext } from "@vk/llm";
 import { inngest } from "../client.js";
 import { publishEvent } from "../events.js";
 
 export interface AuditRequestedPayload {
   scanId: string;
   rootPath: string;
+  intensity?: Intensity;
+  workspaceId?: string;
+  byokFlag?: boolean;
 }
 
 /**
@@ -25,21 +35,62 @@ export const auditRequested: any = inngest.createFunction(
   { id: "audit-requested", triggers: [{ event: "audit/requested" }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
-    const { scanId, rootPath } = event.data as AuditRequestedPayload;
+    const payload = event.data as AuditRequestedPayload;
+    const { scanId, rootPath } = payload;
+    const intensity: Intensity = payload.intensity ?? DEFAULT_INTENSITY;
+    const workspaceIdFromPayload = payload.workspaceId;
+    const byokFlag = payload.byokFlag ?? false;
     const db = getDb();
 
     await step.run("mark-running", async () => {
       await db
         .update(schema.scan)
-        .set({ status: "running", startedAt: new Date() })
+        .set({ status: "running", startedAt: new Date(), intensity })
         .where(eq(schema.scan.id, scanId));
     });
 
     try {
       const scan = await step.run("scan", () => scanRepository(rootPath));
+      const meteringContext: MeteringContext | undefined =
+        workspaceIdFromPayload
+          ? {
+              workspaceId: workspaceIdFromPayload,
+              scanId,
+              byokFlag,
+            }
+          : undefined;
       const report = await step.run("audit", () =>
-        runAudit(scan, { includeLLM: true }),
+        runAudit(scan, { includeLLM: true, intensity, meteringContext }),
       );
+
+      const credits = creditsForIntensity(intensity);
+      let totalCostMicrocents = 0;
+      if (workspaceIdFromPayload) {
+        await step.run("consume-credits", async () => {
+          const result = await consumeCredits({
+            workspaceId: workspaceIdFromPayload,
+            amount: credits,
+            reason: "audit_consume",
+            referenceId: scanId,
+          });
+          if (!result.allowed) {
+            throw new Error(result.reason ?? "Out of credits.");
+          }
+        });
+        const costRows = await db
+          .select({ total: sum(schema.aiUsageEvent.costMicrocents) })
+          .from(schema.aiUsageEvent)
+          .where(eq(schema.aiUsageEvent.scanId, scanId));
+        totalCostMicrocents = Number(costRows[0]?.total ?? 0);
+        await db.insert(schema.auditRunCost).values({
+          scanId,
+          workspaceId: workspaceIdFromPayload,
+          intensity,
+          creditsConsumed: credits,
+          totalCostMicrocents,
+          markupMicrocents: 0,
+        });
+      }
 
       await step.run("persist", async () => {
         await db
@@ -53,6 +104,8 @@ export const auditRequested: any = inngest.createFunction(
             overallSeverity: report.summary.overallSeverity,
             rawScan: scan as unknown as Record<string, unknown>,
             rawReport: report as unknown as Record<string, unknown>,
+            creditsConsumed: workspaceIdFromPayload ? credits : 0,
+            totalCostMicrocents,
           })
           .where(eq(schema.scan.id, scanId));
 

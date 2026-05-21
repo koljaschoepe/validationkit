@@ -1,14 +1,16 @@
 // Direct-Provider only (Anthropic primary, OpenAI opt-in fallback per ADR-0005).
 // KEIN Vercel AI Gateway — Vendor-Lock-in-Vermeidung gilt für Gateway, nicht für
-// Direct-Provider (CLAUDE.md Z.82). Provider-Selection läuft via selectModel().
+// Direct-Provider (CLAUDE.md L.83). Provider-Selection läuft via selectModel().
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import { DEFAULT_INTENSITY, type Intensity } from "@vk/billing";
 import type {
   AuditFinding,
   ParsedAgentFile,
   ParserResult,
 } from "@vk/core";
 import { providerModel, selectModel } from "../select.js";
+import { recordUsage, type MeteringContext } from "../usage.js";
 
 const TRIGRAM_SIZE = 3;
 const LOW_OVERLAP = 0.4;
@@ -17,16 +19,21 @@ const MAX_PAIRS_PER_RUN = 8;
 const MAX_BODY_TOKENS = 4_000;
 
 export interface LLMConfig {
-  /** Anthropic model id. Default: claude-sonnet-4-6 (good ratio of cost/quality). */
-  model: string;
+  /** Audit intensity — drives model + maxOutputTokens via selectModel(). */
+  intensity: Intensity;
   /** Hard upper bound on pairs the LLM is asked about. Keeps cost predictable. */
   maxPairs: number;
   /** Only emit a finding when confidence is at or above this band. */
   minConfidence: "low" | "mid" | "high";
+  /**
+   * Optional metering hook. When set, every generateText call appends a row
+   * to ai_usage_event. Omit for anonymous audits (Landing-Demo).
+   */
+  meteringContext?: MeteringContext;
 }
 
 export const defaultLLMConfig: LLMConfig = {
-  model: "claude-sonnet-4-6",
+  intensity: DEFAULT_INTENSITY,
   maxPairs: MAX_PAIRS_PER_RUN,
   minConfidence: "mid",
 };
@@ -54,16 +61,13 @@ export async function checkConflictingRules(
   scan: ParserResult,
   cfg: Partial<LLMConfig> = {},
 ): Promise<AuditFinding[]> {
-  const selection = selectModel({ intent: "conflicting-rules" });
+  const config: LLMConfig = { ...defaultLLMConfig, ...cfg };
+  const selection = selectModel({
+    intensity: config.intensity,
+    intent: "conflicting-rules",
+  });
   if (!selection) return [];
 
-  const config: LLMConfig = { ...defaultLLMConfig, ...cfg };
-  // Override config.model with the provider-resolved modelId so cfg.model
-  // can still pin a specific Anthropic model when needed for tests.
-  const modelId =
-    selection.provider === "anthropic" && cfg.model
-      ? cfg.model
-      : selection.modelId;
   const candidates = scan.files.filter(
     (f) => f.kind !== "aider-conf" && f.body.length > 100,
   );
@@ -71,16 +75,28 @@ export async function checkConflictingRules(
   const pairs = pickCandidatePairs(candidates, config.maxPairs);
   if (pairs.length === 0) return [];
 
-  const model = providerModel({ ...selection, modelId });
+  const model = providerModel(selection);
   const findings: AuditFinding[] = [];
 
   for (const [a, b] of pairs) {
     try {
-      const { output } = await generateText({
+      const result = await generateText({
         model,
+        maxOutputTokens: selection.maxOutputTokens,
         output: Output.object({ schema: ConflictSchema }),
         prompt: buildPrompt(a, b),
       });
+      const { output, usage } = result;
+
+      if (config.meteringContext) {
+        await recordUsage({
+          meteringContext: config.meteringContext,
+          callSiteId: "conflicting-rules",
+          provider: selection.provider,
+          model: selection.modelId,
+          usage,
+        });
+      }
 
       if (!output) continue;
       if (!output.conflict) continue;

@@ -25,6 +25,7 @@
     "@vk/fixes": "workspace:*",
     "@vk/github-app": "workspace:*",
     "@vk/inngest": "workspace:*",
+    "@vk/llm": "workspace:*",
     "@vk/parser": "workspace:*",
     "@vk/pr-workflow": "workspace:*",
     "adm-zip": "^0.5.16",

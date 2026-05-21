@@ -19,7 +19,18 @@ import {
   looksLikeGithubUrl,
 } from "./github-fetch";
 import { checkRateLimit, ipFromHeaders, type LimitKey } from "./rate-limit";
-import { ensureSubscription, type TierId } from "@vk/billing";
+import {
+  canConsume,
+  consumeCredits,
+  creditsForIntensity,
+  DEFAULT_INTENSITY,
+  ensureSubscription,
+  type Intensity,
+  isIntensity,
+  type TierId,
+} from "@vk/billing";
+import type { MeteringContext } from "@vk/llm";
+import { eq, sum } from "drizzle-orm";
 
 export interface AuditFormState {
   ok: boolean;
@@ -31,6 +42,41 @@ export interface AuditFormState {
   savedScanId?: string;
   workspaceSlug?: string;
   background?: boolean;
+}
+
+interface ResolvedActor {
+  intensity: Intensity;
+  /** null for anonymous (no metering, no credit consume). */
+  workspaceId: string | null;
+  workspaceSlug: string | null;
+  byokFlag: boolean;
+}
+
+async function resolveActor(
+  sessionUserId: string | null,
+  rawIntensity: Intensity,
+): Promise<ResolvedActor & { rateLimitTier: LimitKey }> {
+  if (!sessionUserId) {
+    return {
+      intensity: "quick", // Anonymous demos always run Quick; Deep needs an account.
+      workspaceId: null,
+      workspaceSlug: null,
+      byokFlag: false,
+      rateLimitTier: "anonymous",
+    };
+  }
+  const { id: workspaceId, slug: workspaceSlug } =
+    await ensureDefaultWorkspace(sessionUserId);
+  const snap = await ensureSubscription(workspaceId);
+  const intensity: Intensity =
+    rawIntensity === "deep" && snap.tier === "free" ? "quick" : rawIntensity;
+  return {
+    intensity,
+    workspaceId,
+    workspaceSlug,
+    byokFlag: snap.byokEnabled,
+    rateLimitTier: snap.tier as TierId,
+  };
 }
 
 export async function auditAction(
@@ -45,37 +91,44 @@ export async function auditAction(
     };
   }
 
-  // Tier-aware rate-limit (Sprint 1.4). Anonymous = IP-keyed @30/h.
-  // Signed-in users get the bucket tied to their subscription tier —
-  // free=60/h, solo_indie=200/h, solo_pro=500/h, agency_pro=1000/h,
-  // agency_scale=2000/h, agency_scale_plus=5000/h. In-memory per region;
-  // soft cap, not a paywall (lib/rate-limit.ts).
+  const rawIntensity = String(formData.get("intensity") ?? "");
+  const requestedIntensity: Intensity = isIntensity(rawIntensity)
+    ? rawIntensity
+    : DEFAULT_INTENSITY;
+
+  // Tier-aware rate-limit (Sprint 1.4) — anonymous gets IP-keyed 30/h.
+  // Signed-in users get the bucket tied to their workspace tier
+  // (free/starter/pro/agency).
   const sessionUser = await getSessionUser();
-  let limitKey: LimitKey;
-  let bucketKey: string;
-  if (sessionUser) {
-    const snap = await ensureSubscription(sessionUser.id);
-    limitKey = snap.tier as TierId;
-    bucketKey = `user:${sessionUser.id}`;
-  } else {
-    const hdrs = await headers();
-    limitKey = "anonymous";
-    bucketKey = `ip:${ipFromHeaders(hdrs)}`;
-  }
-  const limit = checkRateLimit({ key: bucketKey, tier: limitKey });
+  const actor = await resolveActor(
+    sessionUser?.id ?? null,
+    requestedIntensity,
+  );
+
+  const bucketKey = sessionUser
+    ? `user:${sessionUser.id}`
+    : `ip:${ipFromHeaders(await headers())}`;
+  const limit = checkRateLimit({
+    key: bucketKey,
+    tier: actor.rateLimitTier,
+  });
   if (!limit.allowed) {
-    return {
-      ok: false,
-      error: limit.reason ?? "Rate limited.",
-    };
+    return { ok: false, error: limit.reason ?? "Rate limited." };
   }
 
-  // Path 1: GitHub URL → fetch zipball + extract → audit → cleanup
+  // Pre-audit credit check for signed-in users. Anonymous demos bypass.
+  if (actor.workspaceId) {
+    const need = creditsForIntensity(actor.intensity);
+    const gate = await canConsume(actor.workspaceId, need);
+    if (!gate.allowed) {
+      return { ok: false, error: gate.reason ?? "Out of credits." };
+    }
+  }
+
   if (looksLikeGithubUrl(raw)) {
-    return await auditGithubUrl(raw);
+    return await auditGithubUrl(raw, actor);
   }
 
-  // Path 2: local absolute path (only useful in local dev)
   const abs = path.resolve(raw);
   if (!existsSync(abs)) {
     return { ok: false, error: `Path not found: ${abs}` };
@@ -94,18 +147,22 @@ export async function auditAction(
   }
 
   try {
-    // Probe first: count files cheaply, decide sync-vs-background.
     const probe = await scanRepository(abs);
-    const user = await getSessionUser();
 
     if (
-      user &&
+      sessionUser &&
+      actor.workspaceId &&
+      actor.workspaceSlug &&
       isDbEnabled() &&
       isInngestEnabled() &&
       probe.files.length > BACKGROUND_THRESHOLD
     ) {
       const { scanId, workspaceSlug } = await enqueueBackgroundAudit(
-        user.id,
+        {
+          ...actor,
+          workspaceId: actor.workspaceId,
+          workspaceSlug: actor.workspaceSlug,
+        },
         abs,
       );
       revalidatePath(`/${workspaceSlug}/scans`);
@@ -118,21 +175,19 @@ export async function auditAction(
       };
     }
 
-    const report = await runAudit(probe, { includeLLM: true });
-    const persisted = await maybePersist(probe, report, abs);
-    if (persisted) revalidatePath(`/${persisted.workspaceSlug}/scans`);
+    const persisted = await runForegroundAudit(probe, abs, actor);
 
     const state: AuditFormState = {
       ok: true,
       scan: probe,
-      report,
+      report: persisted.report,
       resolvedPath: abs,
       displayPath: abs,
       background: false,
     };
-    if (persisted) {
+    if (persisted.scanId) {
       state.savedScanId = persisted.scanId;
-      state.workspaceSlug = persisted.workspaceSlug;
+      state.workspaceSlug = persisted.workspaceSlug ?? undefined;
     }
     return state;
   } catch (err) {
@@ -144,13 +199,13 @@ export async function auditAction(
   }
 }
 
-async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
+async function auditGithubUrl(
+  rawUrl: string,
+  actor: ResolvedActor,
+): Promise<AuditFormState> {
   const refInfo = parseGithubUrl(rawUrl);
   if (!refInfo) {
-    return {
-      ok: false,
-      error: `Couldn't parse GitHub URL: ${rawUrl}`,
-    };
+    return { ok: false, error: `Couldn't parse GitHub URL: ${rawUrl}` };
   }
   const displayPath = `github.com/${refInfo.owner}/${refInfo.repo}${refInfo.ref ? "@" + refInfo.ref : ""}`;
 
@@ -158,9 +213,7 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
   try {
     extractedRoot = await fetchRepoZipball(refInfo);
     const probe = await scanRepository(extractedRoot);
-    const report = await runAudit(probe, { includeLLM: true });
 
-    // Re-rewrite paths in the persisted scan so we don't store the temp /tmp/vk-gh-xxx prefix.
     const rewrittenScan: ParserResult = {
       ...probe,
       rootPath: displayPath,
@@ -169,29 +222,24 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
         absolutePath: displayPath + "/" + f.relativePath,
       })),
     };
-    const rewrittenReport: AuditReport = {
-      ...report,
-      rootPath: displayPath,
-    };
 
-    const persisted = await maybePersist(
+    const persisted = await runForegroundAudit(
       rewrittenScan,
-      rewrittenReport,
       displayPath,
+      actor,
     );
-    if (persisted) revalidatePath(`/${persisted.workspaceSlug}/scans`);
 
     const state: AuditFormState = {
       ok: true,
       scan: rewrittenScan,
-      report: rewrittenReport,
+      report: persisted.report,
       resolvedPath: displayPath,
       displayPath,
       background: false,
     };
-    if (persisted) {
+    if (persisted.scanId) {
       state.savedScanId = persisted.scanId;
-      state.workspaceSlug = persisted.workspaceSlug;
+      state.workspaceSlug = persisted.workspaceSlug ?? undefined;
     }
     return state;
   } catch (err) {
@@ -208,23 +256,21 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
 }
 
 async function enqueueBackgroundAudit(
-  userId: string,
+  actor: ResolvedActor & { workspaceId: string; workspaceSlug: string },
   rootPath: string,
 ): Promise<{ scanId: string; workspaceSlug: string }> {
   const db = getDb();
-  const { id: workspaceId, slug: workspaceSlug } =
-    await ensureDefaultWorkspace(userId);
-
   const inserted = await db
     .insert(schema.scan)
     .values({
-      workspaceId,
+      workspaceId: actor.workspaceId,
       rootPath,
       status: "queued",
       fileCount: 0,
       overallSeverity: "Exceptional",
       findingsCount: 0,
       warningsCount: 0,
+      intensity: actor.intensity,
     })
     .returning({ id: schema.scan.id });
   const row = inserted[0];
@@ -232,42 +278,122 @@ async function enqueueBackgroundAudit(
 
   await inngest.send({
     name: "audit/requested",
-    data: { scanId: row.id, rootPath },
+    data: {
+      scanId: row.id,
+      rootPath,
+      intensity: actor.intensity,
+      workspaceId: actor.workspaceId,
+      byokFlag: actor.byokFlag,
+    },
   });
 
-  return { scanId: row.id, workspaceSlug };
+  return { scanId: row.id, workspaceSlug: actor.workspaceSlug };
 }
 
-async function maybePersist(
-  scan: ParserResult,
-  report: AuditReport,
+async function runForegroundAudit(
+  probe: ParserResult,
   rootPath: string,
-): Promise<{ scanId: string; workspaceSlug: string } | null> {
-  if (!isDbEnabled()) return null;
-  const user = await getSessionUser();
-  if (!user) return null;
+  actor: ResolvedActor,
+): Promise<{
+  report: AuditReport;
+  scanId: string | null;
+  workspaceSlug: string | null;
+}> {
+  // Anonymous run — no metering, no credit consume.
+  if (!actor.workspaceId) {
+    const report = await runAudit(probe, {
+      includeLLM: true,
+      intensity: actor.intensity,
+    });
+    return { report, scanId: null, workspaceSlug: null };
+  }
+
+  if (!isDbEnabled()) {
+    const report = await runAudit(probe, {
+      includeLLM: true,
+      intensity: actor.intensity,
+    });
+    return { report, scanId: null, workspaceSlug: actor.workspaceSlug };
+  }
 
   const db = getDb();
-  const { id: workspaceId, slug: workspaceSlug } =
-    await ensureDefaultWorkspace(user.id);
-
   const insertedScan = await db
     .insert(schema.scan)
     .values({
-      workspaceId,
+      workspaceId: actor.workspaceId,
       rootPath,
-      status: "complete",
-      completedAt: new Date(),
-      fileCount: report.fileCount,
-      overallSeverity: report.summary.overallSeverity,
-      findingsCount: report.findings.length,
-      warningsCount: scan.warnings.length,
-      rawScan: scan as unknown as Record<string, unknown>,
-      rawReport: report as unknown as Record<string, unknown>,
+      status: "running",
+      startedAt: new Date(),
+      fileCount: probe.files.length,
+      overallSeverity: "Exceptional",
+      findingsCount: 0,
+      warningsCount: probe.warnings.length,
+      intensity: actor.intensity,
     })
     .returning({ id: schema.scan.id });
   const row = insertedScan[0];
-  if (!row) return null;
+  if (!row) throw new Error("Failed to insert scan row.");
+
+  const meteringContext: MeteringContext = {
+    workspaceId: actor.workspaceId,
+    scanId: row.id,
+    byokFlag: actor.byokFlag,
+  };
+
+  const report = await runAudit(probe, {
+    includeLLM: true,
+    intensity: actor.intensity,
+    meteringContext,
+  });
+
+  const credits = creditsForIntensity(actor.intensity);
+
+  // Consume credits. Anonymous and DB-disabled paths skip this branch entirely.
+  const consume = await consumeCredits({
+    workspaceId: actor.workspaceId,
+    amount: credits,
+    reason: "audit_consume",
+    referenceId: row.id,
+  });
+  if (!consume.allowed) {
+    // Race: another concurrent audit drained the pool between canConsume and
+    // consumeCredits. Mark the scan failed and surface the reason.
+    await db
+      .update(schema.scan)
+      .set({ status: "failed", failureReason: consume.reason ?? null })
+      .where(eq(schema.scan.id, row.id));
+    throw new Error(consume.reason ?? "Out of credits.");
+  }
+
+  // Aggregate per-call costs from ai_usage_event for this scan.
+  const costRows = await db
+    .select({ total: sum(schema.aiUsageEvent.costMicrocents) })
+    .from(schema.aiUsageEvent)
+    .where(eq(schema.aiUsageEvent.scanId, row.id));
+  const totalCostMicrocents = Number(costRows[0]?.total ?? 0);
+
+  await db.insert(schema.auditRunCost).values({
+    scanId: row.id,
+    workspaceId: actor.workspaceId,
+    intensity: actor.intensity,
+    creditsConsumed: credits,
+    totalCostMicrocents,
+    markupMicrocents: 0, // Sub-Plan-B fills this on Stripe meter flush.
+  });
+
+  await db
+    .update(schema.scan)
+    .set({
+      status: "complete",
+      completedAt: new Date(),
+      findingsCount: report.findings.length,
+      overallSeverity: report.summary.overallSeverity,
+      rawScan: probe as unknown as Record<string, unknown>,
+      rawReport: report as unknown as Record<string, unknown>,
+      creditsConsumed: credits,
+      totalCostMicrocents,
+    })
+    .where(eq(schema.scan.id, row.id));
 
   if (report.findings.length > 0) {
     await db.insert(schema.finding).values(
@@ -286,8 +412,7 @@ async function maybePersist(
     );
   }
 
-  // Sprint G2 — flush the Galaxie cache so the new scan + findings show up.
-  updateTag(galaxieWorkspaceTag(workspaceId));
+  updateTag(galaxieWorkspaceTag(actor.workspaceId));
 
-  return { scanId: row.id, workspaceSlug };
+  return { report, scanId: row.id, workspaceSlug: actor.workspaceSlug };
 }

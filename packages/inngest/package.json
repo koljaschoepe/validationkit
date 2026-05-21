@@ -23,6 +23,7 @@
     "@vk/billing": "workspace:*",
     "@vk/core": "workspace:*",
     "@vk/db": "workspace:*",
+    "@vk/llm": "workspace:*",
     "@vk/parser": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "inngest": "^4.4.0",

@@ -1,83 +1,148 @@
-// Multi-LLM provider abstraction. Direct-provider only — KEIN Vercel AI Gateway.
-// Reason: CLAUDE.md constraint + ADR-0005 ("LLM Multi-Provider"). Vendor-Lock-in-
-// Vermeidung gilt für Gateway, nicht für Direct-Provider. Auto-validator may flag
-// this and recommend the Gateway — bewusst abgelehnt, siehe ADR-0005.
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
+// Multi-LLM provider abstraction. Direct-provider only — KEIN Vercel AI
+// Gateway (ADR-0005). Sub-Plan-A introduced the Intensity knob: callers
+// pick "quick" or "deep" instead of naming a model. quick → gpt-5-nano,
+// deep → claude-sonnet-4-6. BYOK overrides the built-in provider entirely.
+// See ADR-0006.
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
+import type { Intensity } from "@vk/billing";
+import {
+  getModelRate,
+  maxOutputTokensForIntensity,
+  modelForIntensity,
+  type Provider,
+} from "./pricing.js";
 
 export type LLMIntent =
   | "conflicting-rules"
   | "context-bloat"
   | "fix-suggestion";
 
-export type LLMProvider = "anthropic" | "openai";
+export type LLMProvider = Provider;
+
+export interface ByokOverride {
+  provider: Provider;
+  apiKey: string;
+}
 
 export interface ModelSelection {
-  provider: LLMProvider;
-  /** Model ID passed to the provider SDK. */
+  provider: Provider;
   modelId: string;
-  /** Resolved API key (caller wires it into provider config). */
   apiKey: string;
-  /** Approximate per-1M-token input cost. Used for cost-aware fallback. */
-  costPerMillionInputUsd: number;
+  maxOutputTokens: number;
+  /** Per-1M-token input cost, microcents. Used by audit_run_cost preview. */
+  costPerMillionInputMicrocents: number;
+}
+
+export interface SelectArgs {
+  intensity: Intensity;
+  intent?: LLMIntent;
+  byok?: ByokOverride;
 }
 
 /**
- * Provider selection (env-driven, Anthropic primary, OpenAI opt-in fallback):
+ * Provider selection with intensity routing:
+ *   quick → gpt-5-nano  (cost floor; matches existing repo default)
+ *   deep  → claude-sonnet-4-6  (quality, prompt-caching, 8k output)
  *
- *   ANTHROPIC_API_KEY → claude-sonnet-4-6 (preferred for conflicting-rules)
- *   OPENAI_API_KEY    → gpt-5-nano (cost-floor fallback)
- *
- * Returns null when no provider key is configured — callers render a
- * disabled-state finding instead of crashing.
- *
- * Tier-gating hook (`opts.tier`) is reserved; not enforced yet.
+ * Returns null when no provider key is configured (Hardcore-Local-Only).
+ * Callers must render the disabled-state finding rather than crash.
  */
-export function selectModel(
-  opts: { tier?: string; intent?: LLMIntent } = {},
-): ModelSelection | null {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey) {
+export function selectModel(args: SelectArgs): ModelSelection | null {
+  void args.intent; // retained for future telemetry hooks.
+
+  const targetModel = modelForIntensity(args.intensity);
+  const targetRate = getModelRate(targetModel);
+
+  // BYOK overrides everything when present; we still route to the same model.
+  if (args.byok) {
+    return {
+      provider: args.byok.provider,
+      modelId: targetModel,
+      apiKey: args.byok.apiKey,
+      maxOutputTokens: maxOutputTokensForIntensity(args.intensity),
+      costPerMillionInputMicrocents: targetRate.inputPer1M,
+    };
+  }
+
+  if (targetRate.provider === "anthropic") {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (apiKey) {
+      return {
+        provider: "anthropic",
+        modelId: targetModel,
+        apiKey,
+        maxOutputTokens: maxOutputTokensForIntensity(args.intensity),
+        costPerMillionInputMicrocents: targetRate.inputPer1M,
+      };
+    }
+    // Fall through to OpenAI as a last-resort, even for Deep, when only
+    // OPENAI_API_KEY is configured. Quality degrades but the audit still
+    // runs — better than a hard-failure UX.
+    const fallbackKey = process.env.OPENAI_API_KEY;
+    if (fallbackKey) {
+      const fallback = getModelRate("gpt-5-nano");
+      return {
+        provider: "openai",
+        modelId: "gpt-5-nano",
+        apiKey: fallbackKey,
+        maxOutputTokens: maxOutputTokensForIntensity(args.intensity),
+        costPerMillionInputMicrocents: fallback.inputPer1M,
+      };
+    }
+    return null;
+  }
+
+  // targetRate.provider === "openai"
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (apiKey) {
+    return {
+      provider: "openai",
+      modelId: targetModel,
+      apiKey,
+      maxOutputTokens: maxOutputTokensForIntensity(args.intensity),
+      costPerMillionInputMicrocents: targetRate.inputPer1M,
+    };
+  }
+  // Last-resort fallback to Anthropic for Quick when only ANTHROPIC_API_KEY
+  // exists. Cost goes up but service stays available.
+  const fallbackKey = process.env.ANTHROPIC_API_KEY;
+  if (fallbackKey) {
+    const fallback = getModelRate("claude-sonnet-4-6");
     return {
       provider: "anthropic",
       modelId: "claude-sonnet-4-6",
-      apiKey: anthropicKey,
-      costPerMillionInputUsd: 3.0,
+      apiKey: fallbackKey,
+      maxOutputTokens: maxOutputTokensForIntensity(args.intensity),
+      costPerMillionInputMicrocents: fallback.inputPer1M,
     };
   }
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
-    return {
-      provider: "openai",
-      modelId: "gpt-5-nano",
-      apiKey: openaiKey,
-      costPerMillionInputUsd: 0.05,
-    };
-  }
-  void opts.tier;
-  void opts.intent;
   return null;
 }
 
-/**
- * Returns the AI SDK LanguageModel instance for a given selection. Lets
- * call-sites stay provider-agnostic — they pass the selection, we resolve
- * the right SDK provider.
- */
 export function providerModel(selection: ModelSelection): LanguageModel {
   switch (selection.provider) {
-    case "anthropic":
-      return anthropic(selection.modelId);
-    case "openai":
-      return openai(selection.modelId);
+    case "anthropic": {
+      const client = createAnthropic({ apiKey: selection.apiKey });
+      return client(selection.modelId);
+    }
+    case "openai": {
+      const client = createOpenAI({ apiKey: selection.apiKey });
+      return client(selection.modelId);
+    }
   }
 }
 
 export function isLlmEnabled(): boolean {
-  return selectModel() !== null;
+  return Boolean(
+    process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY,
+  );
 }
 
 export function llmDisabledMessage(): string {
-  return "Set ANTHROPIC_API_KEY (or OPENAI_API_KEY) to enable LLM-augmented findings.";
+  return (
+    "LLM-augmented rules are disabled: set ANTHROPIC_API_KEY (or OPENAI_API_KEY) " +
+    "to enable conflicting-rules + context-bloat trim suggestions."
+  );
 }

@@ -5,17 +5,23 @@ import { redirect } from "next/navigation";
 import { getDb, schema, isDbEnabled } from "@vk/db";
 import {
   ensureSubscription,
-  TIERS,
   type BillingCycle,
   type TierId,
 } from "@vk/billing";
 import { getSessionUser } from "./session";
+import { ensureDefaultWorkspace } from "./workspaces";
 import {
   billingBaseUrl,
   getStripe,
   isStripeEnabled,
   priceIdFor,
 } from "./stripe";
+
+// Sub-Plan-A: workspace-level subscriptions. Sub-Plan-B will rewrite this
+// file end-to-end (metered subscription items, pre-paid credit packs, AI-
+// cost-markup meter). Until then this is the minimum-viable subscribe flow
+// — annual-only/MSA gates are dropped along with the old agency_scale_plus
+// tier; the new 4-tier ladder has no such constraints.
 
 export type ActionResult =
   | { ok: true; url: string }
@@ -42,19 +48,6 @@ export async function createCheckoutSession(
   if (tier === "free") {
     return { ok: false, error: "The free tier has no checkout." };
   }
-  const config = TIERS[tier];
-  if (config.annualOnly && cycle !== "annual") {
-    return {
-      ok: false,
-      error: `${config.label} is annual-only. Switch the billing cycle to annual before checkout.`,
-    };
-  }
-  if (config.msaRequired) {
-    return {
-      ok: false,
-      error: `${config.label} requires a signed MSA. Email kol.schoepe@gmail.com to start.`,
-    };
-  }
   const priceId = priceIdFor(tier, cycle);
   if (!priceId) {
     return {
@@ -67,7 +60,8 @@ export async function createCheckoutSession(
     return { ok: false, error: "Sign in before subscribing." };
   }
 
-  const snap = await ensureSubscription(user.id);
+  const { id: workspaceId } = await ensureDefaultWorkspace(user.id);
+  const snap = await ensureSubscription(workspaceId);
   const stripe = getStripe();
   const baseUrl = billingBaseUrl();
 
@@ -76,11 +70,11 @@ export async function createCheckoutSession(
     line_items: [{ price: priceId, quantity: 1 }],
     customer: snap.stripeCustomerId ?? undefined,
     customer_email: snap.stripeCustomerId ? undefined : user.email,
-    client_reference_id: user.id,
+    client_reference_id: workspaceId,
     subscription_data: {
-      metadata: { userId: user.id, tier, cycle },
+      metadata: { workspaceId, userId: user.id, tier, cycle },
     },
-    metadata: { userId: user.id, tier, cycle },
+    metadata: { workspaceId, userId: user.id, tier, cycle },
     allow_promotion_codes: true,
     automatic_tax: { enabled: true },
     customer_update: snap.stripeCustomerId ? { address: "auto" } : undefined,
@@ -103,7 +97,6 @@ export async function startCheckoutAction(formData: FormData): Promise<void> {
       `/billing?status=error&reason=${encodeURIComponent(result.error)}`,
     );
   }
-  // Stripe-hosted Checkout URL is external; typedRoutes can't model it.
   redirect(result.url as never);
 }
 
@@ -119,11 +112,12 @@ export async function createBillingPortalSession(): Promise<ActionResult> {
     return { ok: false, error: "Sign in before managing billing." };
   }
 
+  const { id: workspaceId } = await ensureDefaultWorkspace(user.id);
   const db = getDb();
   const rows = await db
     .select({ stripeCustomerId: schema.subscription.stripeCustomerId })
     .from(schema.subscription)
-    .where(eq(schema.subscription.userId, user.id))
+    .where(eq(schema.subscription.workspaceId, workspaceId))
     .limit(1);
   const customerId = rows[0]?.stripeCustomerId;
   if (!customerId) {

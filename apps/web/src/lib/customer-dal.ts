@@ -271,14 +271,19 @@ export async function addRepoUnderCustomer(
     .limit(1);
   if (!customerRows[0]) return { ok: false, error: "Customer not found in workspace." };
 
-  const { canAddRepo } = await import("@vk/billing");
-  const quota = await canAddRepo(userId);
+  // Sub-Plan-A: tier-quota now binds per workspace; the customer-included
+  // count caps customer rows, repos under each customer are unconstrained.
+  const { canAddCustomer } = await import("@vk/billing");
+  const quota = await canAddCustomer(workspaceId);
   if (!quota.allowed) {
     return {
       ok: false,
-      error: (quota.reason ?? "Repo quota exceeded.") + " Upgrade your plan.",
+      error:
+        (quota.reason ?? "Customer-workspace quota exceeded.") +
+        " Upgrade your plan.",
     };
   }
+  void userId;
 
   const inserted = await db
     .insert(schema.repo)

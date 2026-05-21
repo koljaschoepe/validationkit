@@ -9,16 +9,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Sprint 0.13 — Stripe webhook handler.
+ * Stripe webhook handler.
  *
- * Load-bearing constraints (per A11 research + Stripe docs):
- *   1. Node runtime: Edge re-encodes the body and breaks signature verification.
+ * Sub-Plan-A: lifted to workspace-level subscriptions. Sub-Plan-B will
+ * extend with Meter-Events, Pre-Paid-Credit-Grants, `invoice.created`
+ * meter-flush, and the Auto-Overage branch. This file is intentionally
+ * scoped to the minimum needed for Sub-A's tier-rename to typecheck.
+ *
+ * Load-bearing constraints:
+ *   1. Node runtime (Edge re-encodes the body and breaks signatures).
  *   2. Raw body via req.text() BEFORE JSON-parse.
- *   3. Idempotent: upsert event.id into stripe_event PK; replays no-op.
- *   4. Keep handler under 200ms; defer heavy work later via Inngest.
- *
- * Verifies `Stripe-Signature` against STRIPE_WEBHOOK_SECRET. Maps tier from
- * subscription.metadata.tier (we wrote it during checkout creation).
+ *   3. Idempotent: stripe_event PK upsert.
  */
 export async function POST(req: Request): Promise<Response> {
   if (!isDbEnabled() || !isStripeEnabled()) {
@@ -59,7 +60,6 @@ export async function POST(req: Request): Promise<Response> {
 
   const db = getDb();
 
-  // Idempotency: insert returning the PK; if conflict, we've seen this event.
   const seen = await db
     .insert(schema.stripeEvent)
     .values({
@@ -77,7 +77,9 @@ export async function POST(req: Request): Promise<Response> {
   try {
     switch (event.type) {
       case "checkout.session.completed":
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session,
+        );
         break;
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(
@@ -96,29 +98,28 @@ export async function POST(req: Request): Promise<Response> {
         await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
         break;
       default:
-        // Acknowledged but not acted on; Stripe will not retry.
         break;
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(`[stripe-webhook] handler failed for ${event.type}`, err);
-    return NextResponse.json(
-      { error: "Handler error." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Handler error." }, { status: 500 });
   }
 }
 
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
 ): Promise<void> {
-  const userId = session.client_reference_id ?? (session.metadata?.userId as string | undefined);
-  if (!userId) return;
+  const workspaceId =
+    (session.metadata?.workspaceId as string | undefined) ??
+    session.client_reference_id ??
+    undefined;
+  if (!workspaceId) return;
   const tier = (session.metadata?.tier as TierId | undefined) ?? "free";
   const customerId = stringOrNull(session.customer);
   const subscriptionId = stringOrNull(session.subscription);
-  await applyTierToUser({
-    userId,
+  await applyTierToWorkspace({
+    workspaceId,
     tier,
     status: "active",
     stripeCustomerId: customerId,
@@ -130,13 +131,13 @@ async function handleCheckoutCompleted(
 async function handleSubscriptionUpdated(
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const userId =
-    (sub.metadata?.userId as string | undefined) ??
-    (await lookupUserIdByCustomer(stringOrNull(sub.customer)));
-  if (!userId) return;
+  const workspaceId =
+    (sub.metadata?.workspaceId as string | undefined) ??
+    (await lookupWorkspaceByCustomer(stringOrNull(sub.customer)));
+  if (!workspaceId) return;
   const tier = (sub.metadata?.tier as TierId | undefined) ?? "free";
-  await applyTierToUser({
-    userId,
+  await applyTierToWorkspace({
+    workspaceId,
     tier,
     status: sub.status,
     stripeCustomerId: stringOrNull(sub.customer),
@@ -148,12 +149,12 @@ async function handleSubscriptionUpdated(
 async function handleSubscriptionDeleted(
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const userId =
-    (sub.metadata?.userId as string | undefined) ??
-    (await lookupUserIdByCustomer(stringOrNull(sub.customer)));
-  if (!userId) return;
-  await applyTierToUser({
-    userId,
+  const workspaceId =
+    (sub.metadata?.workspaceId as string | undefined) ??
+    (await lookupWorkspaceByCustomer(stringOrNull(sub.customer)));
+  if (!workspaceId) return;
+  await applyTierToWorkspace({
+    workspaceId,
     tier: "free",
     status: "canceled",
     stripeCustomerId: stringOrNull(sub.customer),
@@ -163,29 +164,33 @@ async function handleSubscriptionDeleted(
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
-  const userId = await lookupUserIdByCustomer(stringOrNull(invoice.customer));
-  if (!userId) return;
+  const workspaceId = await lookupWorkspaceByCustomer(
+    stringOrNull(invoice.customer),
+  );
+  if (!workspaceId) return;
   const db = getDb();
   await db
     .update(schema.subscription)
-    .set({ runsUsedThisPeriod: 0, updatedAt: new Date() })
-    .where(eq(schema.subscription.userId, userId));
+    .set({ creditsUsedThisPeriod: 0, updatedAt: new Date() })
+    .where(eq(schema.subscription.workspaceId, workspaceId));
 }
 
 async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice,
 ): Promise<void> {
-  const userId = await lookupUserIdByCustomer(stringOrNull(invoice.customer));
-  if (!userId) return;
+  const workspaceId = await lookupWorkspaceByCustomer(
+    stringOrNull(invoice.customer),
+  );
+  if (!workspaceId) return;
   const db = getDb();
   await db
     .update(schema.subscription)
     .set({ status: "past_due", updatedAt: new Date() })
-    .where(eq(schema.subscription.userId, userId));
+    .where(eq(schema.subscription.workspaceId, workspaceId));
 }
 
 interface ApplyTierInput {
-  userId: string;
+  workspaceId: string;
   tier: TierId;
   status: string;
   stripeCustomerId: string | null;
@@ -193,14 +198,13 @@ interface ApplyTierInput {
   currentPeriodEnd: Date | null;
 }
 
-async function applyTierToUser(input: ApplyTierInput): Promise<void> {
+async function applyTierToWorkspace(input: ApplyTierInput): Promise<void> {
   const db = getDb();
   const config = TIERS[input.tier];
   const updates: Record<string, unknown> = {
     tier: input.tier,
     status: input.status,
-    paidReposQuota: config.paidReposQuota,
-    runsQuota: config.runsQuota,
+    creditsQuotaPerCycle: config.creditsPerCycle,
     updatedAt: new Date(),
   };
   if (input.stripeCustomerId) updates.stripeCustomerId = input.stripeCustomerId;
@@ -208,25 +212,23 @@ async function applyTierToUser(input: ApplyTierInput): Promise<void> {
     updates.stripeSubscriptionId = input.stripeSubscriptionId;
   if (input.currentPeriodEnd) updates.currentPeriodEnd = input.currentPeriodEnd;
 
-  // Upsert via existence check; subscription has UNIQUE(user_id).
   const existing = await db
     .select({ id: schema.subscription.id })
     .from(schema.subscription)
-    .where(eq(schema.subscription.userId, input.userId))
+    .where(eq(schema.subscription.workspaceId, input.workspaceId))
     .limit(1);
   if (existing[0]) {
     await db
       .update(schema.subscription)
       .set(updates)
-      .where(eq(schema.subscription.userId, input.userId));
+      .where(eq(schema.subscription.workspaceId, input.workspaceId));
   } else {
     await db.insert(schema.subscription).values({
-      userId: input.userId,
+      workspaceId: input.workspaceId,
       tier: input.tier,
       status: input.status,
-      paidReposQuota: config.paidReposQuota,
-      runsQuota: config.runsQuota,
-      runsUsedThisPeriod: 0,
+      creditsQuotaPerCycle: config.creditsPerCycle,
+      creditsUsedThisPeriod: 0,
       stripeCustomerId: input.stripeCustomerId,
       stripeSubscriptionId: input.stripeSubscriptionId,
       currentPeriodEnd: input.currentPeriodEnd,
@@ -234,17 +236,17 @@ async function applyTierToUser(input: ApplyTierInput): Promise<void> {
   }
 }
 
-async function lookupUserIdByCustomer(
+async function lookupWorkspaceByCustomer(
   customerId: string | null,
 ): Promise<string | null> {
   if (!customerId) return null;
   const db = getDb();
   const rows = await db
-    .select({ userId: schema.subscription.userId })
+    .select({ workspaceId: schema.subscription.workspaceId })
     .from(schema.subscription)
     .where(eq(schema.subscription.stripeCustomerId, customerId))
     .limit(1);
-  return rows[0]?.userId ?? null;
+  return rows[0]?.workspaceId ?? null;
 }
 
 function stringOrNull(value: unknown): string | null {

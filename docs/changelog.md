@@ -4,6 +4,20 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Sub-Plan-A: SaaS-Pricing Sub-A — DB + Metering (✅ 2026-05-21)
+
+Backend-Foundation für das neue 4-Tier Hybrid-Pricing-System.
+
+- Master-Plan: `docs/plans/saas-pricing-redesign.md` (in review)
+- Sub-Plan-A: `docs/plans/saas-pricing-sub-a-db-metering.md` (✅ done)
+- Migration: `packages/db/drizzle/0013_saas_pricing_redesign.sql` — subscription user→workspace + 4 neue Tables (ai_usage_event, audit_run_cost, credit_ledger, prepaid_credit_grant) + scan-Erweiterung
+- Neue ADRs: 0007 (Credit-System + Quick/Deep-Intensity), 0008 (BYOK-Key-Encryption mit AES-256-GCM)
+- `packages/billing` rewrite: 4 Tiers (free/starter/pro/agency) + Credit-Ledger + BYOK-Crypto + Intensity (Quick=1, Deep=5)
+- `packages/llm` Intensity-routing + Usage-Tracking: jeder generateText-Call persistiert ai_usage_event + computeCallCost in microcents
+- Cross-cutting Tier-Rename: rate-limit.ts, stripe.ts, billing-actions.ts, webhook/route.ts, customer-dal.ts, customers.ts, billing/page.tsx, pricing/page.tsx — Sub-B/C-Stubs für ausstehendes UI/Stripe-Wiring
+- 222 Tests grün, root typecheck grün, alle Builds grün
+- Open: DB-Apply manuell (`pnpm stack:up && pnpm db:migrate`), Snapshot-Regenerate beim nächsten `db:generate`-Run
+
 ## Phase Repo-Health (✅ 2026-05-21)
 
 Konsolidierender Health-Pass nach Phase Nova-2: Workflow-Overhaul, Doku-Reality-Sync, Drift-Cleanup-Final, Tech-Stack-Hygiene, Tests/CI-Härten, Onboarding-Doku.

@@ -49,19 +49,23 @@ export async function addRepo(
     return { ok: false, error: "Label and rootPath are required." };
   }
 
-  const { canAddRepo } = await import("@vk/billing");
-  const quota = await canAddRepo(userId);
+  // Sub-Plan-A: customer-workspaces-included caps customer rows; repos
+  // under each customer are unconstrained. userId retained for future
+  // owner-level limits but currently unused.
+  const { canAddCustomer } = await import("@vk/billing");
+  const quota = await canAddCustomer(workspaceId);
   if (!quota.allowed) {
     return {
       ok: false,
       error:
-        (quota.reason ?? "Repo quota exceeded.") +
+        (quota.reason ?? "Customer-workspace quota exceeded.") +
         " Upgrade your plan to add another.",
       upgradeRequired: true,
       used: quota.used,
       quota: quota.quota,
     };
   }
+  void userId;
 
   const db = getDb();
 

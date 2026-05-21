@@ -71,6 +71,9 @@ importers:
       '@vk/inngest':
         specifier: workspace:*
         version: link:../../packages/inngest
+      '@vk/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@vk/parser':
         specifier: workspace:*
         version: link:../../packages/parser
@@ -109,7 +112,7 @@ importers:
         version: 3.15.0
       inngest:
         specifier: ^4.4.0
-        version: 4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
+        version: 4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
       lucide-react:
         specifier: ^1.16.0
         version: 1.16.0(react@19.2.6)
@@ -192,6 +195,9 @@ importers:
 
   packages/audit:
     dependencies:
+      '@vk/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@vk/core':
         specifier: workspace:*
         version: link:../core
@@ -298,6 +304,9 @@ importers:
 
   packages/fixes:
     dependencies:
+      '@vk/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@vk/core':
         specifier: workspace:*
         version: link:../core
@@ -357,6 +366,9 @@ importers:
       '@vk/db':
         specifier: workspace:*
         version: link:../db
+      '@vk/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@vk/parser':
         specifier: workspace:*
         version: link:../parser
@@ -365,7 +377,7 @@ importers:
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(kysely@0.28.17)(postgres@3.4.9)
       inngest:
         specifier: ^4.4.0
-        version: 4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
+        version: 4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
       stripe:
         specifier: ^22.1.1
         version: 22.1.1(@types/node@22.19.19)
@@ -385,9 +397,15 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.64
         version: 3.0.64(zod@4.4.3)
+      '@vk/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@vk/core':
         specifier: workspace:*
         version: link:../core
+      '@vk/db':
+        specifier: workspace:*
+        version: link:../db
       ai:
         specifier: ^6.0.0
         version: 6.0.184(zod@4.4.3)
@@ -9771,7 +9789,7 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  inngest@4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3):
+  inngest@4.4.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.19)(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(zod@4.4.3):
     dependencies:
       '@bufbuild/protobuf': 2.12.0
       '@inngest/ai': 0.1.7

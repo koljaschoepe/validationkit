@@ -1,10 +1,17 @@
+import type { Intensity } from "@vk/billing";
 import type { AuditFinding, ParserResult } from "@vk/core";
 import { suggestContextBloatTrim, isLlmEnabled } from "@vk/llm";
+import type { MeteringContext } from "@vk/llm";
 import type { FixProposal } from "./types.js";
 import { FixContextError, UnsupportedFixError } from "./types.js";
 import { fileModifyPatch } from "./unified-diff.js";
 
 const APPROX_BUDGET_TOKENS = 8_000;
+
+export interface ContextBloatFixOptions {
+  intensity?: Intensity;
+  meteringContext?: MeteringContext;
+}
 
 /**
  * Sprint 1.2 — LLM-augmented context-bloat fix-suggestion.
@@ -21,6 +28,7 @@ const APPROX_BUDGET_TOKENS = 8_000;
 export async function generateContextBloatLlmFix(
   finding: AuditFinding,
   scan: ParserResult,
+  opts: ContextBloatFixOptions = {},
 ): Promise<FixProposal | null> {
   if (finding.category !== "context-bloat") {
     throw new UnsupportedFixError(finding.category);
@@ -53,6 +61,8 @@ export async function generateContextBloatLlmFix(
     tokenCount: file.tokenCount,
     budget: APPROX_BUDGET_TOKENS,
     candidateSections: sections.map((s) => s.heading),
+    intensity: opts.intensity,
+    meteringContext: opts.meteringContext,
   });
   if (!suggestion) return null;
 

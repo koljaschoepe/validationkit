@@ -25,14 +25,15 @@ export type LimitKey = "anonymous" | TierId;
 
 const WINDOW_MS = 60 * 60 * 1000;
 
+// Sub-Plan-A — rate-limit buckets sized to the new 4-tier ladder.
+// Free is generous (60/h) since it's lifetime-capped to 3 audits — the rate
+// limit is a soft burst guard, not the quota.
 const LIMITS: Record<LimitKey, number> = {
   anonymous: 30,
   free: 60,
-  solo_indie: 200,
-  solo_pro: 500,
-  agency_pro: 1000,
-  agency_scale: 2000,
-  agency_scale_plus: 5000,
+  starter: 200,
+  pro: 1000,
+  agency: 5000,
 };
 
 const buckets = new Map<string, number[]>();

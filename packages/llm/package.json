@@ -23,7 +23,9 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/openai": "^3.0.64",
+    "@vk/billing": "workspace:*",
     "@vk/core": "workspace:*",
+    "@vk/db": "workspace:*",
     "ai": "^6.0.0",
     "zod": "^4.4.3"
   },
