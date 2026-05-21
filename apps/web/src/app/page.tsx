@@ -1,158 +1,41 @@
 import Link from "next/link";
-import {
-  FileSearchIcon,
-  GitCompareIcon,
-  ShieldCheckIcon,
-  CodeXmlIcon,
-  AlertTriangleIcon,
-  SparklesIcon,
-} from "lucide-react";
-import { AuditForm } from "@/components/AuditForm";
 import { SiteNav } from "@/components/SiteNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import GalaxieRoot from "@/components/galaxie/GalaxieRoot";
-
-const FINDING_CATEGORIES = [
-  {
-    icon: AlertTriangleIcon,
-    name: "unused-agent",
-    desc: "Agents defined but never called from any command or workflow.",
-    deterministic: true,
-  },
-  {
-    icon: GitCompareIcon,
-    name: "duplicate-guidance",
-    desc: "Trigram similarity ≥ 85% across two agent files. Pick one canonical home.",
-    deterministic: true,
-  },
-  {
-    icon: FileSearchIcon,
-    name: "context-bloat",
-    desc: "Single file over 8 000 tokens (tiktoken cl100k_base).",
-    deterministic: true,
-  },
-  {
-    icon: CodeXmlIcon,
-    name: "stale-reference",
-    desc: "Markdown links pointing to files that don't exist.",
-    deterministic: true,
-  },
-  {
-    icon: ShieldCheckIcon,
-    name: "token-budget",
-    desc: "Always-loaded context sum over 25 k tokens.",
-    deterministic: true,
-  },
-  {
-    icon: SparklesIcon,
-    name: "conflicting-rules",
-    desc: "Two related files disagree (low / mid / high confidence).",
-    deterministic: false,
-  },
-];
+import { HeroSection } from "@/components/landing/HeroSection";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 
 export default function Home() {
-  const cwd = process.cwd();
-  const repoRoot = cwd.replace(/\/apps\/web$/, "");
-
   return (
     <>
       <SiteNav />
-
-      {/* Hero — public Galaxie demo (mock-data, kein Login) */}
-      <section className="relative h-[calc(100svh-3.5rem)] w-full overflow-hidden bg-black">
-        <GalaxieRoot />
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex flex-col items-center gap-2 text-center">
-          <h1 className="text-balance px-4 font-mono text-sm font-medium text-white/85 sm:text-base">
-            Multi-Repo-Audit als Galaxie. Severity-Hotspots, Zero-Code-Apply.
-          </h1>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
-            scroll for free anonymous audit ↓
-          </span>
-        </div>
-      </section>
-
-      {/* Sek-CTA — Anonymous Audit */}
-      <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        <header className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Try the audit.
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Paste a public GitHub repo. Get a deterministic audit of all 12 agent-file
-            formats. No vibe-scores. No signup.
-          </p>
-        </header>
-
-        <section className="mt-8">
-          <AuditForm defaultPath={repoRoot} />
-        </section>
-
-        <section className="mt-12 space-y-4">
-          <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            What we check
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {FINDING_CATEGORIES.map((cat) => (
-              <Card key={cat.name} className="bg-card/50">
-                <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-2">
-                  <cat.icon className="size-4 text-primary mt-1 shrink-0" />
-                  <div className="flex-1">
-                    <CardTitle className="font-mono text-sm">
-                      {cat.name}
-                    </CardTitle>
-                  </div>
-                  <Badge variant={cat.deterministic ? "secondary" : "outline"}>
-                    {cat.deterministic ? "Deterministic" : "LLM (opt-in)"}
-                  </Badge>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{cat.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-12">
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-6">
-              <p className="text-sm">
-                <strong className="text-foreground">Concession:</strong>{" "}
-                anonymous-audit is free. No signup, no GitHub-token.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                <strong className="text-foreground">Critique:</strong> persisted
-                history, multi-repo dashboard, drift detection, fix-suggestions
-                — those need a free account.{" "}
-                <Link
-                  href="/login"
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Sign in
-                </Link>
-                .
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-
-        <footer className="mt-16 border-t border-border pt-6 text-xs text-muted-foreground">
-          ValidationKit ·{" "}
-          <Link href="/" className="hover:text-foreground">
-            Audit
-          </Link>{" "}
-          ·{" "}
-          <Link href="/drift" className="hover:text-foreground">
-            Drift
-          </Link>{" "}
-          ·{" "}
-          <Link href="/trust" className="hover:text-foreground">
-            Trust
-          </Link>
-        </footer>
+      <main id="main-content" aria-label="Main content">
+        <HeroSection />
+        <HowItWorks />
       </main>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row sm:px-8 font-mono type-mono-sm text-muted-foreground">
+          <div>© 2026 ValidationKit</div>
+          <nav aria-label="Footer">
+            <ul className="flex flex-wrap items-center gap-6">
+              <li>
+                <Link href="/pricing" className="hover:text-foreground">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/trust" className="hover:text-foreground">
+                  Trust
+                </Link>
+              </li>
+              <li>
+                <Link href="/status" className="hover:text-foreground">
+                  Status ●
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </footer>
     </>
   );
 }

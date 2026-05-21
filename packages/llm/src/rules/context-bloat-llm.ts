@@ -9,9 +9,8 @@
 // blast radius — worst-case LLM failure = wrong section trimmed, not
 // arbitrary code injection.
 import { generateText, Output } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
-import { selectModel } from "../select.js";
+import { providerModel, selectModel } from "../select.js";
 
 export interface ContextBloatSuggestionInput {
   filePath: string;
@@ -60,14 +59,7 @@ export async function suggestContextBloatTrim(
   if (!selection) return null;
   if (input.candidateSections.length === 0) return null;
 
-  if (selection.provider !== "anthropic") {
-    // OpenAI fallback hook intentionally left for Phase 2. The selection
-    // returned the cheap-floor provider but we ship only the anthropic
-    // route in v0.0.17 (per A4 + ADR-0020).
-    return null;
-  }
-
-  const model = anthropic(selection.modelId);
+  const model = providerModel(selection);
   try {
     const { output } = await generateText({
       model,

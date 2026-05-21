@@ -118,11 +118,14 @@ export default function TrustPage() {
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6">
+      <main
+        id="main-content"
+        className="mx-auto max-w-5xl space-y-8 px-6 py-10 sm:px-8 sm:py-16"
+      >
         <header className="space-y-2">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Trust Center</h1>
+            <h1 className="type-h1 font-semibold tracking-tight">Trust Center</h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-3xl">
             What ValidationKit reads, what it writes, what it doesn&apos;t yet do,
@@ -336,7 +339,7 @@ export default function TrustPage() {
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">
               Compliance-Frame Customers (Pharma / Finance / Marketing-with-PII)
-              can export the workspace audit-trail at any time — scans, drifts,
+              can export the workspace audit-trail at any time — scans,
               install_requests, repo write-grants, webhook events.{" "}
               <strong className="text-foreground">Retention: 12 months.</strong>
             </p>

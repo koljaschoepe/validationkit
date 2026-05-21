@@ -2,12 +2,23 @@
 
 import { useEffect, useRef } from 'react';
 import { severityHex } from '@/lib/galaxie/severity-colors';
+import type { SeverityBand } from '@vk/core';
 import type { GalaxieData, LayoutNode } from '@/lib/galaxie/types';
 import type { Camera } from './pixi/Camera';
 
 const SIZE = 160;
 const HALF = SIZE / 2;
 const WORLD_HALF_EXTENT = 1500; // covers customer (600) + repo (180) + file (55) + margin
+
+// File-rect size by severity. Encodes severity via footprint, since hue is
+// no longer load-bearing (post-Homepage-Relaunch, May 2026).
+const FILE_RECT_SIZE: Record<SeverityBand, number> = {
+  Kill: 1.6,
+  Weak: 1.3,
+  Mid: 1.0,
+  Strong: 0.8,
+  Exceptional: 1.1,
+};
 
 export function MiniMap({
   camera,
@@ -75,13 +86,14 @@ export function MiniMap({
       {files.map((f) => {
         const n = nodeById.get(f.id);
         if (!n) return null;
+        const size = FILE_RECT_SIZE[f.severity];
         return (
           <rect
             key={f.id}
-            x={w2m(n.x) - 0.5}
-            y={w2m(n.y) - 0.5}
-            width={1}
-            height={1}
+            x={w2m(n.x) - size / 2}
+            y={w2m(n.y) - size / 2}
+            width={size}
+            height={size}
             fill={severityHex(f.severity)}
             opacity={0.7}
           />

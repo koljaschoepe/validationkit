@@ -1,17 +1,21 @@
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import {
   BellIcon,
   ChevronDownIcon,
   EyeOffIcon,
+  LogInIcon,
   RefreshCwIcon,
   XIcon,
 } from 'lucide-react';
 import gsap from 'gsap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SeverityBadge } from '@/components/ui/severity-badge';
+import { cn } from '@/lib/utils';
 import type { FileNode } from '@/lib/galaxie/types';
-import { severityHex } from '@/lib/galaxie/severity-colors';
 import { whyImportantFor } from './inspector-templates';
 import { AISolutionPlaceholder } from './AISolutionPlaceholder';
 
@@ -32,9 +36,12 @@ const SNOOZE_OPTIONS: Array<{ key: '24h' | '7d' | 'forever'; label: string }> = 
 export function Inspector({
   file,
   onClose,
+  readOnly = false,
 }: {
   file: FileNode;
   onClose: () => void;
+  /** When true, hides dismiss/snooze + replaces AI-solution apply with a sign-in CTA. */
+  readOnly?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [dismissOpen, setDismissOpen] = useState(false);
@@ -44,11 +51,21 @@ export function Inspector({
 
   useEffect(() => {
     if (!panelRef.current) return;
-    gsap.fromTo(
-      panelRef.current,
-      { x: PANEL_WIDTH, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out' },
-    );
+    // Desktop slides in from the right, mobile from the bottom — both 300ms.
+    // Sprint 2 — scope the tween to a gsap.context so it gets killed on
+    // unmount instead of running against a detached DOM node.
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const ctx = gsap.context(() => {
+      if (!panelRef.current) return;
+      gsap.fromTo(
+        panelRef.current,
+        isMobile
+          ? { y: '100%', opacity: 0 }
+          : { x: PANEL_WIDTH, opacity: 0 },
+        { x: 0, y: 0, opacity: 1, duration: 0.3, ease: 'power3.out' },
+      );
+    }, panelRef);
+    return () => ctx.revert();
   }, []);
 
   useEffect(() => {
@@ -97,85 +114,98 @@ export function Inspector({
     });
   }
 
-  return (
+  // Portal out of the galaxy container so `overflow-hidden` on a 60vh hero
+  // (Landing) does not clip the inspector. `position: fixed` makes the panel
+  // viewport-relative.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       ref={panelRef}
-      className="pointer-events-auto absolute z-30 flex flex-col border-white/10 bg-black/85 backdrop-blur right-0 bottom-0 sm:top-0 left-0 sm:left-auto h-[70vh] sm:h-full w-full sm:w-[380px] border-t sm:border-t-0 sm:border-l rounded-t-lg sm:rounded-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Finding inspector — ${file.path}`}
+      className={cn(
+        'pointer-events-auto fixed z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
+        // Mobile: bottom sheet
+        'inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t',
+        // Desktop: right sidebar
+        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[380px] sm:rounded-none sm:border-l sm:border-t-0',
+      )}
     >
       <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span
-              className="rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black"
-              style={{ background: severityHex(file.severity) }}
-            >
-              {file.severity}
-            </span>
+            <SeverityBadge severity={file.severity} />
             <span className="truncate font-mono text-xs text-white/60">
               {file.path}
             </span>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Dropdown
-            open={dismissOpen}
-            onOpenChange={setDismissOpen}
-            trigger={
-              <button
-                type="button"
-                disabled={pending || isDismissed}
-                className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-                title="Dismiss"
+          {!readOnly && (
+            <>
+              <Dropdown
+                open={dismissOpen}
+                onOpenChange={setDismissOpen}
+                trigger={
+                  <button
+                    type="button"
+                    disabled={pending || isDismissed}
+                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+                    title="Dismiss"
+                  >
+                    <EyeOffIcon className="size-3" />
+                    Dismiss
+                    <ChevronDownIcon className="size-2.5" />
+                  </button>
+                }
               >
-                <EyeOffIcon className="size-3" />
-                Dismiss
-                <ChevronDownIcon className="size-2.5" />
-              </button>
-            }
-          >
-            {DISMISS_OPTIONS.map((o) => (
-              <button
-                key={o.key}
-                type="button"
-                onClick={() => dismiss(o.key)}
-                className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
+                {DISMISS_OPTIONS.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => dismiss(o.key)}
+                    className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </Dropdown>
+              <Dropdown
+                open={snoozeOpen}
+                onOpenChange={setSnoozeOpen}
+                trigger={
+                  <button
+                    type="button"
+                    disabled={pending || isSnoozed}
+                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+                    title="Snooze"
+                  >
+                    <BellIcon className="size-3" />
+                    Snooze
+                    <ChevronDownIcon className="size-2.5" />
+                  </button>
+                }
               >
-                {o.label}
-              </button>
-            ))}
-          </Dropdown>
-          <Dropdown
-            open={snoozeOpen}
-            onOpenChange={setSnoozeOpen}
-            trigger={
-              <button
-                type="button"
-                disabled={pending || isSnoozed}
-                className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-                title="Snooze"
-              >
-                <BellIcon className="size-3" />
-                Snooze
-                <ChevronDownIcon className="size-2.5" />
-              </button>
-            }
-          >
-            {SNOOZE_OPTIONS.map((o) => (
-              <button
-                key={o.key}
-                type="button"
-                onClick={() => snooze(o.key)}
-                className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
-              >
-                {o.label}
-              </button>
-            ))}
-          </Dropdown>
+                {SNOOZE_OPTIONS.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => snooze(o.key)}
+                    className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </Dropdown>
+            </>
+          )}
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close inspector (Esc)"
             className="rounded p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
-            title="Close (Esc)"
           >
             <XIcon className="size-4" />
           </button>
@@ -183,7 +213,7 @@ export function Inspector({
       </header>
 
       {actionError ? (
-        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
           {actionError}
         </div>
       ) : null}
@@ -210,16 +240,20 @@ export function Inspector({
       ) : null}
 
       <Tabs defaultValue="detail" className="flex-1 overflow-hidden">
-        <TabsList className="m-3 grid w-[calc(100%-1.5rem)] grid-cols-3 bg-white/5">
+        <TabsList
+          className={`m-3 grid w-[calc(100%-1.5rem)] ${readOnly ? 'grid-cols-2' : 'grid-cols-3'} bg-white/5`}
+        >
           <TabsTrigger value="detail" className="text-xs">
             Detail
           </TabsTrigger>
           <TabsTrigger value="why" className="text-xs">
             Why important
           </TabsTrigger>
-          <TabsTrigger value="ai" className="text-xs">
-            AI solution
-          </TabsTrigger>
+          {!readOnly && (
+            <TabsTrigger value="ai" className="text-xs">
+              AI solution
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -238,18 +272,30 @@ export function Inspector({
                 {file.findingSnippet}
               </p>
             </div>
+            {readOnly && (
+              <Link
+                href="/login"
+                className="mt-4 inline-flex items-center gap-1.5 rounded border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/25"
+              >
+                <LogInIcon className="size-3" />
+                Sign in to apply AI solutions
+              </Link>
+            )}
           </TabsContent>
 
           <TabsContent value="why" className="text-sm text-white/85">
             <p className="leading-relaxed">{whyImportantFor(inferCategory(file.path))}</p>
           </TabsContent>
 
-          <TabsContent value="ai">
-            <AISolutionPlaceholder file={file} />
-          </TabsContent>
+          {!readOnly && (
+            <TabsContent value="ai">
+              <AISolutionPlaceholder file={file} />
+            </TabsContent>
+          )}
         </div>
       </Tabs>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -288,9 +334,20 @@ function Dropdown({
   }, [open, onOpenChange]);
   return (
     <div ref={ref} className="relative">
-      <div onClick={() => onOpenChange(!open)}>{trigger}</div>
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="contents"
+      >
+        {trigger}
+      </button>
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-1 min-w-[140px] rounded border border-white/15 bg-black/95 p-1 shadow-xl backdrop-blur">
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-40 mt-1 min-w-[140px] rounded border border-white/15 bg-black/95 p-1 shadow-xl backdrop-blur"
+        >
           {children}
         </div>
       ) : null}
@@ -321,7 +378,7 @@ function StateBanner({
         type="button"
         onClick={onUndo}
         disabled={pending}
-        className="inline-flex items-center gap-1 rounded border border-white/15 px-2 py-1 text-[11px] text-white/80 hover:bg-white/10 disabled:opacity-50"
+        className="inline-flex items-center gap-1 rounded border border-white/15 px-2 py-1 type-mono-sm text-white/80 hover:bg-white/10 disabled:opacity-50"
       >
         <RefreshCwIcon className="size-3" />
         Undo

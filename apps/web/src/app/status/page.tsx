@@ -42,11 +42,14 @@ export default async function StatusPage() {
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <main
+        id="main-content"
+        className="mx-auto max-w-3xl space-y-6 px-6 py-10 sm:px-8 sm:py-16"
+      >
         <header className="space-y-2">
           <div className="flex items-center gap-2">
             <Activity className="size-5 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="type-h1 font-semibold tracking-tight">
               ValidationKit status
             </h1>
           </div>
@@ -114,7 +117,7 @@ export default async function StatusPage() {
                   )}
                   <div className="space-y-0.5">
                     <div className="font-medium">{s.name}</div>
-                    <div className="text-[0.7rem] font-mono text-muted-foreground">
+                    <div className="type-mono-sm font-mono text-muted-foreground">
                       {s.detail}
                     </div>
                   </div>

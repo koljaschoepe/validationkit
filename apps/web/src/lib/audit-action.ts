@@ -29,6 +29,7 @@ export interface AuditFormState {
   resolvedPath?: string;
   displayPath?: string;
   savedScanId?: string;
+  workspaceSlug?: string;
   background?: boolean;
 }
 
@@ -103,19 +104,23 @@ export async function auditAction(
       isInngestEnabled() &&
       probe.files.length > BACKGROUND_THRESHOLD
     ) {
-      const scanId = await enqueueBackgroundAudit(user.id, abs);
-      revalidatePath("/scans");
+      const { scanId, workspaceSlug } = await enqueueBackgroundAudit(
+        user.id,
+        abs,
+      );
+      revalidatePath(`/${workspaceSlug}/scans`);
       return {
         ok: true,
         resolvedPath: abs,
         savedScanId: scanId,
+        workspaceSlug,
         background: true,
       };
     }
 
     const report = await runAudit(probe, { includeLLM: true });
-    const savedScanId = await maybePersist(probe, report, abs);
-    if (savedScanId) revalidatePath("/scans");
+    const persisted = await maybePersist(probe, report, abs);
+    if (persisted) revalidatePath(`/${persisted.workspaceSlug}/scans`);
 
     const state: AuditFormState = {
       ok: true,
@@ -125,7 +130,10 @@ export async function auditAction(
       displayPath: abs,
       background: false,
     };
-    if (savedScanId) state.savedScanId = savedScanId;
+    if (persisted) {
+      state.savedScanId = persisted.scanId;
+      state.workspaceSlug = persisted.workspaceSlug;
+    }
     return state;
   } catch (err) {
     return {
@@ -166,12 +174,12 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
       rootPath: displayPath,
     };
 
-    const savedScanId = await maybePersist(
+    const persisted = await maybePersist(
       rewrittenScan,
       rewrittenReport,
       displayPath,
     );
-    if (savedScanId) revalidatePath("/scans");
+    if (persisted) revalidatePath(`/${persisted.workspaceSlug}/scans`);
 
     const state: AuditFormState = {
       ok: true,
@@ -181,7 +189,10 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
       displayPath,
       background: false,
     };
-    if (savedScanId) state.savedScanId = savedScanId;
+    if (persisted) {
+      state.savedScanId = persisted.scanId;
+      state.workspaceSlug = persisted.workspaceSlug;
+    }
     return state;
   } catch (err) {
     return {
@@ -199,9 +210,10 @@ async function auditGithubUrl(rawUrl: string): Promise<AuditFormState> {
 async function enqueueBackgroundAudit(
   userId: string,
   rootPath: string,
-): Promise<string> {
+): Promise<{ scanId: string; workspaceSlug: string }> {
   const db = getDb();
-  const workspaceId = await ensureDefaultWorkspace(userId);
+  const { id: workspaceId, slug: workspaceSlug } =
+    await ensureDefaultWorkspace(userId);
 
   const inserted = await db
     .insert(schema.scan)
@@ -223,20 +235,21 @@ async function enqueueBackgroundAudit(
     data: { scanId: row.id, rootPath },
   });
 
-  return row.id;
+  return { scanId: row.id, workspaceSlug };
 }
 
 async function maybePersist(
   scan: ParserResult,
   report: AuditReport,
   rootPath: string,
-): Promise<string | null> {
+): Promise<{ scanId: string; workspaceSlug: string } | null> {
   if (!isDbEnabled()) return null;
   const user = await getSessionUser();
   if (!user) return null;
 
   const db = getDb();
-  const workspaceId = await ensureDefaultWorkspace(user.id);
+  const { id: workspaceId, slug: workspaceSlug } =
+    await ensureDefaultWorkspace(user.id);
 
   const insertedScan = await db
     .insert(schema.scan)
@@ -276,5 +289,5 @@ async function maybePersist(
   // Sprint G2 — flush the Galaxie cache so the new scan + findings show up.
   updateTag(galaxieWorkspaceTag(workspaceId));
 
-  return row.id;
+  return { scanId: row.id, workspaceSlug };
 }

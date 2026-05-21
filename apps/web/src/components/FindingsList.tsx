@@ -238,7 +238,7 @@ export function FindingsList({
                 />
                 <SeverityBadge severity={f.severity} />
                 <CardTitle className="text-base flex-1">{f.title}</CardTitle>
-                <Badge variant={f.deterministic ? "secondary" : "outline"} className="font-mono text-[0.65rem]">
+                <Badge variant={f.deterministic ? "secondary" : "outline"} className="font-mono type-mono-sm">
                   {f.category}
                   {f.deterministic ? "" : " · LLM"}
                 </Badge>
@@ -253,7 +253,7 @@ export function FindingsList({
                     {f.citations.map((c, i) => (
                       <code
                         key={`${c.path}-${i}`}
-                        className="rounded bg-muted px-1.5 py-0.5 text-[0.7rem] font-mono"
+                        className="rounded bg-muted px-1.5 py-0.5 type-mono-sm font-mono"
                       >
                         {c.path}
                         {c.line ? `:${c.line}` : ""}
@@ -290,7 +290,7 @@ export function FindingsList({
               {!fixable ? (
                 <p className="text-xs text-muted-foreground">
                   No fix-generator covers this category yet (e.g.{" "}
-                  <code className="font-mono text-[0.7rem]">conflicting-rules</code>{" "}
+                  <code className="font-mono type-mono-sm">conflicting-rules</code>{" "}
                   remains LLM-eval-only in v0.0.17).
                 </p>
               ) : null}
@@ -337,7 +337,7 @@ export function FindingsList({
               ))}
             </ul>
           ) : null}
-          <pre className="max-h-[50vh] overflow-auto rounded-md border bg-muted/50 p-3 text-[0.7rem] font-mono whitespace-pre-wrap break-words">
+          <pre className="max-h-[50vh] overflow-auto rounded-md border bg-muted/50 p-3 type-mono-sm font-mono whitespace-pre-wrap break-words">
             {preview?.patch}
           </pre>
           <DialogFooter>

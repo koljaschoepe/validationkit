@@ -7,10 +7,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
+      "@/": path.resolve(here, "apps/web/src") + "/",
       "@vk/core": path.resolve(here, "packages/core/src/index.ts"),
       "@vk/parser": path.resolve(here, "packages/parser/src/index.ts"),
       "@vk/audit": path.resolve(here, "packages/audit/src/index.ts"),
-      "@vk/drift": path.resolve(here, "packages/drift/src/index.ts"),
       "@vk/llm": path.resolve(here, "packages/llm/src/index.ts"),
       "@vk/db": path.resolve(here, "packages/db/src/index.ts"),
       "@vk/auth": path.resolve(here, "packages/auth/src/index.ts"),
@@ -23,14 +23,13 @@ export default defineConfig({
         "packages/github-app/src/index.ts",
       ),
       "@vk/inngest": path.resolve(here, "packages/inngest/src/index.ts"),
-      "@vk/bip-generator": path.resolve(
-        here,
-        "packages/bip-generator/src/index.ts",
-      ),
     },
   },
   test: {
-    include: ["packages/**/*.test.ts"],
+    include: [
+      "packages/**/*.test.ts",
+      "apps/web/src/**/*.test.{ts,tsx}",
+    ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.next/**"],
     environment: "node",
     pool: "threads",

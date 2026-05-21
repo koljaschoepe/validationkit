@@ -1,7 +1,7 @@
 'use client';
 
+import { SeverityBadge } from '@/components/ui/severity-badge';
 import type { FileNode } from '@/lib/galaxie/types';
-import { severityHex } from '@/lib/galaxie/severity-colors';
 
 export interface TooltipState {
   x: number;
@@ -18,12 +18,7 @@ export function GalaxieTooltip({ state }: { state: TooltipState }) {
     >
       <div className="flex items-baseline justify-between gap-2 pb-1">
         <span className="text-white/90">{file.path}</span>
-        <span
-          className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black"
-          style={{ background: severityHex(file.severity) }}
-        >
-          {file.severity}
-        </span>
+        <SeverityBadge severity={file.severity} />
       </div>
       <div className="text-white/70">{file.findingSnippet}</div>
     </div>

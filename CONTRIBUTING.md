@@ -13,7 +13,7 @@ ValidationKit is solo-maintained until further notice. Contributions land via PR
 
 ## What lands slow (or doesn't)
 
-- New top-level features. The active phase is locked sprint-by-sprint in `docs/roadmap/phase-galaxie.md`; new features need an ADR in `docs/adrs/` and a plan in `docs/plans/`. Open an issue first.
+- New top-level features. The active phase is described in `.claude/CLAUDE.md`; new features need an ADR in `docs/adrs/` and a plan in `docs/plans/`. Open an issue first.
 - Refactors with no functional benefit. The codebase is young; structure changes daily. Refactor PRs get rebased into oblivion.
 - New workspace packages. Each `packages/<name>/` is a discrete deploy unit and adds CI minutes. Justify the split in the PR description.
 - "AI Review" / "Multi-Model Compare" marketing copy without an eval-pass on the golden-set.

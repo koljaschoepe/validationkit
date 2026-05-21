@@ -3,9 +3,10 @@ import { isAuthEnabled } from "@vk/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getSessionUser } from "@/lib/session";
+import { SiteNavLinks } from "./SiteNavLinks";
 
 /**
- * Top-bar nav for non-dashboard surfaces (/, /drift, /trust, /login).
+ * Top-bar nav for non-dashboard surfaces (/, /trust, /login).
  * Signed-in users get a "Dashboard" CTA back to the workspace surface.
  */
 export async function SiteNav() {
@@ -13,8 +14,11 @@ export async function SiteNav() {
   const user = authOn ? await getSessionUser() : null;
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+    <header
+      id="site-nav"
+      className="sticky top-0 z-30 w-full border-b border-border bg-background/80 backdrop-blur"
+    >
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-4 px-6 sm:px-8">
         <Link
           href="/"
           className="flex items-center gap-2 font-mono text-sm font-bold tracking-tight"
@@ -25,26 +29,7 @@ export async function SiteNav() {
 
         <Separator orientation="vertical" className="h-5" />
 
-        <nav className="flex items-center gap-1 text-sm">
-          <Link
-            href="/"
-            className="rounded px-2 py-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            Audit
-          </Link>
-          <Link
-            href="/drift"
-            className="rounded px-2 py-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            Drift
-          </Link>
-          <Link
-            href="/trust"
-            className="rounded px-2 py-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            Trust
-          </Link>
-        </nav>
+        <SiteNavLinks />
 
         <div className="ml-auto flex items-center gap-2">
           {user ? (

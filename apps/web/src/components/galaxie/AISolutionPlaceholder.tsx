@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircleIcon,
-  LockIcon,
   Loader2Icon,
   RefreshCwIcon,
   SparklesIcon,
@@ -110,7 +109,7 @@ function LoadingBlock() {
     <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
       <Loader2Icon className="size-5 animate-spin text-white/50" />
       <p className="font-mono text-xs text-white/60">Generating solution…</p>
-      <p className="text-[10px] text-white/40">
+      <p className="type-mono-sm text-white/40">
         Deterministic fix in &lt;1s, LLM-augmented in 5–30s.
       </p>
     </div>
@@ -130,7 +129,7 @@ function UnsupportedBlock({ file }: { file: FileNode }) {
           Why-important tabs carry the full context — apply by hand for now.
         </p>
       </div>
-      <p className="font-mono text-[10px] text-white/30">
+      <p className="font-mono type-mono-sm text-white/30">
         finding-id: {file.id}
       </p>
     </div>
@@ -148,8 +147,8 @@ function FailureBlock({
 }) {
   return (
     <div className="space-y-3">
-      <div className="rounded border border-red-500/30 bg-red-500/5 px-3 py-3 text-xs">
-        <div className="flex items-center gap-2 text-red-300">
+      <div className="rounded border border-destructive/30 bg-destructive/5 px-3 py-3 text-xs">
+        <div className="flex items-center gap-2 text-destructive">
           <XCircleIcon className="size-3.5" />
           <span className="font-medium">{title}</span>
         </div>
@@ -194,7 +193,7 @@ function ReadyBlock({ solution }: { solution: SolutionRow }) {
       )}
 
       {solution.filesTouched.length > 0 ? (
-        <div className="text-[10px] text-white/40">
+        <div className="type-mono-sm text-white/40">
           Files: {solution.filesTouched.join(', ')}
         </div>
       ) : null}
@@ -238,17 +237,17 @@ function ApplyButton({ solutionId }: { solutionId: string }) {
         type="button"
         onClick={onClick}
         disabled={pending}
-        className="inline-flex items-center gap-1.5 rounded border border-green-500/30 bg-green-500/15 px-3 py-1.5 text-xs text-green-200 transition hover:bg-green-500/25 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/25 disabled:opacity-50"
       >
         <SparklesIcon className="size-3" />
         {pending ? 'Applying…' : 'Apply solution'}
       </button>
-      <p className="text-[10px] text-white/40">
+      <p className="type-mono-sm text-white/40">
         Default: writes patch to <code>/tmp/vk-patches/</code> via LocalGitClient.
         Configure GitHub-App env vars to upgrade to PR dispatch.
       </p>
       {result && !result.ok ? (
-        <p className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1 text-[11px] text-red-300">
+        <p className="rounded border border-destructive/30 bg-destructive/5 px-2 py-1 type-mono-sm text-destructive">
           {result.error}
         </p>
       ) : null}
@@ -262,23 +261,23 @@ function ApplySuccess({
   result: { mode?: string; targetUrl?: string; targetStatus?: string };
 }) {
   return (
-    <div className="space-y-2 rounded border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs">
-      <div className="flex items-center gap-2 text-green-200">
+    <div className="space-y-2 rounded border border-primary/30 bg-primary/10 px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 text-primary">
         <SparklesIcon className="size-3.5" />
         <span className="font-medium">
           Applied via {result.mode === 'local' ? 'local patch' : result.mode}
         </span>
       </div>
       {result.targetUrl ? (
-        <p className="break-all font-mono text-[10px] text-white/70">
+        <p className="break-all font-mono type-mono-sm text-white/70">
           {result.targetUrl}
         </p>
       ) : null}
       {result.targetStatus && result.targetStatus !== 'n/a' ? (
-        <p className="text-[10px] text-white/50">Status: {result.targetStatus}</p>
+        <p className="type-mono-sm text-white/50">Status: {result.targetStatus}</p>
       ) : null}
       {result.mode === 'local' ? (
-        <p className="text-[10px] text-white/50">
+        <p className="type-mono-sm text-white/50">
           Apply by hand: <code>cd &lt;repo&gt; && git apply &lt;path&gt;</code>
         </p>
       ) : null}
@@ -293,14 +292,16 @@ function ConfidencePill({
   confidence: 'low' | 'mid' | 'high';
   deterministic: boolean;
 }) {
-  const colorMap = {
-    high: 'bg-green-500/20 text-green-300 border-green-500/30',
-    mid: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    low: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  // Monochrome encoding: solid primary for high, neutral solid for mid,
+  // dashed muted for low. Mirrors the SeverityBadge convention.
+  const styleMap = {
+    high: 'border-solid border-primary/40 bg-primary/15 text-primary font-semibold',
+    mid: 'border-solid border-white/25 bg-white/5 text-white/80 font-medium',
+    low: 'border-dashed border-white/20 bg-transparent text-white/55 font-normal italic',
   } as const;
   return (
     <span
-      className={`rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${colorMap[confidence]}`}
+      className={`rounded border px-1.5 py-0.5 font-mono type-mono-sm uppercase tracking-wider ${styleMap[confidence]}`}
     >
       {deterministic ? 'auto' : confidence}
     </span>

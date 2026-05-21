@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default async function LoginPage() {
   if (!isAuthEnabled()) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
+      <main id="main-content" className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-8 sm:px-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Login disabled</CardTitle>
@@ -41,9 +41,9 @@ pnpm db:migrate`}
   if (user) redirect("/dashboard");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
+    <main id="main-content" className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-8 sm:px-8">
       <Card>
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-3">
           <CardTitle className="text-xl">Sign in</CardTitle>
           <p className="text-sm text-muted-foreground">
             Email magic link. No passwords stored. The link drops you on the

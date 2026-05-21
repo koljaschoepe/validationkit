@@ -77,12 +77,15 @@ export default async function PublicPricingPage({
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-5xl space-y-10 px-4 py-10 sm:px-6">
+      <main
+        id="main-content"
+        className="mx-auto max-w-5xl space-y-10 px-6 py-10 sm:px-8 sm:py-16"
+      >
         <header className="space-y-3 text-center">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="type-display font-semibold tracking-tight">
             Agent-file audit — pricing
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+          <p className="type-body text-muted-foreground max-w-2xl mx-auto">
             Flat tiers. No per-repo metering. No usage surprises. The free
             tier covers 1 repo with the full audit-rule set — you feel the
             wedge before you pay.
@@ -116,24 +119,27 @@ export default async function PublicPricingPage({
             return (
               <Card
                 key={id}
-                className={
-                  id === "agency_pro" ? "border-primary shadow-md" : undefined
-                }
+                className={cn(
+                  "relative",
+                  id === "agency_pro" && "border-primary/60 ring-1 ring-primary/30",
+                )}
               >
+                {id === "agency_pro" ? (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-foreground px-2.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-background">
+                    Most agencies
+                  </span>
+                ) : null}
                 <CardHeader className="space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{tier.label}</CardTitle>
                     <div className="flex flex-wrap items-center gap-1">
-                      {id === "agency_pro" ? (
-                        <Badge>Most agencies</Badge>
-                      ) : null}
                       {tier.annualOnly ? (
-                        <Badge variant="outline" className="text-[0.6rem]">
+                        <Badge variant="outline" className="type-mono-sm">
                           Annual only
                         </Badge>
                       ) : null}
                       {tier.msaRequired ? (
-                        <Badge variant="outline" className="text-[0.6rem]">
+                        <Badge variant="outline" className="type-mono-sm">
                           MSA
                         </Badge>
                       ) : null}
@@ -165,9 +171,6 @@ export default async function PublicPricingPage({
                     />
                     <FeatureRow text="5 deterministic + 1 LLM-opt-in audit rule" />
                     <FeatureRow text="Patch-download for 4 of 6 categories" />
-                    {id !== "free" ? (
-                      <FeatureRow text="Drift detection across repo pairs" />
-                    ) : null}
                     {id === "agency_pro" || id === "agency_scale" || id === "agency_scale_plus" ? (
                       <FeatureRow text="Cross-customer cockpit" />
                     ) : null}

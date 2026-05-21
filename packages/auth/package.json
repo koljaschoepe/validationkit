@@ -15,7 +15,10 @@
       "default": "./src/client.ts"
     }
   },
-  "files": ["dist", "src/client.ts"],
+  "files": [
+    "dist",
+    "src/client.ts"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -23,13 +26,23 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
     "@vk/db": "workspace:*",
     "better-auth": "^1.6.11",
     "nodemailer": "^6.9.16"
   },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/nodemailer": "^6.4.17",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "typescript": "^5.7.2"
   }
 }

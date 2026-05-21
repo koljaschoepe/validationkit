@@ -1,8 +1,15 @@
+---
+id: 0001
+title: Customer-Schema — Echte Tabelle (Option C2)
+status: accepted
+date: 2026-05-19
+---
+
 # ADR-0001 — Customer-Schema: Echte Tabelle (Option C2)
 
 > Datum: 2026-05-19
 > Status: ✅ Accepted
-> Entscheider: User-Decision (siehe `docs/plans/master-vision-galaxie.md` §11 Q3)
+> Entscheider: User-Decision (siehe `docs/plans/done/galaxie/master-vision-galaxie.md` §11 Q3)
 
 ---
 

@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import { GitPullRequestIcon, GitCommitIcon } from "lucide-react";
 
 export function ApplyModeSelector({
+  workspaceSlug,
   customerId,
   current,
 }: {
+  workspaceSlug: string;
   customerId: string;
   current: "pr" | "direct";
 }) {
@@ -28,7 +30,11 @@ export function ApplyModeSelector({
       const { updateCustomerApplyModeAction } = await import(
         "@/lib/customer-actions"
       );
-      const r = await updateCustomerApplyModeAction(customerId, next);
+      const r = await updateCustomerApplyModeAction(
+        workspaceSlug,
+        customerId,
+        next,
+      );
       if (!r.ok) {
         setErr(r.error ?? "Update failed.");
         setValue(current);

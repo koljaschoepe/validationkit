@@ -36,18 +36,42 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* ValidationKit severity bands (PRD constraint #5) */
-  --color-sev-kill: oklch(0.69 0.21 25);
-  --color-sev-weak: oklch(0.74 0.17 50);
-  --color-sev-mid: oklch(0.85 0.16 90);
-  --color-sev-strong: oklch(0.83 0.18 145);
-  --color-sev-exceptional: oklch(0.83 0.14 165);
+  /* ValidationKit severity bands (PRD constraint #5).
+     Indirection via --sev-* lets dark/light modes override the scale.
+     Severity is encoded via icon + border + weight (see SeverityBadge);
+     the grayscale here is a secondary indicator. */
+  --color-sev-kill: var(--sev-kill);
+  --color-sev-weak: var(--sev-weak);
+  --color-sev-mid: var(--sev-mid);
+  --color-sev-strong: var(--sev-strong);
+  --color-sev-exceptional: var(--sev-exceptional);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* ──────────────────────────────────────────────────────────────────────
+     VK Design System — 3-Tier Token Layer
+     (Phase Nova-2 Foundation, 2026-05-20)
+     Layer 1 Primitive → Layer 2 Semantic → Layer 3 Component
+     shadcn tokens above remain untouched (backward-compat).
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* Layer 2 Semantic — Surface & Text */
+  --color-vk-surface: var(--vk-surface);
+  --color-vk-surface-raised: var(--vk-surface-raised);
+  --color-vk-surface-elevated: var(--vk-surface-elevated);
+  --color-vk-border-hairline: var(--vk-border-hairline);
+  --color-vk-border-strong: var(--vk-border-strong);
+  --color-vk-text-primary: var(--vk-text-primary);
+  --color-vk-text-secondary: var(--vk-text-secondary);
+  --color-vk-text-muted: var(--vk-text-muted);
+  --color-vk-status-ok: var(--vk-status-ok);
+  --color-vk-status-warn: var(--vk-status-warn);
+  --color-vk-status-kill: var(--vk-status-kill);
+  --color-vk-status-info: var(--vk-status-info);
 }
 
 /*
@@ -62,27 +86,90 @@
   --card-foreground: oklch(0.94 0.005 270);
   --popover: oklch(0.205 0.005 270);
   --popover-foreground: oklch(0.94 0.005 270);
-  --primary: oklch(0.835 0.13 175);         /* mint-teal #5eead4 */
-  --primary-foreground: oklch(0.155 0.004 270);
+  /* Pure monochrome chrome (Frontend-Relaunch v2, May 2026).
+     No accent hue anywhere — only severity carries color. */
+  --primary: oklch(0.92 0 0);                /* near-white for CTAs on dark bg */
+  --primary-foreground: oklch(0.12 0 0);     /* near-black text on near-white */
   --secondary: oklch(0.255 0.005 270);
   --secondary-foreground: oklch(0.94 0.005 270);
   --muted: oklch(0.235 0.005 270);
-  --muted-foreground: oklch(0.66 0.012 270);  /* near #9aa0aa */
-  --accent: oklch(0.255 0.005 270);
+  --muted-foreground: oklch(0.66 0.012 270);
+  --accent: oklch(0.255 0.005 270);          /* same as secondary */
   --accent-foreground: oklch(0.94 0.005 270);
-  --destructive: oklch(0.69 0.21 25);        /* matches sev-kill */
-  --border: oklch(0.295 0.006 270);          /* near #2a2e36 */
+  --border: oklch(0.295 0.006 270);
   --input: oklch(0.275 0.006 270);
-  --ring: oklch(0.835 0.13 175);
+  --ring: oklch(0.94 0.005 270 / 0.6);       /* near-white focus ring, no hue */
   --sidebar: oklch(0.18 0.004 270);
   --sidebar-foreground: oklch(0.94 0.005 270);
-  --sidebar-primary: oklch(0.835 0.13 175);
-  --sidebar-primary-foreground: oklch(0.155 0.004 270);
+  --sidebar-primary: oklch(0.92 0 0);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
   --sidebar-accent: oklch(0.255 0.005 270);
   --sidebar-accent-foreground: oklch(0.94 0.005 270);
   --sidebar-border: oklch(0.255 0.005 270);
-  --sidebar-ring: oklch(0.835 0.13 175);
+  --sidebar-ring: oklch(0.94 0.005 270 / 0.6);
   --radius: 0.5rem;
+
+  /* Severity scale (Frontend-Relaunch v2): three-tier traffic-light.
+     Kill+Weak = red (Weak slightly dimmer), Mid = orange, Strong+Exceptional
+     = green (Exceptional slightly brighter). Differentiation within red/green
+     comes from border weight + icon + font-weight (see SeverityBadge), so
+     screen readers and color-blind users stay covered. */
+  --sev-kill: oklch(0.62 0.24 25);           /* saturated red */
+  --sev-weak: oklch(0.58 0.18 30);           /* dimmer red */
+  --sev-mid: oklch(0.66 0.18 60);            /* warm orange */
+  --sev-strong: oklch(0.60 0.18 145);        /* dim green */
+  --sev-exceptional: oklch(0.72 0.18 145);   /* brighter green */
+  --destructive: var(--sev-kill);            /* semantically identical to Kill */
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* ──────────────────────────────────────────────────────────────────────
+     VK Design System — Layer 1 Primitives + Layer 3 Component-Vars
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* Layer 1 — Primitive Ink Scale (13 steps, low-chroma cool blue-grey) */
+  --vk-ink-0:  oklch(0.04 0.003 270);  /* near-black */
+  --vk-ink-1:  oklch(0.08 0.003 270);
+  --vk-ink-2:  oklch(0.12 0.004 270);
+  --vk-ink-3:  oklch(0.18 0.004 270);
+  --vk-ink-4:  oklch(0.24 0.005 270);
+  --vk-ink-5:  oklch(0.32 0.006 270);
+  --vk-ink-6:  oklch(0.42 0.007 270);
+  --vk-ink-7:  oklch(0.52 0.008 270);
+  --vk-ink-8:  oklch(0.62 0.008 270);
+  --vk-ink-9:  oklch(0.72 0.008 270);
+  --vk-ink-10: oklch(0.82 0.006 270);
+  --vk-ink-11: oklch(0.92 0.005 270);
+  --vk-ink-12: oklch(0.98 0.003 270);  /* near-white */
+
+  /* Layer 2 — Semantic (dark-mode-first, mirrors :root context) */
+  --vk-surface: var(--vk-ink-1);
+  --vk-surface-raised: var(--vk-ink-2);
+  --vk-surface-elevated: var(--vk-ink-3);
+  --vk-border-hairline: var(--vk-ink-3);
+  --vk-border-strong: var(--vk-ink-5);
+  --vk-text-primary: var(--vk-ink-11);
+  --vk-text-secondary: var(--vk-ink-9);
+  --vk-text-muted: var(--vk-ink-7);
+  --vk-status-ok: var(--sev-strong);
+  --vk-status-warn: var(--sev-mid);
+  --vk-status-kill: var(--sev-kill);
+  --vk-status-info: var(--vk-ink-8);
+
+  /* Layer 3 — Component Tokens */
+  --vk-radius-sm: 4px;
+  --vk-radius-md: 6px;
+  --vk-radius-lg: 8px;
+  --vk-radius-card: 6px;
+
+  --vk-ease-camera: cubic-bezier(0.4, 0, 0.2, 1);          /* Material/Apple-Maps */
+  --vk-ease-entrance: cubic-bezier(0.23, 1, 0.32, 1);      /* Frigade reveal */
+  --vk-ease-interaction: cubic-bezier(0.32, 0.72, 0, 1);   /* Linear hover/click */
+  --vk-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);       /* general purpose */
+
+  --vk-dur-micro: 160ms;     /* hover, focus-ring */
+  --vk-dur-base: 240ms;      /* inspector swap, reveal */
+  --vk-dur-camera: 640ms;    /* galaxie zoom */
+  --vk-dur-pulse: 2400ms;    /* severity glow loop */
 }
 
 @layer base {
@@ -95,153 +182,76 @@
   html {
     @apply font-sans;
   }
+
+  /* Focus-visible only on keyboard navigation, not on mouse-click.
+     Uses the near-white --ring token (no hue, monochrome chrome). */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
 }
 
-/*
- * Severity utility classes — preserved from Sprint 0.10 for pages still rendering
- * the old pill markup. The SeverityBadge cva component (Sprint 0.11 follow-up) is
- * the canonical replacement.
- */
-.sev-pill {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-family: var(--font-mono);
-}
-.sev-pill[data-sev="Kill"]        { background: color-mix(in oklch, var(--color-sev-kill) 18%, transparent); color: var(--color-sev-kill); }
-.sev-pill[data-sev="Weak"]        { background: color-mix(in oklch, var(--color-sev-weak) 18%, transparent); color: var(--color-sev-weak); }
-.sev-pill[data-sev="Mid"]         { background: color-mix(in oklch, var(--color-sev-mid) 18%, transparent); color: var(--color-sev-mid); }
-.sev-pill[data-sev="Strong"]      { background: color-mix(in oklch, var(--color-sev-strong) 18%, transparent); color: var(--color-sev-strong); }
-.sev-pill[data-sev="Exceptional"] { background: color-mix(in oklch, var(--color-sev-exceptional) 18%, transparent); color: var(--color-sev-exceptional); }
-
-/*
- * Legacy markup fallbacks — older routes (customers/[id], requests, drift,
- * bip, DriftView) still use raw <div className="callout"> / "error" / "lede"
- * markup. These shims give them a defensible look until each page is
- * migrated to shadcn Alert/Card. Sprint 0.14.
- */
-.callout {
-  border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent);
-  background: color-mix(in oklch, var(--color-primary) 5%, transparent);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  margin: 0.75rem 0;
-}
-.error {
-  border: 1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent);
-  background: color-mix(in oklch, var(--color-destructive) 5%, transparent);
-  color: var(--color-destructive);
-  border-radius: var(--radius);
-  padding: 0.6rem 0.9rem;
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
-}
-.lede {
-  color: var(--color-muted-foreground);
-  font-size: 0.95rem;
-  margin: 0.5rem 0 1rem;
-}
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  max-width: 32rem;
-}
-.form label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-muted-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.form input,
-.form select,
-.form textarea {
-  background: var(--color-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
-  color: var(--color-foreground);
-  font-size: 0.875rem;
-}
-.form input:focus,
-.form select:focus,
-.form textarea:focus {
-  outline: 2px solid var(--color-ring);
-  outline-offset: 1px;
-}
-.form button {
-  align-self: flex-start;
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border: none;
-  border-radius: var(--radius);
-  padding: 0.45rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.inventory {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-.inventory th,
-.inventory td {
-  padding: 0.45rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
-.inventory th {
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted-foreground);
-}
-.inventory .path,
-.inventory .kind {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-.inventory .num {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-main > header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
+/* Type-scale utilities (Frontend-Relaunch v2 Phase 7).
+   Replaces ~25 arbitrary `text-[0.7rem]` / `text-[10px]` / `text-[11px]`
+   call-sites with named semantic classes. Sizes follow a perfect-fifth
+   rhythm anchored at 15px body. */
+@utility type-display {
+  font-size: 2.25rem;       /* 36px */
+  line-height: 1.2;
   letter-spacing: -0.02em;
-  margin: 0.5rem 0 0.4rem;
 }
-main > h2 {
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-muted-foreground);
-  margin: 1.5rem 0 0.5rem;
+@utility type-h1 {
+  font-size: 1.875rem;      /* 30px */
+  line-height: 1.25;
+  letter-spacing: -0.015em;
 }
-main {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
+@utility type-h2 {
+  font-size: 1.25rem;       /* 20px */
+  line-height: 1.3;
 }
-main > footer {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-  font-size: 0.75rem;
-  color: var(--color-muted-foreground);
+@utility type-body {
+  font-size: 0.9375rem;     /* 15px */
+  line-height: 1.5;
 }
+@utility type-body-sm {
+  font-size: 0.8125rem;     /* 13px */
+  line-height: 1.5;
+}
+@utility type-caption {
+  font-size: 0.75rem;       /* 12px */
+  line-height: 1.4;
+}
+@utility type-mono-sm {
+  font-size: 0.6875rem;     /* 11px */
+  line-height: 1.4;
+}
+
+/* Honor system "Reduce Motion" preference. Cuts GSAP/Motion animations to
+   near-instant and disables smooth-scroll. Vestibular-disorder a11y. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* asteroid-pulse keyframe (Phase G HeroMockup) entfernt 2026-05-20 —
+   Repo-Galaxie nutzt motion/react `m.g` mit Reveal + Pulse direkt im Component.
+   Siehe components/landing/Sphere.tsx. */
+
+/* Legacy CSS (.sev-pill / .callout / .error / .lede / .form / .inventory /
+   global `main > h1` etc.) wurde in Phase 10 entfernt. Alle ehemaligen
+   Consumer (RequestWriteButton, ScanStatusBanner, customers/[id], requests)
+   sind auf shadcn-Komponenten + SeverityBadge migriert. Globale main-Tag-
+   Styles wurden durch explizite Tailwind-Klassen pro Page ersetzt. */

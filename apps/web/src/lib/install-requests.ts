@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
-import { ensureDefaultWorkspace } from "./workspaces";
+import { resolveWorkspaceFromSlug } from "./workspace-context";
 import { getUserRole } from "./membership";
 
 export interface RequestInstallInput {
@@ -28,6 +28,7 @@ export interface InstallRequestRow {
 }
 
 export async function requestInstall(
+  workspaceSlug: string,
   input: RequestInstallInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const user = await getSessionUser();
@@ -35,14 +36,17 @@ export async function requestInstall(
   if (input.requestedScope !== "read" && input.requestedScope !== "write") {
     return { ok: false, error: "requestedScope must be 'read' or 'write'." };
   }
+  if (!workspaceSlug) {
+    return { ok: false, error: "Missing workspace context." };
+  }
 
+  const ws = await resolveWorkspaceFromSlug(workspaceSlug, user.id);
   const db = getDb();
-  const workspaceId = await ensureDefaultWorkspace(user.id);
 
   const inserted = await db
     .insert(schema.installRequest)
     .values({
-      workspaceId,
+      workspaceId: ws.id,
       requesterId: user.id,
       targetRepoLabel: input.targetRepoLabel,
       targetRootPath: input.targetRootPath,
@@ -51,7 +55,7 @@ export async function requestInstall(
     })
     .returning({ id: schema.installRequest.id });
 
-  revalidatePath("/requests");
+  revalidatePath(`/${ws.slug}/requests`);
   const row = inserted[0];
   if (!row) return { ok: false, error: "Failed to record request." };
   return { ok: true, id: row.id };
@@ -123,6 +127,8 @@ export async function decideInstall(
     userAgent,
   });
 
+  const workspaceSlug = row.workspace.slug;
+
   if (
     decision === "approved" &&
     row.install_request.requestedScope === "write"
@@ -159,13 +165,17 @@ export async function decideInstall(
     }
   }
 
-  revalidatePath("/requests");
-  revalidatePath(`/customers/${row.workspace.id}/access`);
+  revalidatePath(`/${workspaceSlug}/requests`);
+  revalidatePath(`/${workspaceSlug}/customers`);
   return { ok: true };
 }
 
-export async function listRequestsForOwner(
-  userId: string,
+/**
+ * List install-requests for a single workspace. Caller MUST have validated
+ * workspace-membership via resolveWorkspaceFromSlug.
+ */
+export async function listRequestsForWorkspace(
+  workspaceId: string,
 ): Promise<InstallRequestRow[]> {
   const db = getDb();
   const rows = await db
@@ -182,11 +192,7 @@ export async function listRequestsForOwner(
       approverId: schema.installRequest.approverId,
     })
     .from(schema.installRequest)
-    .innerJoin(
-      schema.workspace,
-      eq(schema.installRequest.workspaceId, schema.workspace.id),
-    )
-    .where(eq(schema.workspace.ownerId, userId))
+    .where(eq(schema.installRequest.workspaceId, workspaceId))
     .orderBy(desc(schema.installRequest.requestedAt))
     .limit(100);
   return rows;

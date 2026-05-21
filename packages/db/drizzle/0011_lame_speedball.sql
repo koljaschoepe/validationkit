@@ -1,0 +1,1 @@
+DROP TABLE "drift_run" CASCADE;

@@ -30,4 +30,9 @@ quotes/
 # Patch dispatch outputs
 *.patch
 
+# Lighthouse audit outputs
+lighthouse-*.html
+lighthouse-*.json
+lighthouse-*.report.html
+
 .vercel

@@ -26,8 +26,11 @@ describe('resolveLegacyRedirect', () => {
     expect(resolveLegacyRedirect('/billing', null)).toBeNull();
   });
 
+  it('maps /customers → /<slug>/customers (Routes-Konsolidierung May 19, 2026)', () => {
+    expect(resolveLegacyRedirect('/customers', 'acme')).toBe('/acme/customers');
+  });
+
   it('returns null for unmapped paths', () => {
-    expect(resolveLegacyRedirect('/customers', 'acme')).toBeNull();
     expect(resolveLegacyRedirect('/random', 'acme')).toBeNull();
   });
 });
@@ -43,8 +46,13 @@ describe('shouldAttemptRedirect', () => {
     for (const p of PUBLIC_TOP_LEVEL) {
       expect(shouldAttemptRedirect(p)).toBe(false);
     }
-    expect(shouldAttemptRedirect('/customers/c/abc')).toBe(false);
     expect(shouldAttemptRedirect('/trust/dpa')).toBe(false);
+  });
+
+  it('still attempts redirect for legacy /customers/c/<id> direct-links', () => {
+    // Routes-Konsolidierung (May 19, 2026): /customers/c/<id> bookmarks still
+    // need to be rewritten to /<slug>/customers/c/<id>.
+    expect(shouldAttemptRedirect('/customers/c/abc')).toBe(true);
   });
 
   it('attempts redirect for legacy routes', () => {

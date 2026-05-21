@@ -117,7 +117,7 @@ function Stat({
   return (
     <Card className="bg-card/50">
       <CardContent className="py-3 px-4">
-        <div className="text-[0.65rem] uppercase tracking-wider text-muted-foreground font-medium">
+        <div className="type-mono-sm uppercase tracking-wider text-muted-foreground font-medium">
           {label}
         </div>
         <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>

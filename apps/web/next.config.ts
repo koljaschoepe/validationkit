@@ -10,14 +10,12 @@ const config: NextConfig = {
     "@vk/parser",
     "@vk/audit",
     "@vk/billing",
-    "@vk/drift",
     "@vk/auth",
     "@vk/db",
     "@vk/fixes",
     "@vk/pr-workflow",
     "@vk/github-app",
     "@vk/inngest",
-    "@vk/bip-generator",
   ],
   serverExternalPackages: [
     "fast-glob",
@@ -31,6 +29,17 @@ const config: NextConfig = {
     root: path.resolve(here, "..", ".."),
   },
   typedRoutes: true,
+  // Phase Nova-2 P7: tree-shake-friendly imports for the libraries we use most.
+  // lucide-react is the dominant offender — without this, every imported icon
+  // drags the full barrel-file into the build.
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "d3-hierarchy",
+      "d3-zoom",
+      "d3-selection",
+    ],
+  },
   // Bundle markdown + JSON read at runtime by route handlers.
   // Sprint 1.0: legal markdown for /trust/dpa + sub-processors.
   // Sprint 1.5: eval-results JSON for /trust/eval + per-customer onboarding md.
@@ -39,7 +48,23 @@ const config: NextConfig = {
     "/trust/sub-processors.json": ["../../docs/legal/sub-processors.md"],
     "/trust/sub-processors.xml": ["../../docs/legal/sub-processors.md"],
     "/trust/eval": ["../../eval/conflicts/results/*.json"],
-    "/onboarding/[slug]": ["../../docs/customer-onboarding/*.md"],
+  },
+  async redirects() {
+    return [
+      // Phase Nova-2 P5: user-scope settings moved out of the workspace tree.
+      // Hard-redirect old bookmarks at the edge so the in-app page doesn't
+      // need to render at all.
+      {
+        source: "/:workspace/settings/user",
+        destination: "/account/settings/profile",
+        permanent: true,
+      },
+      {
+        source: "/:workspace/settings/user/:path*",
+        destination: "/account/settings/profile",
+        permanent: true,
+      },
+    ];
   },
 };
 

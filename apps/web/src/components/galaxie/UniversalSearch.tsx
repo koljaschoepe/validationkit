@@ -51,7 +51,7 @@ export function UniversalSearch({
       >
         <SearchIcon className="size-3" />
         <span>Search</span>
-        <kbd className="rounded bg-white/10 px-1 text-[10px] text-white/60">⌘K</kbd>
+        <kbd className="rounded bg-white/10 px-1 type-mono-sm text-white/60">⌘K</kbd>
       </button>
     );
   }
@@ -77,7 +77,7 @@ export function UniversalSearch({
             className="flex-1 bg-transparent font-mono text-sm text-white placeholder-white/30 outline-none"
             autoFocus
           />
-          <kbd className="rounded bg-white/10 px-1 text-[10px] text-white/50">ESC</kbd>
+          <kbd className="rounded bg-white/10 px-1 type-mono-sm text-white/50">ESC</kbd>
         </div>
         <Command.List className="max-h-72 overflow-y-auto p-1">
           <Command.Empty className="px-3 py-4 text-center font-mono text-xs text-white/40">
@@ -100,7 +100,7 @@ export function UniversalSearch({
                     style={{ background: severityHex(c.aggregateSeverity) }}
                   />
                   {c.label}
-                  <span className="ml-auto text-[10px] text-white/40">
+                  <span className="ml-auto type-mono-sm text-white/40">
                     {c.aggregateSeverity}
                   </span>
                 </Command.Item>
@@ -148,7 +148,7 @@ function renderSearchHits(
                 style={{ background: severityHex(c.aggregateSeverity) }}
               />
               {c.label}
-              <span className="ml-auto text-[10px] text-white/40">
+              <span className="ml-auto type-mono-sm text-white/40">
                 {c.aggregateSeverity}
               </span>
             </Command.Item>
@@ -167,14 +167,14 @@ function renderSearchHits(
                 onSelect={() =>
                   pick({ kind: 'file', id: f.id, customer: c, file: f })
                 }
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 font-mono text-[11px] text-white/85 aria-selected:bg-white/10"
+                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 font-mono type-mono-sm text-white/85 aria-selected:bg-white/10"
               >
                 <span
                   className="inline-block size-1.5 rounded-full"
                   style={{ background: severityHex(f.severity) }}
                 />
                 <span className="truncate">{f.path}</span>
-                <span className="ml-auto text-[10px] text-white/40">
+                <span className="ml-auto type-mono-sm text-white/40">
                   {c.slug}
                 </span>
               </Command.Item>

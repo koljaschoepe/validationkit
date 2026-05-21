@@ -1,11 +1,9 @@
 "use server";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import type { SeverityBand } from "@vk/core";
-import { getSessionUser } from "./session";
-import { ensureDefaultWorkspace } from "./workspaces";
 import { galaxieWorkspaceTag } from "./cache-tags";
 
 export interface CustomerSummary {
@@ -21,14 +19,14 @@ export interface CustomerSummary {
   scanCount: number;
 }
 
-export interface AddCustomerInput {
+export interface AddRepoInput {
   label: string;
   rootPath: string;
   /** Optional GitHub full name (owner/repo) — set when added via App install. */
   githubFullName?: string;
 }
 
-export interface AddCustomerError {
+export interface AddRepoError {
   ok: false;
   error: string;
   /** Set when the failure is a billing-quota gate vs. a normal validation error. */
@@ -37,17 +35,22 @@ export interface AddCustomerError {
   quota?: number;
 }
 
-export async function addCustomer(
-  input: AddCustomerInput,
-): Promise<{ ok: true; id: string } | AddCustomerError> {
-  const user = await getSessionUser();
-  if (!user) return { ok: false, error: "Not signed in." };
+/**
+ * Add a workspace-level repo (not bound to a specific customer-record).
+ * Caller MUST have validated workspace-membership via resolveWorkspaceFromSlug.
+ */
+export async function addRepo(
+  workspaceId: string,
+  workspaceSlug: string,
+  userId: string,
+  input: AddRepoInput,
+): Promise<{ ok: true; id: string } | AddRepoError> {
   if (!input.label.trim() || !input.rootPath.trim()) {
     return { ok: false, error: "Label and rootPath are required." };
   }
 
   const { canAddRepo } = await import("@vk/billing");
-  const quota = await canAddRepo(user.id);
+  const quota = await canAddRepo(userId);
   if (!quota.allowed) {
     return {
       ok: false,
@@ -61,7 +64,6 @@ export async function addCustomer(
   }
 
   const db = getDb();
-  const workspaceId = await ensureDefaultWorkspace(user.id);
 
   const inserted = await db
     .insert(schema.repo)
@@ -77,18 +79,20 @@ export async function addCustomer(
   const row = inserted[0];
   if (!row) return { ok: false, error: "Failed to add customer." };
 
-  revalidatePath("/customers");
-  // Sprint G2 — flush the Galaxie cache so /[workspace] picks up the new repo.
+  revalidatePath(`/${workspaceSlug}/customers`);
   updateTag(galaxieWorkspaceTag(workspaceId));
   return { ok: true, id: row.id };
 }
 
-export async function listCustomers(userId: string): Promise<CustomerSummary[]> {
+/**
+ * List the repos in a workspace (Repo-Layer view — "Customers" in legacy
+ * terminology before Sprint G3 split it from the Customer-Layer).
+ * Caller MUST have validated workspace-membership.
+ */
+export async function listRepos(
+  workspaceId: string,
+): Promise<CustomerSummary[]> {
   const db = getDb();
-  // Subquery: latest scan per repo (by rootPath match within the workspace).
-  // Sprint-0.7 simplification: many scans don't yet link to a repo row, so we
-  // match by `scan.rootPath = repo.rootPath`. Sprint-0.8 backfill will set
-  // scan.repoId during enqueue.
   const rows = await db
     .select({
       id: schema.repo.id,
@@ -97,57 +101,56 @@ export async function listCustomers(userId: string): Promise<CustomerSummary[]> 
       writeAccessGranted: schema.repo.writeAccessGranted,
       githubFullName: schema.repo.githubFullName,
       createdAt: schema.repo.createdAt,
-      latestScanId: sql<string | null>`(
-        SELECT s.id FROM scan s
-        WHERE s.workspace_id = ${schema.workspace.id}
-          AND s.root_path = ${schema.repo.rootPath}
-        ORDER BY s.created_at DESC
-        LIMIT 1
-      )`,
-      latestScanSeverity: sql<string | null>`(
-        SELECT s.overall_severity FROM scan s
-        WHERE s.workspace_id = ${schema.workspace.id}
-          AND s.root_path = ${schema.repo.rootPath}
-        ORDER BY s.created_at DESC
-        LIMIT 1
-      )`,
-      latestScanAt: sql<Date | null>`(
-        SELECT s.created_at FROM scan s
-        WHERE s.workspace_id = ${schema.workspace.id}
-          AND s.root_path = ${schema.repo.rootPath}
-        ORDER BY s.created_at DESC
-        LIMIT 1
-      )`,
-      scanCount: sql<number>`(
-        SELECT COUNT(*) FROM scan s
-        WHERE s.workspace_id = ${schema.workspace.id}
-          AND s.root_path = ${schema.repo.rootPath}
-      )::int`,
     })
     .from(schema.repo)
-    .innerJoin(
-      schema.workspace,
-      eq(schema.repo.workspaceId, schema.workspace.id),
-    )
-    .where(eq(schema.workspace.ownerId, userId))
+    .where(eq(schema.repo.workspaceId, workspaceId))
     .orderBy(desc(schema.repo.createdAt));
 
-  return rows.map((r) => ({
-    id: r.id,
-    label: r.label,
-    rootPath: r.rootPath,
-    writeAccessGranted: r.writeAccessGranted,
-    githubFullName: r.githubFullName,
-    createdAt: r.createdAt,
-    latestScanId: r.latestScanId,
-    latestScanSeverity: r.latestScanSeverity as SeverityBand | null,
-    latestScanAt: r.latestScanAt,
-    scanCount: Number(r.scanCount ?? 0),
-  }));
+  if (rows.length === 0) return [];
+
+  // Sprint-0.7 simplification: many scans don't yet link to a repo row, so
+  // we still match by rootPath. Sprint-0.8 backfill will set scan.repoId.
+  const scans = await db
+    .select({
+      id: schema.scan.id,
+      rootPath: schema.scan.rootPath,
+      overallSeverity: schema.scan.overallSeverity,
+      createdAt: schema.scan.createdAt,
+    })
+    .from(schema.scan)
+    .where(eq(schema.scan.workspaceId, workspaceId))
+    .orderBy(desc(schema.scan.createdAt));
+
+  const latestByRoot = new Map<string, (typeof scans)[number]>();
+  const countByRoot = new Map<string, number>();
+  for (const s of scans) {
+    if (!latestByRoot.has(s.rootPath)) latestByRoot.set(s.rootPath, s);
+    countByRoot.set(s.rootPath, (countByRoot.get(s.rootPath) ?? 0) + 1);
+  }
+
+  return rows.map((r) => {
+    const latest = latestByRoot.get(r.rootPath);
+    return {
+      id: r.id,
+      label: r.label,
+      rootPath: r.rootPath,
+      writeAccessGranted: r.writeAccessGranted,
+      githubFullName: r.githubFullName,
+      createdAt: r.createdAt,
+      latestScanId: latest?.id ?? null,
+      latestScanSeverity: (latest?.overallSeverity as SeverityBand | undefined) ?? null,
+      latestScanAt: latest?.createdAt ?? null,
+      scanCount: countByRoot.get(r.rootPath) ?? 0,
+    };
+  });
 }
 
-export async function getCustomer(
-  userId: string,
+/**
+ * Fetch a single repo with its scan history. Workspace-gating via the
+ * compound match — caller MUST have validated workspace-membership.
+ */
+export async function getRepo(
+  workspaceId: string,
   repoId: string,
 ): Promise<{
   repo: typeof schema.repo.$inferSelect;
@@ -158,26 +161,15 @@ export async function getCustomer(
     findingsCount: number;
     createdAt: Date;
   }>;
-  drifts: Array<{
-    id: string;
-    rootPathA: string;
-    rootPathB: string;
-    overallSeverity: string;
-    createdAt: Date;
-  }>;
 } | null> {
   const db = getDb();
   const rows = await db
     .select()
     .from(schema.repo)
-    .innerJoin(
-      schema.workspace,
-      eq(schema.repo.workspaceId, schema.workspace.id),
-    )
     .where(eq(schema.repo.id, repoId))
     .limit(1);
   const row = rows[0];
-  if (!row || row.workspace.ownerId !== userId) return null;
+  if (!row || row.workspaceId !== workspaceId) return null;
 
   const scans = await db
     .select({
@@ -188,22 +180,9 @@ export async function getCustomer(
       createdAt: schema.scan.createdAt,
     })
     .from(schema.scan)
-    .where(eq(schema.scan.rootPath, row.repo.rootPath))
+    .where(eq(schema.scan.rootPath, row.rootPath))
     .orderBy(desc(schema.scan.createdAt))
     .limit(20);
 
-  const drifts = await db
-    .select({
-      id: schema.driftRun.id,
-      rootPathA: schema.driftRun.rootPathA,
-      rootPathB: schema.driftRun.rootPathB,
-      overallSeverity: schema.driftRun.overallSeverity,
-      createdAt: schema.driftRun.createdAt,
-    })
-    .from(schema.driftRun)
-    .where(eq(schema.driftRun.workspaceId, row.workspace.id))
-    .orderBy(desc(schema.driftRun.createdAt))
-    .limit(20);
-
-  return { repo: row.repo, scans, drifts };
+  return { repo: row, scans };
 }

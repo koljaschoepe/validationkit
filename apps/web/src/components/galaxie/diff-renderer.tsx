@@ -8,7 +8,7 @@
 export function DiffRenderer({ patch }: { patch: string }) {
   const lines = patch.split('\n');
   return (
-    <pre className="overflow-x-auto rounded border border-white/10 bg-black/60 px-3 py-2 font-mono text-[11px] leading-relaxed">
+    <pre className="overflow-x-auto rounded border border-white/10 bg-black/60 px-3 py-2 font-mono type-mono-sm leading-relaxed">
       {lines.map((line, i) => (
         <div key={i} className={lineClass(line)}>
           {line || ' '}
@@ -21,9 +21,10 @@ export function DiffRenderer({ patch }: { patch: string }) {
 export function lineClass(line: string): string {
   if (line.startsWith('+++') || line.startsWith('---'))
     return 'text-white/90 font-semibold';
-  if (line.startsWith('+')) return 'text-green-400';
-  if (line.startsWith('-')) return 'text-red-400';
-  if (line.startsWith('@@')) return 'text-blue-400';
+  // + → green (Strong-severity), - → red (Kill-severity). Semantic match.
+  if (line.startsWith('+')) return 'text-[var(--color-sev-strong)]';
+  if (line.startsWith('-')) return 'text-[var(--color-sev-kill)]';
+  if (line.startsWith('@@')) return 'text-muted-foreground';
   if (line.startsWith('diff ') || line.startsWith('index '))
     return 'text-white/40';
   return 'text-white/70';

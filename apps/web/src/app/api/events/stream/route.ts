@@ -40,7 +40,7 @@ export async function GET(req: Request): Promise<Response> {
     return new Response("Unauthorized.", { status: 401 });
   }
 
-  const workspaceId = await ensureDefaultWorkspace(user.id);
+  const { id: workspaceId } = await ensureDefaultWorkspace(user.id);
   const db = getDb();
 
   const url = new URL(req.url);

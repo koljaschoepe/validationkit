@@ -70,10 +70,13 @@ export default async function BillingPage({
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
+      <main
+        id="main-content"
+        className="mx-auto max-w-5xl space-y-8 px-6 py-10 sm:px-8 sm:py-16"
+      >
+        <header className="space-y-2 border-b border-border pb-6">
+          <h1 className="type-h1 font-semibold tracking-tight">Billing</h1>
+          <p className="type-body text-muted-foreground max-w-2xl">
             ValidationKit is freemium. 1 repo on Solo Free, no card. Pricing is
             flat — no per-repo metering, no usage surprises.
           </p>
@@ -102,7 +105,7 @@ export default async function BillingPage({
           </Card>
         ) : null}
 
-        <Card>
+        <Card className="border-primary/30 ring-1 ring-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base">Current plan</CardTitle>
@@ -198,12 +201,12 @@ export default async function BillingPage({
                       <div className="flex flex-wrap items-center gap-1">
                         {current ? <Badge>Current</Badge> : null}
                         {tier.annualOnly ? (
-                          <Badge variant="outline" className="text-[0.6rem]">
+                          <Badge variant="outline" className="type-mono-sm">
                             Annual only
                           </Badge>
                         ) : null}
                         {tier.msaRequired ? (
-                          <Badge variant="outline" className="text-[0.6rem]">
+                          <Badge variant="outline" className="type-mono-sm">
                             MSA
                           </Badge>
                         ) : null}
@@ -326,7 +329,7 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-[0.65rem] uppercase tracking-wider text-muted-foreground font-medium">
+      <div className="type-mono-sm uppercase tracking-wider text-muted-foreground font-medium">
         {label}
       </div>
       <div

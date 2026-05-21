@@ -1,8 +1,17 @@
+---
+id: 0002
+title: UI-Render-Stack — PixiJS v8 + GSAP + Motion
+status: accepted-partial
+date: 2026-05-19
+superseded-by-partial: 0004
+---
+
 # ADR-0002 — UI-Render-Stack: PixiJS v8 + GSAP + Motion
 
 > Datum: 2026-05-19
-> Status: ✅ Accepted
-> Entscheider: User-Decision (siehe `docs/plans/master-vision-galaxie.md` §11 Q1)
+> Status: ✅ Accepted (Workspace-Galaxie); ⚠ Superseded-Partial für Landing-Hero durch [ADR-0004](./0004-landing-svg-stack.md) (2026-05-20)
+> Entscheider: User-Decision (siehe `docs/plans/done/galaxie/master-vision-galaxie.md` §11 Q1)
+> Re-Open-Trigger: W3-Performance-Gate passed 2026-05-19. W6-Mobile-Trigger ist obsolet (Landing wurde 2026-05-20 unabhängig auf SVG + motion migriert, weil Pixi-Bundle für statisches Hero überschossen war). Workspace-Galaxie nutzt PixiJS unverändert; Migration auf einheitlichen Stack ist Nova-3+ Thema.
 
 ---
 

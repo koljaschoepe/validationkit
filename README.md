@@ -23,21 +23,31 @@ Stripe · Inngest · Vercel Fluid Compute · Anthropic SDK.
 ```bash
 pnpm install
 cp .env.example .env.local        # Werte ausfüllen (Docker-Defaults reichen)
-pnpm stack:up                     # Postgres + Redis + Mailpit via Docker
+pnpm stack:up                     # Postgres + Redis + Mailpit + Inngest via Docker
 pnpm db:migrate
 pnpm dev                          # http://localhost:3000
 ```
+
+Dev-Services (laufen via `pnpm stack:up`):
+
+- App: <http://localhost:3000>
+- Mailpit UI (lokale Magic-Link-Mails): <http://localhost:8025>
+- Inngest Dev-Server (Background-Jobs): <http://localhost:8288>
+- Postgres: `localhost:5432`, Redis: `localhost:6379`
 
 ## Häufige Befehle
 
 ```bash
 pnpm typecheck
 pnpm test
-pnpm eval                         # Golden-Set + Conflict-Eval
+pnpm eval                         # Deterministischer Golden-Set Smoke-Eval
+pnpm eval:conflicts               # LLM-Conflict-Eval (no-op ohne ANTHROPIC_API_KEY)
 pnpm build
+pnpm lint
 pnpm stack:logs                   # Container-Logs
 pnpm stack:reset                  # Volumes weg + frischer Start
 pnpm db:studio                    # Drizzle Studio
+pnpm --filter @vk/web lighthouse  # Lighthouse-Audit lokal gegen :3000
 ```
 
 ## Workflow

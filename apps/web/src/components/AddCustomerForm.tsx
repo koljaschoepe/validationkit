@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addCustomer } from "@/lib/customer-dal";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 // Sprint G3 — legt nur einen Customer-Record an. Repo-Add ist ein
 // eigener Flow auf der Customer-Detail-Seite (AddRepoForm).
-export function AddCustomerForm() {
+export function AddCustomerForm({ workspaceSlug }: { workspaceSlug: string }) {
   const [label, setLabel] = useState("");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export function AddCustomerForm() {
     setErr(null);
     startTransition(async () => {
       const fd = new FormData();
+      fd.set("workspace", workspaceSlug);
       fd.set("label", label);
       const result = await submitAddCustomer(fd);
       if (!result.ok) {
@@ -52,7 +53,14 @@ export function AddCustomerForm() {
             </p>
           </div>
           <Button type="submit" disabled={pending} size="sm">
-            {pending ? "Adding…" : "Add customer"}
+            {pending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Adding…
+              </>
+            ) : (
+              "Add customer"
+            )}
           </Button>
           {err ? <p className="text-sm text-destructive">{err}</p> : null}
         </form>

@@ -15,7 +15,9 @@ import { useGesture } from '@use-gesture/react';
 import gsap from 'gsap';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
 import { computeLayout } from '@/lib/galaxie/layout';
-import type { GalaxieData, LayoutNode } from '@/lib/galaxie/types';
+import type { GalaxieData, LayoutNode, Severity } from '@/lib/galaxie/types';
+import { getPulseDuration } from '@/lib/galaxie/severity-colors';
+import { isMobileViewport } from '@/lib/galaxie/device';
 import {
   DEFAULT_WORKSPACE_SLUG,
   MOCK_WORKSPACES,
@@ -31,7 +33,8 @@ import { MiniMap } from './MiniMap';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { UniversalSearch, type SearchResult } from './UniversalSearch';
 import { Inspector } from './Inspector';
-import { OnboardingBanner, type OnboardingState } from './OnboardingBanner';
+import { type OnboardingState } from './OnboardingBanner';
+import { ActivationChecklist } from './ActivationChecklist';
 import { EmptyGalaxie } from './EmptyGalaxie';
 
 extend({ Container, Graphics, Text });
@@ -42,11 +45,25 @@ interface ZoomLevel {
   scale: number;
 }
 
+interface InitialZoomLevel {
+  x: number;
+  y: number;
+  scale: number;
+}
+
 interface GalaxieSceneProps {
   initialData?: GalaxieData;
   initialWorkspaceSlug?: string;
   workspaces?: MockWorkspace[];
   onboarding?: OnboardingState;
+  /** See GalaxieRootProps.mode. */
+  mode?: 'interactive' | 'static-demo';
+  /** When true, the inspector renders apply/dismiss as sign-in CTAs. */
+  readOnly?: boolean;
+  /** Initial camera position. Falls back to zoomLevels[1] (scale 1.0). */
+  initialZoomLevel?: InitialZoomLevel;
+  /** Landing auto-tour — see GalaxieRootProps.enableAutoTour. */
+  enableAutoTour?: boolean;
 }
 
 export default function GalaxieScene({
@@ -54,7 +71,12 @@ export default function GalaxieScene({
   initialWorkspaceSlug,
   workspaces,
   onboarding,
+  mode = 'interactive',
+  readOnly = false,
+  initialZoomLevel,
+  enableAutoTour = false,
 }: GalaxieSceneProps = {}) {
+  const isStatic = mode === 'static-demo';
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -123,6 +145,21 @@ export default function GalaxieScene({
     cameraRef.current.applyTo(worldRef.current, size.w / 2, size.h / 2);
   }, [size]);
 
+  // Apply initial camera position once `size` becomes available. Landing uses
+  // scale ~0.45 (full galaxy fits in 60vh hero); workspace default is 1.0.
+  const initialCameraAppliedRef = useRef(false);
+  useEffect(() => {
+    if (initialCameraAppliedRef.current) return;
+    if (!size || !worldRef.current) return;
+    if (zoomLevels.length < 2) return;
+    const target = initialZoomLevel ?? zoomLevels[1]!;
+    cameraRef.current.x = target.x;
+    cameraRef.current.y = target.y;
+    cameraRef.current.scale = target.scale;
+    applyCamera();
+    initialCameraAppliedRef.current = true;
+  }, [size, zoomLevels, initialZoomLevel, applyCamera]);
+
   const tweenTo = useCallback(
     (target: ZoomLevel) => {
       gsap.killTweensOf(cameraRef.current);
@@ -141,11 +178,13 @@ export default function GalaxieScene({
   useGesture(
     {
       onDrag: ({ delta: [dx, dy], pinching, cancel }) => {
+        if (isStatic) return;
         if (pinching) return cancel();
         cameraRef.current.panBy(dx, dy);
         applyCamera();
       },
       onWheel: ({ delta: [, dy], event }) => {
+        if (isStatic) return;
         if (!hostRef.current || !size) return;
         event.preventDefault?.();
         const rect = hostRef.current.getBoundingClientRect();
@@ -164,6 +203,7 @@ export default function GalaxieScene({
         applyCamera();
       },
       onPinch: ({ offset: [s], origin: [ox, oy], memo, first }) => {
+        if (isStatic) return memo;
         if (!hostRef.current || !size) return memo;
         const rect = hostRef.current.getBoundingClientRect();
         const ax = ox - rect.left - size.w / 2;
@@ -178,14 +218,15 @@ export default function GalaxieScene({
     },
     {
       target: hostRef,
-      drag: { filterTaps: true },
-      wheel: { eventOptions: { passive: false } },
-      pinch: { scaleBounds: { min: 0.3, max: 8 }, rubberband: false },
+      drag: { filterTaps: true, enabled: !isStatic },
+      wheel: { eventOptions: { passive: false }, enabled: !isStatic },
+      pinch: { scaleBounds: { min: 0.3, max: 8 }, rubberband: false, enabled: !isStatic },
     },
   );
 
-  // Cmd+0/1/2/3/4 keyboard tween
+  // Cmd+0/1/2/3/4 keyboard tween — disabled in static-demo mode.
   useEffect(() => {
+    if (isStatic) return;
     const handleKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const idx = ['0', '1', '2', '3', '4'].indexOf(e.key);
@@ -195,7 +236,7 @@ export default function GalaxieScene({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [tweenTo]);
+  }, [tweenTo, isStatic, zoomLevels]);
 
   // Sprint G3 — single helper to derive a tween target from a node id.
   const tweenToNode = useCallback(
@@ -252,22 +293,128 @@ export default function GalaxieScene({
   }, [router, pathname, searchParams]);
 
   const handleCustomerClick = useCallback(
-    (customerId: string) => tweenToNode(customerId, 1.7),
-    [tweenToNode],
+    (customerId: string) => {
+      if (isStatic) return;
+      tweenToNode(customerId, 1.7);
+    },
+    [tweenToNode, isStatic],
   );
 
   const handleRepoClick = useCallback(
-    (repoId: string) => tweenToNode(repoId, 3.5),
-    [tweenToNode],
+    (repoId: string) => {
+      if (isStatic) return;
+      tweenToNode(repoId, 3.5);
+    },
+    [tweenToNode, isStatic],
   );
 
   const handleFileClick = useCallback(
     (fileId: string) => {
       openInspector(fileId);
-      tweenToNode(fileId, 5);
+      if (!isStatic) tweenToNode(fileId, 5);
     },
-    [openInspector, tweenToNode],
+    [openInspector, tweenToNode, isStatic],
   );
+
+  // Auto-tour for the landing static-demo. After warm-up, cycle through
+  // critical findings (camera-zoom → open inspector → 2.2s pause → close →
+  // zoom back → next). First user interaction stops the loop permanently;
+  // a "Replay tour" link reappears. `prefers-reduced-motion` skips the tour.
+  const tourPausedRef = useRef(false);
+  const [tourPaused, setTourPaused] = useState(false);
+  const tourActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (!enableAutoTour) return;
+    if (!size) return;
+    if (zoomLevels.length === 0) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    if (tourActiveRef.current) return;
+    tourActiveRef.current = true;
+
+    let cancelled = false;
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const targets = galaxieData.files
+      .filter((f) => f.severity === 'Kill' || f.severity === 'Weak')
+      .slice(0, 3);
+    if (targets.length === 0) {
+      tourActiveRef.current = false;
+      return;
+    }
+
+    async function runTour() {
+      // Warm-up — let the user see the overview first.
+      await sleep(1500);
+      let idx = 0;
+      while (!cancelled && !tourPausedRef.current) {
+        const file = targets[idx % targets.length]!;
+        idx += 1;
+
+        // Zoom to file (kein URL-Update — tour bypassed openInspector router.replace).
+        tweenToNode(file.id, 4);
+        await sleep(900);
+        if (cancelled || tourPausedRef.current) return;
+
+        setInspectorFileId(file.id);
+        await sleep(2200);
+        if (cancelled || tourPausedRef.current) return;
+
+        setInspectorFileId(null);
+        const overview = zoomLevels[0];
+        if (overview) tweenTo(overview);
+        await sleep(1500);
+      }
+    }
+
+    runTour();
+
+    return () => {
+      cancelled = true;
+      tourActiveRef.current = false;
+    };
+  }, [
+    enableAutoTour,
+    size,
+    galaxieData.files,
+    tweenToNode,
+    tweenTo,
+    zoomLevels,
+  ]);
+
+  // Pause-listener: any user interaction stops the tour permanently
+  // (until the user clicks "Replay tour").
+  useEffect(() => {
+    if (!enableAutoTour) return;
+    if (tourPaused) return;
+    const onUserAction = () => {
+      tourPausedRef.current = true;
+      setTourPaused(true);
+    };
+    window.addEventListener('pointerdown', onUserAction);
+    window.addEventListener('wheel', onUserAction);
+    window.addEventListener('keydown', onUserAction);
+    window.addEventListener('touchstart', onUserAction);
+    return () => {
+      window.removeEventListener('pointerdown', onUserAction);
+      window.removeEventListener('wheel', onUserAction);
+      window.removeEventListener('keydown', onUserAction);
+      window.removeEventListener('touchstart', onUserAction);
+    };
+  }, [enableAutoTour, tourPaused]);
+
+  const replayTour = useCallback(() => {
+    tourPausedRef.current = false;
+    tourActiveRef.current = false;
+    setInspectorFileId(null);
+    setTourPaused(false);
+  }, []);
 
   // Deep-link: on first mount, if ?file=… is set, zoom to that file.
   const deepLinkAppliedRef = useRef(false);
@@ -292,7 +439,7 @@ export default function GalaxieScene({
   }, [inspectorFileId, galaxieData.files]);
 
   if (isEmptyRealWorkspace) {
-    return <EmptyGalaxie />;
+    return <EmptyGalaxie workspaceSlug={workspace} />;
   }
 
   return (
@@ -305,7 +452,20 @@ export default function GalaxieScene({
         backgroundSize: '28px 28px',
       }}
     >
-      {onboarding ? <OnboardingBanner state={onboarding} /> : null}
+      {onboarding ? (
+        <ActivationChecklist
+          state={{
+            workspaceId: onboarding.workspaceId,
+            customerCount: onboarding.customerCount,
+            repoCount: onboarding.repoCount,
+            scanCount: onboarding.scanCount,
+            applyCount: onboarding.applyCount ?? 0,
+            memberCount: onboarding.memberCount ?? 0,
+            gitHubAppConfigured: onboarding.gitHubAppConfigured,
+          }}
+          workspaceSlug={workspace}
+        />
+      ) : null}
       {size && (
         <>
           <Application
@@ -333,28 +493,45 @@ export default function GalaxieScene({
             />
           </Application>
 
-          <WorkspaceSwitcher
-            current={workspace}
-            onChange={setWorkspace}
-            workspaces={switcherWorkspaces}
-          />
-          <ZoomIndicator
-            camera={cameraRef.current}
-            onReset={() => tweenTo(zoomLevels[1]!)}
-          />
-          <MiniMap
-            camera={cameraRef.current}
-            viewportSize={size}
-            onJump={handleMiniMapJump}
-            data={galaxieData}
-            layoutById={layoutById}
-          />
-          <UniversalSearch onPick={handleSearchPick} data={galaxieData} />
+          {!isStatic && (
+            <>
+              <WorkspaceSwitcher
+                current={workspace}
+                onChange={setWorkspace}
+                workspaces={switcherWorkspaces}
+              />
+              <ZoomIndicator
+                camera={cameraRef.current}
+                onReset={() => tweenTo(zoomLevels[1]!)}
+              />
+              <MiniMap
+                camera={cameraRef.current}
+                viewportSize={size}
+                onJump={handleMiniMapJump}
+                data={galaxieData}
+                layoutById={layoutById}
+              />
+              <UniversalSearch onPick={handleSearchPick} data={galaxieData} />
+            </>
+          )}
 
           {inspectorFile && (
-            <Inspector file={inspectorFile} onClose={closeInspector} />
+            <Inspector
+              file={inspectorFile}
+              onClose={closeInspector}
+              readOnly={readOnly}
+            />
           )}
           {tooltip && !inspectorFile && <GalaxieTooltip state={tooltip} />}
+          {enableAutoTour && tourPaused && (
+            <button
+              type="button"
+              onClick={replayTour}
+              className="absolute bottom-3 left-3 z-10 rounded-md border border-white/15 bg-black/70 px-2.5 py-1 font-mono type-mono-sm uppercase tracking-wider text-white/70 backdrop-blur transition hover:bg-white/10 hover:text-white"
+            >
+              Replay tour →
+            </button>
+          )}
           {isDebug && <FPSCounter />}
           {isDebug && <KeyHintOverlay />}
         </>
@@ -387,42 +564,104 @@ function GalaxieWorld({
   layoutById: Map<string, LayoutNode>;
 }) {
   const localRef = useRef<Container | null>(null);
+  // Sprint 2 — keep a stable map of mounted sprites so the data-effect can
+  // diff updates instead of destroying + rebuilding all 15k+ sprites on
+  // every `data` change. Lifecycle owned by the mount-effect below.
+  const spritesRef = useRef<Map<string, Container>>(new Map());
+  // GSAP context for all tweens spawned inside this sub-tree (pulse + hover).
+  // ctx.revert() in the mount-effect cleanup kills them in one shot.
+  const ctxRef = useRef<gsap.Context | null>(null);
 
+  // Mount-effect (runs once per Container): ctx setup, event handlers,
+  // final teardown when GalaxieWorld unmounts. Deliberately does NOT depend
+  // on `data` or `layoutById` — those drive the diff-effect below.
   useEffect(() => {
     const world = localRef.current;
     if (!world) return;
     worldRef.current = world;
 
-    const children: Container[] = [];
-    for (const c of data.customers) {
-      const ln = layoutById.get(c.id);
-      if (ln) children.push(new CustomerStar(c, ln));
-    }
-    for (const r of data.repos) {
-      const ln = layoutById.get(r.id);
-      if (ln) children.push(new RepoMoon(r, ln));
-    }
-    for (const f of data.files) {
-      const ln = layoutById.get(f.id);
-      if (ln) children.push(new FileAsteroid(f, ln));
-    }
-    for (const c of children) world.addChild(c);
+    const ctx = gsap.context(() => {}, world);
+    ctxRef.current = ctx;
 
     world.eventMode = 'passive';
 
+    const severityOf = (
+      target: CustomerStar | RepoMoon | FileAsteroid,
+    ): Severity => {
+      if (target instanceof FileAsteroid) return target.file.severity;
+      if (target instanceof RepoMoon) return target.repo.aggregateSeverity;
+      return target.customer.aggregateSeverity;
+    };
+
+    // Hover-out tween onComplete restarts the pulse, so the canvas keeps
+    // breathing when the cursor leaves a Kill/Weak sprite.
+    const startPulseInCtx = (sprite: Container, severity: Severity) => {
+      const duration = getPulseDuration(severity);
+      if (duration === null) return;
+      if (
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        return;
+      }
+      ctx.add(() => {
+        gsap.to(sprite.scale, {
+          x: 1.15,
+          y: 1.15,
+          duration,
+          yoyo: true,
+          repeat: -1,
+          ease: 'sine.inOut',
+        });
+      });
+    };
+
     const onOver = (e: FederatedPointerEvent) => {
       const target = e.target;
+      if (
+        target instanceof FileAsteroid ||
+        target instanceof RepoMoon ||
+        target instanceof CustomerStar
+      ) {
+        gsap.killTweensOf(target.scale);
+        ctx.add(() => {
+          gsap.to(target.scale, {
+            x: 1.5,
+            y: 1.5,
+            duration: 0.2,
+            ease: 'power2.out',
+          });
+        });
+      }
       if (target instanceof FileAsteroid) {
         const global = target.getGlobalPosition();
         onHover({ x: global.x, y: global.y, file: target.file });
       }
     };
+
     const onOut = (e: FederatedPointerEvent) => {
-      if (e.target instanceof FileAsteroid) onHover(null);
+      const target = e.target;
+      if (
+        target instanceof FileAsteroid ||
+        target instanceof RepoMoon ||
+        target instanceof CustomerStar
+      ) {
+        gsap.killTweensOf(target.scale);
+        const sev = severityOf(target);
+        ctx.add(() => {
+          gsap.to(target.scale, {
+            x: 1,
+            y: 1,
+            duration: 0.2,
+            ease: 'power2.out',
+            onComplete: () => startPulseInCtx(target, sev),
+          });
+        });
+      }
+      if (target instanceof FileAsteroid) onHover(null);
     };
 
-    // Sprint G3 — click-drill-in via pointertap (useGesture drag has
-    // filterTaps:true so clean clicks bubble here without being eaten).
+    // Sprint G3 — click-drill-in via pointertap.
     const onTap = (e: FederatedPointerEvent) => {
       const target = e.target;
       if (target instanceof FileAsteroid) {
@@ -439,16 +678,153 @@ function GalaxieWorld({
     world.on('pointertap', onTap);
 
     return () => {
+      ctx.revert();
+      ctxRef.current = null;
       world.off('pointerover', onOver);
       world.off('pointerout', onOut);
       world.off('pointertap', onTap);
-      for (const c of children) {
-        world.removeChild(c);
-        c.destroy({ children: true });
+      for (const sprite of spritesRef.current.values()) {
+        world.removeChild(sprite);
+        sprite.destroy({ children: true });
       }
+      spritesRef.current.clear();
       worldRef.current = null;
     };
-  }, [worldRef, onHover, onCustomerClick, onRepoClick, onFileClick, data, layoutById]);
+  }, [worldRef, onHover, onCustomerClick, onRepoClick, onFileClick]);
+
+  // Diff-effect: runs whenever `data` or `layoutById` change. Instead of
+  // destroying + rebuilding every sprite (the pre-Sprint-2 behavior, costly
+  // at 15k sprites), we add new entities, update existing positions/severity,
+  // and only destroy entities that disappeared. Pulse tweens are (re-)started
+  // inside the same GSAP context as the mount-effect's event handlers.
+  useEffect(() => {
+    const world = localRef.current;
+    const ctx = ctxRef.current;
+    if (!world || !ctx) return;
+
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const initPulse = (sprite: Container, severity: Severity) => {
+      const duration = getPulseDuration(severity);
+      if (duration === null || reducedMotion) return;
+      ctx.add(() => {
+        gsap.to(sprite.scale, {
+          x: 1.15,
+          y: 1.15,
+          duration,
+          yoyo: true,
+          repeat: -1,
+          ease: 'sine.inOut',
+        });
+      });
+    };
+
+    const sprites = spritesRef.current;
+    const nextIds = new Set<string>();
+
+    // Sprint 3 — mobile-aware sprite scaling. Plan-default factors: customer
+    // 1.5×, repo 1.6×, file 1.8× on <640px viewports. Computed once per
+    // diff-effect run, applied at construction time. Orientation-change live
+    // updates are out-of-scope (Plan §3 A7).
+    const isMobile = isMobileViewport();
+    const customerScale = isMobile ? 1.5 : 1;
+    const repoScale = isMobile ? 1.6 : 1;
+    const fileScale = isMobile ? 1.8 : 1;
+
+    // Customers
+    for (const c of data.customers) {
+      nextIds.add(c.id);
+      const existing = sprites.get(c.id);
+      if (existing instanceof CustomerStar) {
+        const ln = layoutById.get(c.id);
+        if (ln) {
+          existing.x = ln.x;
+          existing.y = ln.y;
+        }
+        if (existing.customer.aggregateSeverity !== c.aggregateSeverity) {
+          gsap.killTweensOf(existing.scale);
+          existing.scale.set(1);
+          existing.updateSeverity(c.aggregateSeverity);
+          initPulse(existing, c.aggregateSeverity);
+        }
+      } else {
+        const ln = layoutById.get(c.id);
+        if (!ln) continue;
+        const sprite = new CustomerStar(c, ln, customerScale);
+        world.addChild(sprite);
+        sprites.set(c.id, sprite);
+        initPulse(sprite, c.aggregateSeverity);
+      }
+    }
+
+    // Repos
+    for (const r of data.repos) {
+      nextIds.add(r.id);
+      const existing = sprites.get(r.id);
+      if (existing instanceof RepoMoon) {
+        const ln = layoutById.get(r.id);
+        if (ln) {
+          existing.x = ln.x;
+          existing.y = ln.y;
+        }
+        if (existing.repo.aggregateSeverity !== r.aggregateSeverity) {
+          gsap.killTweensOf(existing.scale);
+          existing.scale.set(1);
+          existing.updateSeverity(r.aggregateSeverity);
+          initPulse(existing, r.aggregateSeverity);
+        }
+      } else {
+        const ln = layoutById.get(r.id);
+        if (!ln) continue;
+        const sprite = new RepoMoon(r, ln, repoScale);
+        world.addChild(sprite);
+        sprites.set(r.id, sprite);
+        initPulse(sprite, r.aggregateSeverity);
+      }
+    }
+
+    // Files
+    for (const f of data.files) {
+      nextIds.add(f.id);
+      const existing = sprites.get(f.id);
+      if (existing instanceof FileAsteroid) {
+        const ln = layoutById.get(f.id);
+        if (ln) {
+          existing.x = ln.x;
+          existing.y = ln.y;
+        }
+        if (
+          existing.file.severity !== f.severity ||
+          existing.file.dismissStatus !== f.dismissStatus ||
+          existing.file.solutionStatus !== f.solutionStatus
+        ) {
+          gsap.killTweensOf(existing.scale);
+          existing.scale.set(1);
+          existing.updateFile(f);
+          initPulse(existing, f.severity);
+        }
+      } else {
+        const ln = layoutById.get(f.id);
+        if (!ln) continue;
+        const sprite = new FileAsteroid(f, ln, fileScale);
+        world.addChild(sprite);
+        sprites.set(f.id, sprite);
+        initPulse(sprite, f.severity);
+      }
+    }
+
+    // Remove sprites whose entity disappeared from `data`.
+    for (const [id, sprite] of sprites) {
+      if (!nextIds.has(id)) {
+        gsap.killTweensOf(sprite.scale);
+        world.removeChild(sprite);
+        sprite.destroy({ children: true });
+        sprites.delete(id);
+      }
+    }
+  }, [data, layoutById]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);
@@ -486,7 +862,7 @@ function FPSCounter() {
 
 function KeyHintOverlay() {
   return (
-    <div className="pointer-events-none absolute right-2 top-2 z-10 rounded bg-black/70 px-2 py-1 font-mono text-[10px] leading-tight text-white/60">
+    <div className="pointer-events-none absolute right-2 top-2 z-10 rounded bg-black/70 px-2 py-1 font-mono type-mono-sm leading-tight text-white/60">
       <div>drag · pan</div>
       <div>wheel · zoom</div>
       <div>⌘0–4 · snap</div>

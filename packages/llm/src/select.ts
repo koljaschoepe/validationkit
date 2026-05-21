@@ -1,3 +1,11 @@
+// Multi-LLM provider abstraction. Direct-provider only — KEIN Vercel AI Gateway.
+// Reason: CLAUDE.md constraint + ADR-0005 ("LLM Multi-Provider"). Vendor-Lock-in-
+// Vermeidung gilt für Gateway, nicht für Direct-Provider. Auto-validator may flag
+// this and recommend the Gateway — bewusst abgelehnt, siehe ADR-0005.
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import type { LanguageModel } from "ai";
+
 export type LLMIntent =
   | "conflicting-rules"
   | "context-bloat"
@@ -16,19 +24,15 @@ export interface ModelSelection {
 }
 
 /**
- * Multi-LLM abstraction (Sprint 0.14, A4 research). Provider-agnostic so we
- * can swap Anthropic ↔ OpenAI without touching callers. Wire-up is env-driven:
+ * Provider selection (env-driven, Anthropic primary, OpenAI opt-in fallback):
  *
- *   ANTHROPIC_API_KEY → claude-sonnet-4-6 (default for conflicting-rules)
+ *   ANTHROPIC_API_KEY → claude-sonnet-4-6 (preferred for conflicting-rules)
  *   OPENAI_API_KEY    → gpt-5-nano (cost-floor fallback)
  *
- * Returns null whenever no provider key is configured — that's the
- * "honest non-vapor" path: callers render a disabled-state finding instead
- * of crashing.
+ * Returns null when no provider key is configured — callers render a
+ * disabled-state finding instead of crashing.
  *
- * Tier gating is reserved (e.g. cap free-tier to OPENAI cheap-floor, push
- * paid users onto Anthropic) but not enforced in v0.0.14 — we ship the
- * shape, not the limits.
+ * Tier-gating hook (`opts.tier`) is reserved; not enforced yet.
  */
 export function selectModel(
   opts: { tier?: string; intent?: LLMIntent } = {},
@@ -51,11 +55,23 @@ export function selectModel(
       costPerMillionInputUsd: 0.05,
     };
   }
-  // Tier-gating hook: when wired, free-tier might be capped to OPENAI even
-  // if both keys present. For now both paths reach the same result.
   void opts.tier;
   void opts.intent;
   return null;
+}
+
+/**
+ * Returns the AI SDK LanguageModel instance for a given selection. Lets
+ * call-sites stay provider-agnostic — they pass the selection, we resolve
+ * the right SDK provider.
+ */
+export function providerModel(selection: ModelSelection): LanguageModel {
+  switch (selection.provider) {
+    case "anthropic":
+      return anthropic(selection.modelId);
+    case "openai":
+      return openai(selection.modelId);
+  }
 }
 
 export function isLlmEnabled(): boolean {

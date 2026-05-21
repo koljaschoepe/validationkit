@@ -46,7 +46,7 @@ export default function GlobalError({
             persists, report at{" "}
             <a
               href="https://github.com/koljaschoepe/validationkit/issues"
-              style={{ color: "#a78bfa" }}
+              style={{ color: "#fafafa", textDecoration: "underline" }}
             >
               GitHub issues
             </a>

@@ -45,11 +45,14 @@ export default async function DpaPage() {
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <main
+        id="main-content"
+        className="mx-auto max-w-3xl space-y-6 px-6 py-10 sm:px-8 sm:py-16"
+      >
         <header className="space-y-2">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="type-h1 font-semibold tracking-tight">
               Data Processing Agreement
             </h1>
           </div>

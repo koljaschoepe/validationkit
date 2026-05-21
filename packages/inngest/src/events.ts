@@ -3,7 +3,6 @@ import { getDb, schema } from "@vk/db";
 export type EventType =
   | "audit.completed"
   | "audit.failed"
-  | "drift.completed"
   | "repo.auto-tracked"
   | "repo.access-changed";
 

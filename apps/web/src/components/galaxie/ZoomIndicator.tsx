@@ -22,12 +22,12 @@ export function ZoomIndicator({
 
   const pct = Math.round(scale * 100);
   return (
-    <div className="absolute right-2 top-12 z-10 flex items-center gap-1 rounded border border-white/10 bg-black/70 px-2 py-1 font-mono text-[11px] text-white/80 backdrop-blur">
+    <div className="absolute right-2 top-12 z-10 flex items-center gap-1 rounded border border-white/10 bg-black/70 px-2 py-1 font-mono type-mono-sm text-white/80 backdrop-blur">
       <span>{pct}%</span>
       <button
         type="button"
         onClick={onReset}
-        title="Reset zoom (⌘0)"
+        aria-label="Reset zoom (Cmd+0)"
         className="ml-1 rounded p-0.5 text-white/60 transition hover:bg-white/10 hover:text-white"
       >
         <RotateCcwIcon className="size-3" />

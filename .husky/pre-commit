@@ -1,0 +1,6 @@
+# Placeholder. Real lint-staged setup pending ESLint Flat-Config Sub-Plan.
+# See TODO.md Parking-Lot. To enable lint-staged later:
+#   1. Set up ESLint flat-config (eslint.config.js)
+#   2. Add "lint-staged" config to root package.json
+#   3. Restore: pnpm exec lint-staged
+exit 0

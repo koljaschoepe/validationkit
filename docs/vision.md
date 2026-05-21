@@ -13,8 +13,10 @@ Eine **Multi-Tenant-SaaS-Web-App für AI-Consultancies**, die ihren Kunden helfe
 Im Kern macht die App drei Dinge:
 
 1. **Auditiert** Context-Files mit deterministischen Regeln (Unused agents, Duplicate guidance, Context bloat, Stale references, Token-Budget) + 1 LLM-Regel (Conflicting rules).
-2. **Visualisiert** Findings + Drift räumlich (Galaxie-UI, siehe unten).
+2. **Visualisiert** Findings räumlich (Galaxie-UI, siehe unten).
 3. **Generiert + applied** Edit-Vorschläge via AI (Anthropic Claude Opus), als PR oder Direct-Commit — User schreibt nie Code.
+
+> **Pivot Mai 2026 — Homepage-Relaunch (ADR-0003):** Drift-Detection / Repo-Compare wurde abgebaut. Multi-Repo-Audit bleibt, aber das explizite Zwei-Repo-Vergleichs-Feature (frühere Sprint G2 Sekundärfunktion) ist out — siehe `docs/adrs/0003-drop-compare-feature.md`.
 
 Output-Konvention für alles: **Severity-Bänder** {Kill, Weak, Mid, Strong, Exceptional}, keine Fake-Scores.
 
@@ -26,7 +28,7 @@ Output-Konvention für alles: **Severity-Bänder** {Kill, Weak, Mid, Strong, Exc
 - betreibt Custom-Agent-Setups (Claude Code + Cursor + Codex + Gemini + Windsurf + Cline + Aider parallel je nach Kunden-Stack),
 - muss Context-Engineering-Files konsistent halten, ohne dass jeder Customer-Dev die selben Regeln neu lernen muss,
 - hat 2–4 Implementation-Devs unter sich,
-- braucht Audit-Reports für Compliance + Drift-Erkennung über Zeit.
+- braucht Audit-Reports für Compliance über Zeit.
 
 **Nicht-Persona (out of scope):**
 - Indie-Founder-Validation-Wedge (lebt in einem separaten Framework des Users).
@@ -36,7 +38,7 @@ Output-Konvention für alles: **Severity-Bänder** {Kill, Weak, Mid, Strong, Exc
 ## Capability-Set (geordnet nach Aufbau-Reihenfolge)
 
 1. **Audit + Visualization** (Sprint G1): Multi-Repo-Audit + Galaxie-UI mit Severity-Hotspots.
-2. **Drift-Detection** (Sprint G2): Diffs zwischen Repos sichtbar, als "Gravitations-Ströme" in der Galaxie.
+2. **Customer-Migration + Data-Binding** (Sprint G2): Echt-Daten aus DB, Customer-Layer, DAL. _Hinweis: die ursprünglich als Sekundärfunktion vorgesehene Repo-Compare/Drift-Detection wurde im Homepage-Relaunch (Mai 2026, ADR-0003) abgebaut. Multi-Repo bleibt._
 3. **AI-Solution-Generation** (Sprint G3–G4): Pro Finding 1 Edit-Vorschlag via Anthropic Claude Opus Single-Pass mit Confidence-Self-Estimate.
 4. **Zero-Code-Apply** (Sprint G5): PR (Default) oder Direct-Commit (pro Repo konfigurierbar) via GitHub-App. Kein User-Code-Edit.
 5. **SaaS-Polish** (Sprint G6): Settings, Billing-Routing, Inline-Onboarding, Mobile-Tuning, Public-Demo.
@@ -97,15 +99,16 @@ Unsere Wette: die Kombination der 4 Achsen ist 6–12 Monate Lead, weil keiner e
 |---|---|---|
 | Monorepo | Turborepo + pnpm | Solo-Dev-Standard |
 | Web-Framework | Next.js 16 + App Router + Cache Components | RSC, Streaming, Server-Actions |
-| Render-Stack (Canvas) | PixiJS v8 + `@pixi/react` | Single-Lib für 2D + WebGL, 10k+ Sprites @60fps |
-| Animation (Canvas) | GSAP 3 Core | Animiert Pixi-Display-Objects direkt |
+| Render-Stack (Landing/Hero) | SVG + motion (LazyMotion + m) | Statisches Hero ohne Pixi-Bundle (Pivot 2026-05-20, siehe ADR-0004) |
+| Render-Stack (Workspace-Galaxie) | PixiJS v8 + `@pixi/react` | Single-Lib für 2D + WebGL, 10k+ Sprites @60fps — nur unter `/[workspace]`, Migration auf einheitlichen Stack offen (Nova-3+) |
+| Animation (Canvas) | GSAP 3 Core | Animiert Pixi-Display-Objects in /[workspace]/galaxie |
 | Animation (UI-Chrome) | Motion (ex-Framer Motion) LazyMotion | ~4.6 KB, idiomatisch React |
-| Auth | Better-Auth 1.6 + Organization-Plugin + Magic-Link (Resend) | Multi-Org out of box |
+| Auth | Better-Auth 1.6 + Magic-Link (Resend, via nodemailer-SMTP) | Solo-Setup; Workspaces in eigenen Drizzle-Tabellen (kein Better-Auth Org-Plugin — siehe ADR-0006) |
 | DB | Neon Postgres + Drizzle + pgvector | Single-Table-Multi-Tenant via workspace_id + RLS |
 | Cache | Vercel Runtime Cache + Redis (dev) | cacheTag-Pattern pro Workspace |
 | Billing | Stripe direkt + Stripe Tax | kein Stripe-Reseller |
 | Background | Inngest Cloud + Cron | Audit-Runs, Solution-Generation |
-| LLM | @ai-sdk/anthropic direct | KEIN Vercel AI Gateway (Vendor-Lock-in-Vermeidung) |
+| LLM | @ai-sdk/anthropic primary + @ai-sdk/openai opt-in Fallback | Direct-Provider only, KEIN Vercel AI Gateway (siehe ADR-0005) |
 | Email | Resend (prod), Mailpit (dev) | |
 | Deploy | Vercel Fluid Compute | |
 | Routing | URL-Slug `/[workspace]/...` | Solo-buildable, kein DNS-Setup |
@@ -114,7 +117,7 @@ Unsere Wette: die Kombination der 4 Achsen ist 6–12 Monate Lead, weil keiner e
 
 - **URL-Slug** `/[workspace]/...` (kein Subdomain)
 - **Data Access Layer (DAL)** in `lib/dal/*.ts` mit `server-only`, jede Query nimmt `workspaceId` aus `getTenantContext(workspaceSlug)` (React.cache memoized)
-- **Better-Auth Organization-Plugin** = Workspaces. `setActive(workspaceSlug)` server-side im Layout.
+- **Workspaces** in eigener Drizzle-`workspace`-Tabelle + `membership`-Join-Table (kein Better-Auth Organization-Plugin — siehe ADR-0006 für Build-vs-Buy-Begründung). Membership-Gate im `[workspace]/layout.tsx` (`listUserWorkspaces(userId)`).
 - **Cache-Tagging:** `workspace:<id>:<resource>` (feingranular) + `workspace:<id>` (bulk)
 - **Slug-Hijacking-Schutz:** Layout validiert Membership, sonst `forbidden()`
 - **pgvector:** Single-Table mit composite btree + RLS-Policy. Double-Belt (WHERE + RLS)

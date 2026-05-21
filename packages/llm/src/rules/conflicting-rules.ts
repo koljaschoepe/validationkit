@@ -1,14 +1,14 @@
-// Direct Anthropic provider is deliberate per PRD §5 (Phase 0 Tech-Stack).
-// AI Gateway is listed in PRD §5.2 as a Vercel-lock-in to avoid until Phase 2+.
-// LiteLLM proxy is the planned abstraction for Phase 2. Re-evaluate at M9.
+// Direct-Provider only (Anthropic primary, OpenAI opt-in fallback per ADR-0005).
+// KEIN Vercel AI Gateway — Vendor-Lock-in-Vermeidung gilt für Gateway, nicht für
+// Direct-Provider (CLAUDE.md Z.82). Provider-Selection läuft via selectModel().
 import { generateText, Output } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import type {
   AuditFinding,
   ParsedAgentFile,
   ParserResult,
 } from "@vk/core";
+import { providerModel, selectModel } from "../select.js";
 
 const TRIGRAM_SIZE = 3;
 const LOW_OVERLAP = 0.4;
@@ -47,16 +47,23 @@ const ConflictSchema = z.object({
  * finding when the model returns conflict=true AND confidence ≥ minConfidence
  * (Confidence-Banding from constraint #13).
  *
- * Hardcore-Local-Only-Mode: silently returns an empty array if no
- * ANTHROPIC_API_KEY is set in the environment. No findings, no error.
+ * Hardcore-Local-Only-Mode: silently returns an empty array if neither
+ * ANTHROPIC_API_KEY nor OPENAI_API_KEY is set. No findings, no error.
  */
 export async function checkConflictingRules(
   scan: ParserResult,
   cfg: Partial<LLMConfig> = {},
 ): Promise<AuditFinding[]> {
-  if (!process.env.ANTHROPIC_API_KEY) return [];
+  const selection = selectModel({ intent: "conflicting-rules" });
+  if (!selection) return [];
 
   const config: LLMConfig = { ...defaultLLMConfig, ...cfg };
+  // Override config.model with the provider-resolved modelId so cfg.model
+  // can still pin a specific Anthropic model when needed for tests.
+  const modelId =
+    selection.provider === "anthropic" && cfg.model
+      ? cfg.model
+      : selection.modelId;
   const candidates = scan.files.filter(
     (f) => f.kind !== "aider-conf" && f.body.length > 100,
   );
@@ -64,7 +71,7 @@ export async function checkConflictingRules(
   const pairs = pickCandidatePairs(candidates, config.maxPairs);
   if (pairs.length === 0) return [];
 
-  const model = anthropic(config.model);
+  const model = providerModel({ ...selection, modelId });
   const findings: AuditFinding[] = [];
 
   for (const [a, b] of pairs) {

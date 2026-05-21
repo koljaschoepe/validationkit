@@ -70,11 +70,14 @@ export default async function EvalPage() {
   return (
     <>
       <SiteNav />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <main
+        id="main-content"
+        className="mx-auto max-w-3xl space-y-6 px-6 py-10 sm:px-8 sm:py-16"
+      >
         <header className="space-y-2">
           <div className="flex items-center gap-2">
             <Beaker className="size-5 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="type-h1 font-semibold tracking-tight">
               LLM-eval results
             </h1>
           </div>
@@ -161,7 +164,7 @@ export default async function EvalPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-xs font-mono">
-                <div className="grid grid-cols-5 gap-2 px-2 py-1 text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                <div className="grid grid-cols-5 gap-2 px-2 py-1 type-mono-sm uppercase tracking-wider text-muted-foreground">
                   <span>Date</span>
                   <span className="text-right">Pairs</span>
                   <span className="text-right">FPR low</span>
@@ -214,7 +217,7 @@ export default async function EvalPage() {
                       className="flex items-center justify-between rounded-md border bg-card/40 px-2 py-1"
                     >
                       <span>{u.id}</span>
-                      <Badge variant="outline" className="text-[0.6rem]">
+                      <Badge variant="outline" className="type-mono-sm">
                         {u.flips}/{latest.runsPerPair} flips
                       </Badge>
                     </div>

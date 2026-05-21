@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 import { isAuthEnabled } from '@vk/auth';
 import GalaxieRoot from '@/components/galaxie/GalaxieRoot';
+import { GalaxieSkeleton } from '@/components/galaxie/GalaxieSkeleton';
 import { getSessionUser } from '@/lib/session';
 import {
   getGalaxieDataForWorkspace,
@@ -44,7 +45,7 @@ export default async function WorkspaceGalaxiePage({
 
   return (
     <div className="h-screen w-screen">
-      <Suspense fallback={null}>
+      <Suspense fallback={<GalaxieSkeleton />}>
         <GalaxieRoot
           initialData={result.data}
           initialWorkspaceSlug={result.workspace.slug}
@@ -58,6 +59,8 @@ export default async function WorkspaceGalaxiePage({
             customerCount: counts.customerCount,
             repoCount: counts.repoCount,
             scanCount: counts.scanCount,
+            applyCount: counts.applyCount,
+            memberCount: counts.memberCount,
             gitHubAppConfigured: isGitHubAppConfigured(),
           }}
         />

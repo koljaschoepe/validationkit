@@ -21,9 +21,11 @@ describe('severity-colors', () => {
     expect(hexToPixiNumber('dc2626')).toBe(0xdc2626);
   });
 
-  it('Kill is red, Exceptional is gold', () => {
-    expect(severityHex('Kill')).toBe('#dc2626');
-    expect(severityHex('Exceptional')).toBe('#fbbf24');
-    expect(severityPixiColor('Strong')).toBe(0x3b82f6);
+  it('Kill is red, Exceptional is the brighter green', () => {
+    // Frontend-Relaunch v2 (May 2026): three-tier traffic-light palette,
+    // Strong+Exceptional both green; Exceptional is the brighter shade.
+    expect(severityHex('Kill')).toBe('#dc2f2f');
+    expect(severityHex('Exceptional')).toBe('#6fb685');
+    expect(severityPixiColor('Strong')).toBe(0x4f9466);
   });
 });

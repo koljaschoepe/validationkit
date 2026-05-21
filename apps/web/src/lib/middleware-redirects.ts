@@ -2,14 +2,16 @@
 // Map legacy top-level routes to their workspace-scoped equivalents.
 // Returns null when the URL doesn't need rewriting (no redirect).
 
+// Homepage-Relaunch (May 2026) dropped /drift, /bip, /skills, /onboarding,
+// /galaxie-dev. Routes-Konsolidierung (May 19, 2026) moved /scans, /customers,
+// and /requests under /[workspace]/* — legacy URLs stay redirected so
+// external bookmarks survive.
 const LEGACY_MAP: Record<string, string> = {
   '/billing': '/{slug}/settings/billing',
   '/dashboard': '/{slug}',
-  '/onboarding': '/{slug}',
   '/scans': '/{slug}/scans',
-  '/drift': '/{slug}/drift',
-  '/skills': '/{slug}/skills',
-  '/status': '/{slug}/status',
+  '/customers': '/{slug}/customers',
+  '/requests': '/{slug}/requests',
 };
 
 // Public + legitimate top-level routes that must NOT redirect.
@@ -17,13 +19,10 @@ export const PUBLIC_TOP_LEVEL = new Set<string>([
   '/',
   '/login',
   '/pricing',
-  '/galaxie-dev',
   '/trust',
   '/trust/dpa',
   '/trust/eval',
-  '/customers',
-  '/requests',
-  '/bip',
+  '/status',
 ]);
 
 export function resolveLegacyRedirect(
@@ -54,7 +53,6 @@ export function shouldAttemptRedirect(pathname: string): boolean {
   if (pathname.startsWith('/_next/')) return false;
   if (pathname.startsWith('/.well-known/')) return false;
   if (PUBLIC_TOP_LEVEL.has(pathname)) return false;
-  if (pathname.startsWith('/customers/')) return false;
   if (pathname.startsWith('/trust/')) return false;
   if (pathname.includes('.')) return false; // asset files (favicon etc)
   return true;

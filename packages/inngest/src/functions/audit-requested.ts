@@ -103,48 +103,6 @@ export const auditRequested: any = inngest.createFunction(
         });
       });
 
-      // Auto-drift: if the scanned repo declares a canonical, enqueue a drift run.
-      await step.run("auto-drift", async () => {
-        const rows = await db
-          .select({
-            repoId: schema.scan.repoId,
-            workspaceId: schema.scan.workspaceId,
-            rootPathA: schema.scan.rootPath,
-          })
-          .from(schema.scan)
-          .where(eq(schema.scan.id, scanId))
-          .limit(1);
-        const row = rows[0];
-        if (!row || !row.repoId) return;
-
-        const repoRows = await db
-          .select({
-            canonicalRepoId: schema.repo.canonicalRepoId,
-          })
-          .from(schema.repo)
-          .where(eq(schema.repo.id, row.repoId))
-          .limit(1);
-        const canonical = repoRows[0]?.canonicalRepoId;
-        if (!canonical) return;
-
-        const canonicalRows = await db
-          .select({ rootPath: schema.repo.rootPath })
-          .from(schema.repo)
-          .where(eq(schema.repo.id, canonical))
-          .limit(1);
-        const canonicalPath = canonicalRows[0]?.rootPath;
-        if (!canonicalPath) return;
-
-        await inngest.send({
-          name: "drift/requested",
-          data: {
-            workspaceId: row.workspaceId,
-            rootPathA: row.rootPathA,
-            rootPathB: canonicalPath,
-          },
-        });
-      });
-
       return { ok: true, findings: report.findings.length };
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);

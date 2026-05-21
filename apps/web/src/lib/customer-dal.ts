@@ -6,7 +6,6 @@ import { getDb, isDbEnabled, schema } from "@vk/db";
 import type { Severity } from "@/lib/galaxie/types";
 import { aggregateSeverities, normalizeSeverity } from "./dal/galaxie";
 import { galaxieWorkspaceTag } from "./cache-tags";
-import { ensureDefaultWorkspace } from "./workspaces";
 
 export interface CustomerListItem {
   id: string;
@@ -31,48 +30,15 @@ export interface CustomerDetail {
   }>;
 }
 
-async function userIsWorkspaceMember(
-  workspaceId: string,
-  userId: string,
-): Promise<boolean> {
-  const db = getDb();
-  const memberRows = await db
-    .select({ id: schema.membership.id })
-    .from(schema.membership)
-    .where(
-      and(
-        eq(schema.membership.workspaceId, workspaceId),
-        eq(schema.membership.userId, userId),
-        eq(schema.membership.status, "active"),
-      ),
-    )
-    .limit(1);
-  if (memberRows.length > 0) return true;
-  const ownerRows = await db
-    .select({ id: schema.workspace.id })
-    .from(schema.workspace)
-    .where(
-      and(
-        eq(schema.workspace.id, workspaceId),
-        eq(schema.workspace.ownerId, userId),
-      ),
-    )
-    .limit(1);
-  return ownerRows.length > 0;
-}
-
 /**
- * List the customers visible to a user across their accessible workspaces.
- * For Sprint G3 this collapses to the user's owned workspace (matching
- * ensureDefaultWorkspace semantics); G6 multi-workspace polish refines this.
+ * List the customers in a workspace. Caller MUST have already validated
+ * workspace-membership (e.g. via resolveWorkspaceFromSlug).
  */
 export async function listCustomers(
-  userId: string,
+  workspaceId: string,
 ): Promise<CustomerListItem[]> {
   if (!isDbEnabled()) return [];
   const db = getDb();
-
-  const workspaceId = await ensureDefaultWorkspace(userId);
 
   const customers = await db
     .select()
@@ -126,8 +92,13 @@ export async function listCustomers(
   });
 }
 
+/**
+ * Fetch a single customer-detail. Workspace-gating is enforced via the
+ * (workspaceId, customerId) compound match — caller MUST have validated
+ * workspace membership upstream.
+ */
 export async function getCustomerById(
-  userId: string,
+  workspaceId: string,
   customerId: string,
 ): Promise<CustomerDetail | null> {
   if (!isDbEnabled()) return null;
@@ -136,12 +107,15 @@ export async function getCustomerById(
   const customerRows = await db
     .select()
     .from(schema.customer)
-    .where(eq(schema.customer.id, customerId))
+    .where(
+      and(
+        eq(schema.customer.id, customerId),
+        eq(schema.customer.workspaceId, workspaceId),
+      ),
+    )
     .limit(1);
   const c = customerRows[0];
   if (!c) return null;
-
-  if (!(await userIsWorkspaceMember(c.workspaceId, userId))) return null;
 
   const repos = await db
     .select()
@@ -152,7 +126,7 @@ export async function getCustomerById(
   const scans = await db
     .select()
     .from(schema.scan)
-    .where(eq(schema.scan.workspaceId, c.workspaceId))
+    .where(eq(schema.scan.workspaceId, workspaceId))
     .orderBy(desc(schema.scan.createdAt));
   const latestScanByRoot = new Map<string, (typeof scans)[number]>();
   for (const s of scans) {
@@ -197,7 +171,7 @@ export interface AddCustomerResult {
 }
 
 export async function addCustomer(
-  userId: string,
+  workspaceId: string,
   label: string,
 ): Promise<AddCustomerResult> {
   if (!isDbEnabled()) return { ok: false, error: "DB not configured." };
@@ -205,7 +179,6 @@ export async function addCustomer(
   if (!trimmed) return { ok: false, error: "Label is required." };
 
   const db = getDb();
-  const workspaceId = await ensureDefaultWorkspace(userId);
 
   const slug = trimmed
     .toLowerCase()
@@ -238,8 +211,12 @@ export interface AddRepoUnderCustomerInput {
   githubFullName?: string;
 }
 
+/**
+ * Update the default apply-mode on a customer. Workspace is derived from
+ * the customer row; caller MUST have validated workspace-membership.
+ */
 export async function updateCustomerApplyMode(
-  userId: string,
+  workspaceId: string,
   customerId: string,
   mode: "pr" | "direct",
 ): Promise<AddCustomerResult> {
@@ -249,27 +226,28 @@ export async function updateCustomerApplyMode(
   }
   const db = getDb();
   const customerRows = await db
-    .select({ workspaceId: schema.customer.workspaceId })
+    .select({ id: schema.customer.id })
     .from(schema.customer)
-    .where(eq(schema.customer.id, customerId))
+    .where(
+      and(
+        eq(schema.customer.id, customerId),
+        eq(schema.customer.workspaceId, workspaceId),
+      ),
+    )
     .limit(1);
-  const customer = customerRows[0];
-  if (!customer) return { ok: false, error: "Customer not found." };
-
-  if (!(await userIsWorkspaceMember(customer.workspaceId, userId))) {
-    return { ok: false, error: "Not authorized." };
-  }
+  if (!customerRows[0]) return { ok: false, error: "Customer not found in workspace." };
 
   await db
     .update(schema.customer)
     .set({ defaultApplyMode: mode, updatedAt: new Date() })
     .where(eq(schema.customer.id, customerId));
 
-  updateTag(galaxieWorkspaceTag(customer.workspaceId));
+  updateTag(galaxieWorkspaceTag(workspaceId));
   return { ok: true };
 }
 
 export async function addRepoUnderCustomer(
+  workspaceId: string,
   userId: string,
   input: AddRepoUnderCustomerInput,
 ): Promise<AddCustomerResult> {
@@ -282,16 +260,16 @@ export async function addRepoUnderCustomer(
 
   const db = getDb();
   const customerRows = await db
-    .select({ workspaceId: schema.customer.workspaceId })
+    .select({ id: schema.customer.id })
     .from(schema.customer)
-    .where(eq(schema.customer.id, input.customerId))
+    .where(
+      and(
+        eq(schema.customer.id, input.customerId),
+        eq(schema.customer.workspaceId, workspaceId),
+      ),
+    )
     .limit(1);
-  const customer = customerRows[0];
-  if (!customer) return { ok: false, error: "Customer not found." };
-
-  if (!(await userIsWorkspaceMember(customer.workspaceId, userId))) {
-    return { ok: false, error: "Not authorized for this workspace." };
-  }
+  if (!customerRows[0]) return { ok: false, error: "Customer not found in workspace." };
 
   const { canAddRepo } = await import("@vk/billing");
   const quota = await canAddRepo(userId);
@@ -305,7 +283,7 @@ export async function addRepoUnderCustomer(
   const inserted = await db
     .insert(schema.repo)
     .values({
-      workspaceId: customer.workspaceId,
+      workspaceId,
       customerId: input.customerId,
       label,
       rootPath,
@@ -315,6 +293,6 @@ export async function addRepoUnderCustomer(
   const row = inserted[0];
   if (!row) return { ok: false, error: "Repo insert failed." };
 
-  updateTag(galaxieWorkspaceTag(customer.workspaceId));
+  updateTag(galaxieWorkspaceTag(workspaceId));
   return { ok: true, id: row.id };
 }

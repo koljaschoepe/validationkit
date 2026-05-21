@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import nodemailer from "nodemailer";
 import { getDb, isDbEnabled, schema } from "@vk/db";
+import { renderMagicLinkEmail } from "./emails/render.js";
 
 // The `betterAuth()` return type references zod's internal types which are
 // non-portable across the project's TS configuration. Use a structural
@@ -70,49 +71,48 @@ function createAuth(): AuthInstance {
       },
     }),
     emailAndPassword: { enabled: false },
+    // Session-cookie cache: skip the DB round-trip on every request. Server
+    // re-validates against `verification` table after maxAge expires. 300 s
+    // matches Linear / Vercel patterns — short enough that logout propagates
+    // quickly, long enough to drop ~95 % of session lookups on hot paths.
+    session: {
+      cookieCache: { enabled: true, maxAge: 300 },
+    },
     plugins: [
       magicLink({
-        sendMagicLink: async ({ email, url }) => {
+        // 10-minute window — comfortable for users who context-switch to
+        // their email tab, tight enough to limit replay risk. Matches the
+        // expiry notice we put in the email body.
+        expiresIn: 600,
+        // Store SHA-256(token) instead of the raw token in `verification`,
+        // so a DB leak doesn't hand out sign-in capability. The plaintext
+        // token is only ever in the email + the click-target URL.
+        storeToken: "hashed",
+        sendMagicLink: async ({ email, url }, request) => {
+          // Pull request metadata for in-email transparency. Better-Auth passes
+          // the underlying Request as the 2nd arg of sendMagicLink callbacks.
+          const headers = request?.headers;
+          const requestIp =
+            headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            headers?.get("x-real-ip") ??
+            undefined;
+          const userAgent = headers?.get("user-agent") ?? undefined;
+
+          const { html, text } = await renderMagicLinkEmail({
+            url,
+            expiresInMinutes: 10,
+            requestIp,
+            userAgent,
+          });
+
           await transport.sendMail({
             from:
               process.env.SMTP_FROM ??
               (useResend ? "onboarding@resend.dev" : "auth@validationkit.local"),
             to: email,
             subject: "Sign in to ValidationKit",
-            text:
-              `Click to sign in: ${url}\n\n` +
-              (useResend
-                ? "If you didn't request this link, you can ignore this email."
-                : "Open Mailpit at http://localhost:8025 to read this in the local stack."),
-            html: useResend
-              ? `
-                <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-                  <h1 style="font-size:18px;margin:0 0 16px">Sign in to ValidationKit</h1>
-                  <p style="color:#333;font-size:15px">Click below to complete sign-in:</p>
-                  <p>
-                    <a href="${url}"
-                       style="display:inline-block;background:#5eead4;color:#06231e;
-                              padding:10px 20px;border-radius:6px;text-decoration:none;
-                              font-weight:600">
-                      Sign in
-                    </a>
-                  </p>
-                  <p style="color:#888;font-size:13px;margin-top:24px">
-                    Or paste this link in your browser:<br>
-                    <span style="word-break:break-all">${url}</span>
-                  </p>
-                  <p style="color:#aaa;font-size:12px;margin-top:24px">
-                    If you didn't request this, you can safely ignore this email.
-                  </p>
-                </div>
-              `
-              : `
-                <p>Click to sign in to ValidationKit.</p>
-                <p><a href="${url}">${url}</a></p>
-                <p style="color:#888;font-size:12px">
-                  Local dev: open <a href="http://localhost:8025">Mailpit</a> to find this email.
-                </p>
-              `,
+            text,
+            html,
           });
         },
       }),

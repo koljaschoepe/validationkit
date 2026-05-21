@@ -44,11 +44,50 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Lint step is deferred — Next 16 removed `next lint`; ESLint flat-config
+      # setup is a follow-up sub-plan. See repo-health-and-workflow-overhaul §13.
+      # - name: Lint
+      #   run: pnpm lint
+
       - name: Unit tests
         run: pnpm test
 
       - name: Golden-set eval
         run: pnpm eval
 
+      - name: Doc-consistency check (warning-only)
+        run: pnpm doc:check
+
       - name: Build
         run: pnpm build
+
+  conflict-eval:
+    name: LLM-conflict-eval (optional)
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Only runs on push to main, and silently no-ops if ANTHROPIC_API_KEY secret is unset.
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Conflict-eval (no-op without ANTHROPIC_API_KEY)
+        run: pnpm eval:conflicts
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Upload conflict-eval results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: conflict-eval-results
+          path: eval/conflicts/results/*.json
+          if-no-files-found: ignore

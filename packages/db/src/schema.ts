@@ -1,6 +1,5 @@
 import { relations, sql } from "drizzle-orm";
 import {
-  type AnyPgColumn,
   bigserial,
   boolean,
   index,
@@ -135,12 +134,6 @@ export const repo = pgTable(
   // poller; re-audits skip when SHA is unchanged.
   lastCommitSha: varchar("last_commit_sha", { length: 64 }),
   lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
-  // Canonical reference for drift detection. When set, an audit completion
-  // auto-enqueues a drift run against this repo.
-  canonicalRepoId: uuid("canonical_repo_id").references(
-    (): AnyPgColumn => repo.id,
-    { onDelete: "set null" },
-  ),
   // Opt-in HMAC secret for /api/notify-update. Per-repo, rotated by re-issuing.
   notifySecret: varchar("notify_secret", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -260,19 +253,6 @@ export const webhookEvent = pgTable("webhook_event", {
   failureReason: text("failure_reason"),
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
   processedAt: timestamp("processed_at", { withTimezone: true }),
-});
-
-export const driftRun = pgTable("drift_run", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: uuid("workspace_id")
-    .notNull()
-    .references(() => workspace.id, { onDelete: "cascade" }),
-  rootPathA: text("root_path_a").notNull(),
-  rootPathB: text("root_path_b").notNull(),
-  itemsCount: integer("items_count").notNull(),
-  overallSeverity: varchar("overall_severity", { length: 20 }).notNull(),
-  rawDrift: jsonb("raw_drift").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const scan = pgTable("scan", {
@@ -480,15 +460,8 @@ export const installRequestRelations = relations(installRequest, ({ one }) => ({
   }),
 }));
 
-export const driftRunRelations = relations(driftRun, ({ one }) => ({
-  workspace: one(workspace, {
-    fields: [driftRun.workspaceId],
-    references: [workspace.id],
-  }),
-}));
-
 // Sprint 0.12: lightweight workspace-scoped event log. Producers (Inngest
-// audit/drift completions) INSERT; the SSE endpoint SELECTs since last_id.
+// audit completions) INSERT; the SSE endpoint SELECTs since last_id.
 // Auto-rolled by retention; 7d default.
 export const event = pgTable(
   "event",

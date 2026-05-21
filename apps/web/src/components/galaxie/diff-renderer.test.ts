@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { lineClass } from './diff-renderer';
 
 describe('lineClass', () => {
-  it('classifies + lines as added (green)', () => {
-    expect(lineClass('+ added text')).toBe('text-green-400');
+  it('classifies + lines as added (severity-strong token)', () => {
+    expect(lineClass('+ added text')).toBe('text-[var(--color-sev-strong)]');
   });
 
-  it('classifies - lines as removed (red)', () => {
-    expect(lineClass('- removed text')).toBe('text-red-400');
+  it('classifies - lines as removed (severity-kill token)', () => {
+    expect(lineClass('- removed text')).toBe('text-[var(--color-sev-kill)]');
   });
 
-  it('classifies @@ hunk-headers as info (blue)', () => {
-    expect(lineClass('@@ -1,3 +1,4 @@')).toBe('text-blue-400');
+  it('classifies @@ hunk-headers as muted', () => {
+    expect(lineClass('@@ -1,3 +1,4 @@')).toBe('text-muted-foreground');
   });
 
   it('classifies +++ / --- file-headers as bold', () => {

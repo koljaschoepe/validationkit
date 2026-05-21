@@ -5,7 +5,7 @@ import { getDb, isDbEnabled, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 
 export interface AuditTrailRow {
-  kind: "scan" | "drift_run" | "install_request" | "webhook_event" | "repo";
+  kind: "scan" | "install_request" | "webhook_event" | "repo";
   id: string;
   createdAt: string;
   summary: string;
@@ -25,9 +25,9 @@ const RETENTION_WINDOW = "12 months";
 
 /**
  * Workspace-scoped audit-trail export. Surfaces every Customer-facing
- * compliance-relevant row across scan / drift_run / install_request /
- * webhook_event / repo. Compliance-Frame Customers per Playbook ch 3 ask
- * for this directly (Q4: "How do we revoke + audit-trail export?").
+ * compliance-relevant row across scan / install_request / webhook_event /
+ * repo. Compliance-Frame Customers per Playbook ch 3 ask for this directly
+ * (Q4: "How do we revoke + audit-trail export?").
  *
  * Returns null when DB or auth isn't configured.
  */
@@ -75,28 +75,6 @@ export async function exportAuditTrail(): Promise<AuditTrailExport | null> {
       createdAt: s.createdAt.toISOString(),
       summary: `audit on ${s.rootPath} — ${s.status} — ${s.severity} — ${s.findingsCount} findings`,
       raw: s as unknown as Record<string, unknown>,
-    });
-  }
-
-  const drifts = await db
-    .select({
-      id: schema.driftRun.id,
-      createdAt: schema.driftRun.createdAt,
-      rootPathA: schema.driftRun.rootPathA,
-      rootPathB: schema.driftRun.rootPathB,
-      itemsCount: schema.driftRun.itemsCount,
-      severity: schema.driftRun.overallSeverity,
-    })
-    .from(schema.driftRun)
-    .where(eq(schema.driftRun.workspaceId, ws.id))
-    .orderBy(desc(schema.driftRun.createdAt));
-  for (const d of drifts) {
-    rows.push({
-      kind: "drift_run",
-      id: d.id,
-      createdAt: d.createdAt.toISOString(),
-      summary: `drift ${d.rootPathA} → ${d.rootPathB} — ${d.itemsCount} items — ${d.severity}`,
-      raw: d as unknown as Record<string, unknown>,
     });
   }
 

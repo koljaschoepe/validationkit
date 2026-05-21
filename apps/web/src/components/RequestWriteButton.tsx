@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { requestInstall } from "@/lib/install-requests";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export interface RequestWriteButtonProps {
+  /** Workspace slug — drives the URL the action targets + revalidates. */
+  workspaceSlug: string;
   /** Display label for the repo (e.g. owner/repo or the local rootPath). */
   repoLabel: string;
   /** Resolved local path or `github://owner/repo`. */
@@ -13,19 +19,18 @@ export interface RequestWriteButtonProps {
 }
 
 export function RequestWriteButton({
+  workspaceSlug,
   repoLabel,
   rootPath,
   scope = "write",
 }: RequestWriteButtonProps) {
   const [pending, startTransition] = useTransition();
-  const [state, setState] = useState<
-    "idle" | "submitted" | "error"
-  >("idle");
+  const [state, setState] = useState<"idle" | "submitted" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   function onClick() {
     startTransition(async () => {
-      const result = await requestInstall({
+      const result = await requestInstall(workspaceSlug, {
         targetRepoLabel: repoLabel,
         targetRootPath: rootPath,
         requestedScope: scope,
@@ -41,39 +46,46 @@ export function RequestWriteButton({
 
   if (state === "submitted") {
     return (
-      <div className="callout">
-        <strong>Request submitted.</strong> A workspace owner will see it on{" "}
-        <a href="/requests">/requests</a> and decide. You&apos;ll get an email
-        once it&apos;s approved.
-      </div>
+      <Card className="border-border">
+        <CardContent className="flex items-start gap-2 py-3 text-sm">
+          <CheckCircle2
+            className="mt-0.5 size-4 shrink-0 text-foreground"
+            aria-hidden="true"
+          />
+          <p>
+            <strong>Request submitted.</strong> A workspace owner will see it on{" "}
+            <Link
+              href={`/${workspaceSlug}/requests`}
+              className="underline-offset-4 hover:underline"
+            >
+              /requests
+            </Link>{" "}
+            and decide. You&apos;ll get an email once it&apos;s approved.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={pending}
-        style={{
-          background: "var(--accent)",
-          color: "#06231e",
-          border: "none",
-          padding: "0.55rem 1rem",
-          borderRadius: "6px",
-          fontWeight: 600,
-          cursor: pending ? "not-allowed" : "pointer",
-          alignSelf: "flex-start",
-        }}
-      >
-        {pending
-          ? "Requesting…"
-          : scope === "write"
-            ? "Request write access"
-            : "Request read access"}
-      </button>
+    <div className="flex flex-col gap-2">
+      <Button type="button" onClick={onClick} disabled={pending} size="sm">
+        {pending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Requesting…
+          </>
+        ) : scope === "write" ? (
+          "Request write access"
+        ) : (
+          "Request read access"
+        )}
+      </Button>
       {state === "error" && errorMsg ? (
-        <div className="error">{errorMsg}</div>
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
       ) : null}
     </div>
   );

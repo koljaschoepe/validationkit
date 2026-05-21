@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function AddRepoForm({ customerId }: { customerId: string }) {
+export function AddRepoForm({
+  workspaceSlug,
+  customerId,
+}: {
+  workspaceSlug: string;
+  customerId: string;
+}) {
   const [label, setLabel] = useState("");
   const [rootPath, setRootPath] = useState("");
   const [github, setGithub] = useState("");
@@ -20,6 +26,7 @@ export function AddRepoForm({ customerId }: { customerId: string }) {
     setErr(null);
     startTransition(async () => {
       const fd = new FormData();
+      fd.set("workspace", workspaceSlug);
       fd.set("customerId", customerId);
       fd.set("label", label);
       fd.set("rootPath", rootPath);

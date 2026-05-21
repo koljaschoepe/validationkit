@@ -24,6 +24,10 @@ export interface WorkspaceCounts {
   repoCount: number;
   scanCount: number;
   writeEnabledRepoCount: number;
+  /** Phase Nova-2: count of apply_action rows — drives "Apply your first fix" activation item. */
+  applyCount: number;
+  /** Phase Nova-2: count of membership rows — drives "Invite a teammate" activation item. */
+  memberCount: number;
 }
 
 export async function getWorkspaceCounts(
@@ -35,10 +39,12 @@ export async function getWorkspaceCounts(
       repoCount: 0,
       scanCount: 0,
       writeEnabledRepoCount: 0,
+      applyCount: 0,
+      memberCount: 0,
     };
   }
   const db = getDb();
-  const [customers, repos, scans] = await Promise.all([
+  const [customers, repos, scans, applies, members] = await Promise.all([
     db
       .select({ id: schema.customer.id })
       .from(schema.customer)
@@ -54,12 +60,22 @@ export async function getWorkspaceCounts(
       .select({ id: schema.scan.id })
       .from(schema.scan)
       .where(eq(schema.scan.workspaceId, workspaceId)),
+    db
+      .select({ id: schema.applyAction.id })
+      .from(schema.applyAction)
+      .where(eq(schema.applyAction.workspaceId, workspaceId)),
+    db
+      .select({ id: schema.membership.id })
+      .from(schema.membership)
+      .where(eq(schema.membership.workspaceId, workspaceId)),
   ]);
   return {
     customerCount: customers.length,
     repoCount: repos.length,
     scanCount: scans.length,
     writeEnabledRepoCount: repos.filter((r) => r.writeAccessGranted).length,
+    applyCount: applies.length,
+    memberCount: members.length,
   };
 }
 
