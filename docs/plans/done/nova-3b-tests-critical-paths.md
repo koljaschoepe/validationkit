@@ -1,7 +1,7 @@
 # Plan — Nova-3b · Tests-Critical-Paths (Master)
 
 > Erstellt: 2026-05-21
-> Status: 🟡 In Review (Master)
+> Status: ✅ Done — 2026-05-21 (alle 3 Sub-Pläne done; +75 Tests gesamt; reduzierter Scope per Sub-Plan dokumentiert; CI postgres-service Verifikation pending bis erster main-Push)
 > Slug: `nova-3b-tests-critical-paths`
 > Confidence: Mid-High — basiert auf 8 User-Entscheidungen aus 2 Discovery-Runden + Sub-8 Audit (`docs/audits/2026-05/08-tests-eval.md` — 7 Kill / 0 mocks im Repo) + Code-Audit von Schlüssel-Files (7 API-Routes, audit-action.ts, DAL-Layer, session.ts, billing-actions, packages/audit/rules/).
 > Voraussetzung: Nova-3a abgeschlossen (`docs/plans/done/nova-3-repo-polish-and-prod-prep.md` — ESLint + lint-Script aus Bundle E).

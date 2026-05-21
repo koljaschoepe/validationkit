@@ -15,6 +15,9 @@ import { defineConfig } from "vitest/config";
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 const aliases = {
+  // server-only is a runtime-only marker that next.js compiles out. In tests
+  // there's no compiler, so we stub it with an empty module.
+  "server-only": path.resolve(here, "apps/web/src/test/empty-module.ts"),
   "@/": path.resolve(here, "apps/web/src") + "/",
   "@vk/core": path.resolve(here, "packages/core/src/index.ts"),
   "@vk/parser": path.resolve(here, "packages/parser/src/index.ts"),
