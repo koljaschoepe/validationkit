@@ -4,6 +4,24 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Master SaaS-Pricing-Redesign — Sub-Plan-C: UI + Compliance (✅ 2026-05-21)
+
+User-facing layer komplett — Master-Plan ist damit shippable.
+
+- Sub-Plan-C: `docs/plans/done/saas-pricing-sub-c-ui-compliance.md`
+- `/pricing` rewritten: 4 Tier-Cards (Free/Starter/Pro/Agency, EUR + VAT-by-IP), Cycle-Toggle, Quick/Deep-Erklärung-Section, Markup-Disclosure-Footnote, FAQ.
+- `/[workspace]/settings/billing` rewritten: Current-Plan + Credit-Balance-Progressbar + Pre-Paid-Packs-Liste + 4-Tier-Picker + Buy-100/500-Forms + Stripe-Portal-Link + Past-Due-Banner. `/billing` redirected zu workspace-scope.
+- `/[workspace]/settings/ai` (NEU): BYOK-Toggle (Pro+) mit verschlüsselter Key-Persistenz, Auto-Overage-Switch, Spend-Cap, Default-Intensity-Radio. Sidebar-Nav-Item "AI" hinzugefügt.
+- `apps/web/src/lib/workspace-ai-actions.ts` (NEU): 4 Server-Actions für BYOK / Auto-Overage / Spend-Cap / Default-Intensity.
+- `IntensitySelector.tsx` (NEU): Reusable Pill-Group mit Tier-Lock, Cost-Preview ("This Quick audit consumes 1 credit (≈€0.02 of GPT-5-nano)").
+- `CreditMeter.tsx` (NEU): Right-Rail-Komponente — Credits-Balance, Progress-Bar, Reset-Datum, Top-Up-CTA.
+- `cost-estimator.ts` (NEU): pre-audit estimateAuditCost + formatEurCents.
+- 3 Legal-Pages (NEU): `/legal/subprocessors` (7 Sub-Processors mit DPA-Links + 30d-Notice), `/legal/dpa` (GDPR Art. 28 template, 7 Sektionen), `/legal/agb` (Terms + Pricing-Klausel + Cost-Volatility-Klausel + 30d-Notice + BYOK + Fair-Use).
+- `docs/operations/transfer-impact-assessment.md` (NEU): TIA für US-Sub-Processors (Schrems II), per-Processor-Assessment, Open-Items für Beta-Pre-Launch.
+- Root-Typecheck grün, Builds grün, 222 Tests grün.
+- Deferred: Email-Templates (C.7) + Playwright-E2E-Suite (C.8) + IntensitySelector-Integration in RepoUrlPill — User-Sites die anonyme Audits triggern.
+- Out-of-scope: Anwaltliche AGB/DPA-Review (Master-§11), Lighthouse-CI als Gate, SiteFooter mit Legal-Links (kein bestehender Footer im Repo).
+
 ## Sub-Plan-B: SaaS-Pricing Sub-B — Stripe Meters + Credits + Webhooks (✅ 2026-05-21)
 
 Stripe-Integration komplett auf Workspace-Architektur + Credit-System.

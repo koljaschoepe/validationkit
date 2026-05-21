@@ -1,7 +1,7 @@
 # Plan — SaaS-Pricing-Redesign (Master)
 
 > Erstellt: 2026-05-21
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-05-21 (alle 3 Sub-Plans ✅, 222 Tests grün, root typecheck grün; deferrals dokumentiert in jedem Sub-Plan §12)
 > Slug: `saas-pricing-redesign`
 > Confidence: **High** — 16 User-Decisions in 4 Discovery-Runden + Audit von 22 Files (`packages/billing/`, `packages/db/src/schema.ts`, `packages/llm/src/{select.ts,rules/*}`, `apps/web/src/app/api/stripe/webhook/route.ts`, `apps/web/src/lib/{stripe.ts,billing-actions.ts}`, `apps/web/src/app/{pricing,billing}/page.tsx`, `packages/inngest/src/functions/stripe-reconcile.ts`)
 > Sub-Plans: [`saas-pricing-sub-a-db-metering`](./saas-pricing-sub-a-db-metering.md) · [`saas-pricing-sub-b-stripe-credits`](./saas-pricing-sub-b-stripe-credits.md) · [`saas-pricing-sub-c-ui-compliance`](./saas-pricing-sub-c-ui-compliance.md)

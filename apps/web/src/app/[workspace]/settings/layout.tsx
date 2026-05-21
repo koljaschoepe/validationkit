@@ -11,6 +11,7 @@ import {
   WebhookIcon,
   GlobeIcon,
   SparklesIcon,
+  BrainIcon,
 } from 'lucide-react';
 import { isAuthEnabled } from '@vk/auth';
 import { getSessionUser } from '@/lib/session';
@@ -43,6 +44,7 @@ function buildGroups(workspace: string): SettingsGroup[] {
       sections: [
         { href: `${ws}/integrations`, label: 'Integrations', icon: PuzzleIcon },
         { href: `${ws}/api-keys`, label: 'API Keys', icon: KeyRoundIcon },
+        { href: `${ws}/ai`, label: 'AI', icon: BrainIcon },
         { href: `${ws}/audit-apply`, label: 'Audit & Apply', icon: SparklesIcon },
         { href: `${ws}/galaxie`, label: 'Galaxie', icon: GlobeIcon },
       ],

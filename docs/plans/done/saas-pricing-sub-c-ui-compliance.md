@@ -1,7 +1,7 @@
 # Plan — SaaS-Pricing Sub-C: UI + Compliance + E2E-Tests
 
 > Erstellt: 2026-05-21
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-05-21 (Confidence-At-Start: High · Core 6/9 Phasen abgehakt · 222 Tests grün · 4 Deferrals: C.7 Email-Templates, C.8 Playwright-E2E, BuyCreditPackModal, RepoUrlPill-Integration · manuelle Verifikation pending: User-Aufgabe via Dev-Server)
 > Slug: `saas-pricing-sub-c-ui-compliance`
 > Confidence: **High** — Sub-Plan des Masters [`saas-pricing-redesign`](./saas-pricing-redesign.md). Decisions referenziert dort §2.
 > Voraussetzung: Sub-Plan-A + Sub-Plan-B gemerged
@@ -31,7 +31,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.1 — Pricing-Page-Rewrite
 
-- [ ] `apps/web/src/app/pricing/page.tsx` komplett umschreiben:
+- [x] `apps/web/src/app/pricing/page.tsx` komplett umschreiben:
   - 4 Tier-Karten responsive Grid (1 col mobile, 2 col tablet, 4 col desktop)
   - Per Karte: Tier-Name, Preis (Monthly + Annual mit 20%-Discount-Highlight), Credit-Quota, Customer-Workspaces-Included, Features-Liste, CTA-Button
   - Cycle-Toggle (Monthly/Annual) bestehend bewahren
@@ -43,7 +43,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.2 — Workspace-Settings-Billing-Page
 
-- [ ] `apps/web/src/app/[workspace]/settings/billing/page.tsx` komplett ersetzen (war Stub):
+- [x] `apps/web/src/app/[workspace]/settings/billing/page.tsx` komplett ersetzen (war Stub):
   - **Current-Plan-Card**: Tier-Name, Cycle, Next-Renewal, Status-Badge (active/past_due/canceled)
   - **Credit-Balance-Card**: Aktuelle Credits / Quota, Progress-Bar, Reset-Datum
   - **Pre-Paid-Packs-Card**: Liste aktiver Grants mit Remaining + Expires-At
@@ -56,7 +56,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.3 — Workspace-Settings-AI-Page (NEU)
 
-- [ ] `apps/web/src/app/[workspace]/settings/ai/page.tsx` (NEU):
+- [x] `apps/web/src/app/[workspace]/settings/ai/page.tsx` (NEU):
   - **BYOK-Toggle-Card**: Switch + API-Key-Input (Anthropic ODER OpenAI) + Validate-Button
     - On-Toggle-On: Test-Call gegen Provider → Error if invalid
     - On-Toggle-On: Settings-Update via Server-Action, key encrypted-stored
@@ -72,6 +72,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.4 — Audit-Trigger-UI-Update
 
+- [x] (partial) IntensitySelector als reusable Component + cost-estimator.ts; **Deferred:** Integration in RepoUrlPill (anonymes Audit) — Drift dokumentiert in §12
 - [ ] `apps/web/src/components/AuditTriggerForm.tsx` (oder ähnlich — exakter Pfad in Pre-Execute-Check verifizieren):
   - **Intensity-Toggle-Component** (Pill-Group): Quick / Deep
     - Tier-Gate: Free-Tier zeigt Deep als greyed-out mit Tooltip "Upgrade to Pro for Deep audits"
@@ -82,6 +83,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.5 — Credit-Meter-Komponente
 
+- [x] CreditMeter.tsx; **Deferred:** BuyCreditPackModal (Billing-Page hat schon direct-Form-Buttons, Modal nicht V1-blocker), Workspace-Layout-Integration (Right-Rail-Slot in next polish-pass)
 - [ ] `apps/web/src/components/CreditMeter.tsx` (NEU):
   - Right-Rail-Komponente, 240px breit
   - Zeigt: Aktuelle Credits / Quota (z.B. "47 / 50"), Progress-Bar (OKLCH-Token), Reset-Datum, Top-up-CTA-Button
@@ -93,7 +95,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.6 — Legal-Pages
 
-- [ ] `apps/web/src/app/legal/subprocessors/page.tsx` (NEU):
+- [x] `apps/web/src/app/legal/subprocessors/page.tsx` (NEU):
   - Listet Sub-Processors: Anthropic (US), OpenAI (US), Stripe (IE+US), Vercel (US), Neon (EU+US), Resend (US), Inngest (US)
   - Pro Eintrag: Purpose, Region, DPA-Link, Last-Updated
   - 30d-Notice-Mechanismus: "We'll notify customers 30 days before adding a new sub-processor."
@@ -115,6 +117,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.7 — Email-Templates
 
+- [ ] **Deferred (V2):** kein React-Email-Setup im Repo (apps/web/src/emails/ existiert nicht). Email-Infra (Resend + Templates) lives in eigenem Sub-Plan vor Beta-Launch.
 - [ ] `apps/web/src/emails/PrepaidPackExpireWarning.tsx` (NEU, React-Email): 30d/7d/1d-Varianten
 - [ ] `apps/web/src/emails/SubscriptionPastDue.tsx` (NEU)
 - [ ] `apps/web/src/emails/PlanChangeConfirmation.tsx` (NEU)
@@ -123,6 +126,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.8 — Playwright-E2E-Suite
 
+- [ ] **Deferred (V2):** 8 E2E-Tests brauchen Stripe-Test-Mode + Test-DB + Webhook-Forward-Setup in CI. Manuelle Stripe-CLI-Tests dokumentiert in docs/operations/stripe-go-live.md
 - [ ] `apps/web/tests/e2e/pricing-flow.spec.ts` (NEU):
   - **Test 1 — Free-Tier-Sign-up:** Magic-Link-Sign-up → Default-Workspace → Workspace-Settings-Billing zeigt "Free, 3 credits lifetime"
   - **Test 2 — Quick-Audit-Free:** Audit-Form mit intensity=quick → Submit → Credit-Meter 2/3 → Audit-Completion-View
@@ -135,6 +139,7 @@ User-Facing-Layer: neue Pricing-Page mit 4 Tiers + Quick/Deep-Erklärung, Worksp
 
 ### Phase C.9 — Vision-Update + Changelog
 
+- [x] changelog.md mit Sub-C-Block; **Skipped:** vision.md (L.128 sagt explizit "Pricing-Tiers leben nicht hier") + roadmap/phase-nova-2.md (Master-Plan ist eigenständig, nicht Teil von Nova-2)
 - [ ] `docs/vision.md` — Pricing-Sektion (§5 SaaS-Polish) updaten:
   - 4 Tiers statt 6
   - Credit-System + Quick/Deep
