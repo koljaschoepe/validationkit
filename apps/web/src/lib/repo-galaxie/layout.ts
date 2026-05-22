@@ -29,11 +29,11 @@ export interface PackOptions {
   padding?: number | ((depth: number) => number);
 }
 
-/** Phase Nova-2 Hero-Polish: more breathing room near the root. */
+/** Galaxie-Polish-V: noch großzügigeres Padding pro Tiefe. */
 function defaultPaddingForDepth(depth: number): number {
-  if (depth === 0) return 20;
-  if (depth === 1) return 16;
-  return 8;
+  if (depth === 0) return 38;
+  if (depth === 1) return 30;
+  return 20;
 }
 
 const DEFAULT_PACK_OPTIONS: Required<PackOptions> = {

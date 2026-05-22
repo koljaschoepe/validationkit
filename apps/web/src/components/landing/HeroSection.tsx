@@ -23,7 +23,6 @@ import {
 import { RepoInspector } from "./RepoInspector";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { SignUpTeaseDialog } from "./SignUpTeaseDialog";
-import { GalaxieSettingsPopover } from "./GalaxieSettingsPopover";
 import { RepoTreeView } from "./RepoTreeView";
 import { InspectorMobileSheet } from "./InspectorMobileSheet";
 import { RepoUrlPill } from "./RepoUrlPill";
@@ -318,10 +317,6 @@ export function HeroSection() {
                           Klick Folder → zoomen · Klick außerhalb / ESC → zurück
                         </TooltipContent>
                       </Tooltip>
-                      <GalaxieSettingsPopover
-                        settings={galaxieSettings}
-                        onChange={setGalaxieSettings}
-                      />
                     </div>
                   </div>
 

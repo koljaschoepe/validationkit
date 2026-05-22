@@ -8,37 +8,11 @@ import { generateTokenOverflowTrimFix } from "./token-overflow-trim.js";
 import { generateContextBloatLlmFix } from "./context-bloat-llm.js";
 import { concatPatches } from "./unified-diff.js";
 
-/**
- * Deterministic categories — always supported, never need an LLM key.
- */
-const DETERMINISTIC = new Set([
-  "unused-agent",
-  "duplicate-guidance",
-  "stale-reference",
-  "token-budget",
-] as const);
-
-/**
- * LLM-augmented categories — supported, but require ANTHROPIC_API_KEY (or
- * OPENAI_API_KEY) to actually produce a patch. Without the key the call
- * returns null and the UI shows the disabled-state placeholder.
- */
-const LLM_AUGMENTED = new Set(["context-bloat"] as const);
-
-export function isSupported(category: string): boolean {
-  return (
-    DETERMINISTIC.has(category as never) ||
-    LLM_AUGMENTED.has(category as never)
-  );
-}
-
-export function isDeterministicCategory(category: string): boolean {
-  return DETERMINISTIC.has(category as never);
-}
-
-export function isLlmAugmentedCategory(category: string): boolean {
-  return LLM_AUGMENTED.has(category as never);
-}
+export {
+  isSupported,
+  isDeterministicCategory,
+  isLlmAugmentedCategory,
+} from "./client.js";
 
 /**
  * Sync generator. Throws `UnsupportedFixError` on LLM-augmented categories

@@ -30,11 +30,11 @@ const ICON_BY_SEVERITY: Record<SeverityBand, LucideIcon> = {
 };
 
 const STROKE_WIDTH: Record<SeverityBand, number> = {
-  Kill: 2,
-  Weak: 2,
-  Mid: 1.5,
-  Strong: 1.8,
-  Exceptional: 1.8,
+  Kill: 2.6,
+  Weak: 2.4,
+  Mid: 2.4,
+  Strong: 2.4,
+  Exceptional: 2.4,
 };
 
 export function SeverityIcon({

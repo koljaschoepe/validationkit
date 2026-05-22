@@ -9,11 +9,10 @@ import type { GalaxieSettings } from './RepoGalaxie';
 /**
  * GalaxieSettingsPopover — top-right control panel for the Galaxie-Hero.
  *
- * Toggles four visual/interaction options:
+ * Toggles three visual/interaction options:
  *   - Pulse-Animation on/off
  *   - Zoom-speed (slow / standard / fast)
  *   - Reduced-motion override (auto / forced-on / forced-off)
- *   - Label-visibility (all / folders-only / hover-only)
  *
  * State is owned by the parent (HeroSection); this is a controlled component.
  */
@@ -88,18 +87,6 @@ export function GalaxieSettingsPopover({
               { value: 'off', label: 'Off' },
             ]}
             onChange={(v) => update('reducedMotionMode', v as GalaxieSettings['reducedMotionMode'])}
-          />
-        </SettingRow>
-
-        <SettingRow label="Labels">
-          <ToggleGroup
-            value={settings.labelMode}
-            options={[
-              { value: 'all', label: 'All' },
-              { value: 'folders', label: 'Folders' },
-              { value: 'hover', label: 'Hover' },
-            ]}
-            onChange={(v) => update('labelMode', v as GalaxieSettings['labelMode'])}
           />
         </SettingRow>
       </PopoverContent>

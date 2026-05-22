@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Download, Eye, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { isSupported } from "@vk/fixes";
+import { isSupported } from "@vk/fixes/client";
 import type { AuditFinding, SeverityBand } from "@vk/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

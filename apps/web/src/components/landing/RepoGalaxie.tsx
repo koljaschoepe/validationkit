@@ -34,18 +34,16 @@ export type GalaxieSettings = {
   pulseOn: boolean;
   zoomSpeed: 'slow' | 'standard' | 'fast';
   reducedMotionMode: 'auto' | 'on' | 'off';
-  labelMode: 'all' | 'folders' | 'hover';
 };
 
 export const DEFAULT_GALAXIE_SETTINGS: GalaxieSettings = {
   pulseOn: true,
   zoomSpeed: 'standard',
   reducedMotionMode: 'auto',
-  labelMode: 'all',
 };
 
 const VIEWBOX_SIZE = 1100;
-const ZOOM_TARGET_FILL = 0.45;
+const ZOOM_TARGET_FILL = 0.82;
 const EASE_CAMERA = [0.4, 0, 0.2, 1] as const;
 const USER_ZOOM_MIN = 0.5;
 const USER_ZOOM_MAX = 4;
@@ -53,9 +51,9 @@ const KEYBOARD_PAN_STEP = 40;
 const DRAG_THRESHOLD_PX = 4;
 
 const ZOOM_SPEED_FACTOR: Record<GalaxieSettings['zoomSpeed'], number> = {
-  slow: 0.5,
-  standard: 1,
-  fast: 1.8,
+  slow: 2.4,
+  standard: 4.5,
+  fast: 7.0,
 };
 
 export function RepoGalaxie({
@@ -229,10 +227,12 @@ export function RepoGalaxie({
   }, [settings.zoomSpeed]);
 
   // --- Pointer-drag: pan (mouse only — touch falls through to browser scroll).
+  // Polish-IV: setPointerCapture verhinderte click-Events auf den Spheres
+  // (Browser ordnete pointerup dem SVG zu, nicht dem darunterliegenden Element).
+  // Capture wird daher erst aktiviert wenn der drag-threshold überschritten ist.
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
     if (e.pointerType !== 'mouse') return;
     if (e.button !== 0) return;
-    svgRef.current?.setPointerCapture(e.pointerId);
     dragStartRef.current = {
       panX: userPan.x,
       panY: userPan.y,
@@ -250,6 +250,8 @@ export function RepoGalaxie({
     if (!draggedRef.current) {
       draggedRef.current = true;
       setIsDragging(true);
+      // Erst jetzt capture — Click bleibt vorher dem Sphere zugeordnet.
+      svgRef.current?.setPointerCapture(e.pointerId);
     }
     setUserPan({
       x: dragStartRef.current.panX + pxToViewBox(dxPx),
@@ -258,8 +260,8 @@ export function RepoGalaxie({
   }
   function onPointerUp(e: React.PointerEvent<SVGSVGElement>) {
     if (!dragStartRef.current) return;
-    svgRef.current?.releasePointerCapture(e.pointerId);
     if (draggedRef.current) {
+      svgRef.current?.releasePointerCapture(e.pointerId);
       // Swallow the trailing click — user dragged, didn't intend to select.
       suppressClickRef.current = true;
       window.setTimeout(() => {
@@ -358,7 +360,7 @@ export function RepoGalaxie({
           transition={
             reducedMotion
               ? { duration: 0 }
-              : { duration: 0.7, ease: EASE_CAMERA }
+              : { duration: 0.18, ease: EASE_CAMERA }
           }
           style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           onClick={(e) => e.stopPropagation()}
@@ -373,8 +375,7 @@ export function RepoGalaxie({
                 isHovered={node.id === hoveredNodeId}
                 focusRole={role}
                 isPulsing={node.id === pulsingNodeId && isInFocusedTree(role)}
-                revealDelay={REVEAL_DELAYS[depthOf(node, layoutMap)] ?? 1.0}
-                labelMode={settings.labelMode}
+                revealDelay={REVEAL_DELAYS[depthOf(node, layoutMap)] ?? 0.5}
                 onSelect={handleSelect}
                 onHoverIn={setHoveredNodeId}
                 onHoverOut={() => setHoveredNodeId(null)}
@@ -389,7 +390,7 @@ export function RepoGalaxie({
   );
 }
 
-const REVEAL_DELAYS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2];
+const REVEAL_DELAYS = [0.0, 0.08, 0.16, 0.24, 0.32, 0.4, 0.48];
 
 function depthOf(node: LayoutNode, layoutMap: Map<string, LayoutNode>): number {
   let depth = 0;
