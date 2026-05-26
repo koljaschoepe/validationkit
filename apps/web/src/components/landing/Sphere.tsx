@@ -1,126 +1,208 @@
 'use client';
 
-import type { ComponentType, SVGProps } from 'react';
 import { m, useReducedMotion } from 'motion/react';
-import {
-  File as FileIconLucide,
-  FileCode2,
-  FileJson,
-  FileText,
-} from 'lucide-react';
 import type { LayoutNode, NodeKind } from '@/lib/repo-galaxie/types';
-import { NODE_KINDS } from '@/lib/repo-galaxie/types';
 import { severityHex } from '@/lib/galaxie/severity-colors';
 import { SeverityIcon } from './SeverityIcon';
+import type { SeverityBand } from '@vk/core';
 
 /**
- * Galaxie-Polish-III rewrite — Linear-Aesthetic + Vercel-Files vibe.
+ * Galaxie-Redesign V2 — Nebula-Folders + Solid-Planet-Files + Edge-Badge-Severity.
  *
- * Split rendering: container nodes (workspace/customer/repo/submodule/folder)
- * use a ring + 5%-tint with a header-pill label sitting just above the ring;
- * file nodes keep the gradient sphere with a centred severity- OR file-type-
- * icon and have NO text label at rest — Hover-Tooltip carries that info.
+ * Folders are atmospheric gas-cocoons (radial nebula gradient, no hard ring),
+ * Files are 3D-planets with a top-left light-source and a subtle per-language
+ * tint, Severity sits as an iOS-notification-style badge at the 1-o'clock edge
+ * of every Sphere that has a finding.
  */
 
 type FocusRole = 'focus' | 'descendant' | 'ancestor' | 'sibling' | 'self-or-none';
-
-interface SphereGradientStops {
-  highlight: string;
-  shade: string;
-}
-
-const GRADIENT_STOPS: Record<NodeKind, SphereGradientStops> = {
-  workspace: { highlight: 'oklch(0.88 0 0)', shade: 'oklch(0.58 0 0)' },
-  customer:  { highlight: 'oklch(0.78 0 0)', shade: 'oklch(0.48 0 0)' },
-  repo:      { highlight: 'oklch(0.68 0 0)', shade: 'oklch(0.40 0 0)' },
-  submodule: { highlight: 'oklch(0.58 0 0)', shade: 'oklch(0.35 0 0)' },
-  folder:    { highlight: 'oklch(0.52 0 0)', shade: 'oklch(0.30 0 0)' },
-  file:      { highlight: 'oklch(0.66 0 0)', shade: 'oklch(0.38 0 0)' },
-};
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_CAMERA = [0.4, 0, 0.2, 1] as const;
 
 const OUTLINE_DELAY_AFTER_REVEAL = 0.3;
-const GLOW_START_AFTER_REVEAL = 0.6;
 
-/**
- * Color tokens for the SVG layer. Kept as OKLCH-literal strings because SVG
- * `stroke`/`fill` attributes can't read CSS custom-properties via `color-mix()`
- * the way HTML elements do. Centralised here so future re-theming is one edit.
- */
-const COLOR_CONTAINER_RING = 'oklch(0.55 0 0)';
-const COLOR_CONTAINER_TINT = 'oklch(0.30 0 0 / 0.05)';
-const COLOR_FILE_STROKE = 'oklch(0.95 0 0)';
+// ─── Tokens ────────────────────────────────────────────────────────────────
+
 const COLOR_LABEL_FG = 'oklch(0.94 0 0)';
-const COLOR_FILE_TYPE_ICON = 'oklch(0.78 0 0)';
-const COLOR_LABEL_PILL_BG = 'oklch(0.155 0.004 270)'; // matches --background
-const COLOR_LABEL_PILL_BORDER = 'oklch(0.295 0.006 270)'; // matches --border
+const COLOR_LABEL_PILL_BG = 'oklch(0.10 0 0)';
+const COLOR_LABEL_PILL_BG_OPACITY = 0.78;
+const COLOR_LABEL_PILL_BORDER = 'oklch(0.45 0 0)';
+const COLOR_LABEL_PILL_BORDER_OPACITY = 0.35;
 
-const CONTAINER_RING_OPACITY_REST = 0.55;
-const CONTAINER_RING_OPACITY_ACTIVE = 0.95;
-const CONTAINER_RING_WIDTH_REST = 1.5;
-const CONTAINER_RING_WIDTH_ACTIVE = 2;
+const COLOR_INNER_GLOW_HINT = 'oklch(0.85 0 0)';
+const COLOR_INNER_GLOW_HINT_OPACITY = 0.10;
 
-/** Deterministic label-font-size per container kind. Polish-IV: deutlich erhöht
- *  damit Folder-Labels auch bei deep-nesting + Default-Zoom lesbar bleiben. */
+const COLOR_RIM_HIGHLIGHT = 'oklch(0.95 0 0)';
+const COLOR_RIM_HIGHLIGHT_OPACITY = 0.12;
+
+const COLOR_HOVER_GLOW = 'oklch(0.98 0 0)';
+const HOVER_GLOW_OPACITY_HOVER = 0.14;
+const HOVER_GLOW_OPACITY_ACTIVE = 0.20;
+const HOVER_GLOW_RADIUS_EXTRA = 10;
+
+const FILE_HIT_TARGET_MIN = 22;
+const CONTAINER_HIT_TARGET_MIN = 28;
+
+/** Edge-Badge geometry. Sits at 1-o'clock (30° above the horizontal axis on
+ *  the right). V2 Iter-2: uniform disc-size (no per-sphere scaling) — severity
+ *  is a categorical signal, not a quantity, so all badges read the same. */
+const BADGE_COS = Math.cos(-Math.PI / 6); // ≈ 0.866
+const BADGE_SIN = Math.sin(-Math.PI / 6); // -0.5
+const BADGE_DISC_RADIUS = 11;
+const BADGE_ICON_RATIO = 1.3;
+const BADGE_ICON_COLOR = 'oklch(0.98 0 0)';
+const BADGE_PULSE_DURATION_S = 2.0;
+
+/** Container label-pill — Polish-V font-sizes + V2 transparent glass pill. */
 const CONTAINER_LABEL_FONT_SIZE: Record<NodeKind, number> = {
   workspace: 24,
   customer: 22,
   repo: 20,
   submodule: 17,
   folder: 16,
-  file: 0, // unused — files don't render text labels
+  file: 0,
 };
+const LABEL_PILL_PADDING_X = 18;
+const LABEL_PILL_PADDING_Y = 8;
+const LABEL_PILL_RX = 8;
+const LABEL_PILL_OFFSET = 6;
 
-/** Sans for top-level (workspace/customer), mono for code-y containers. */
 function labelFontFamilyVar(kind: NodeKind): string {
   if (kind === 'workspace' || kind === 'customer') return 'var(--font-sans)';
   return 'var(--font-mono)';
 }
 
-/** File-type icon mapping. Falls back to generic FileIcon. */
-type LucideIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number; color?: string }>;
-const FILE_TYPE_ICON: Record<string, LucideIcon> = {
-  ts: FileCode2 as LucideIcon,
-  tsx: FileCode2 as LucideIcon,
-  js: FileCode2 as LucideIcon,
-  jsx: FileCode2 as LucideIcon,
-  json: FileJson as LucideIcon,
-  yaml: FileText as LucideIcon,
-  yml: FileText as LucideIcon,
-  md: FileText as LucideIcon,
-  mdx: FileText as LucideIcon,
-  mdc: FileText as LucideIcon,
+/** Nebula gradient stops — outer is severity-tinted (low chroma), inner is
+ *  near-black. Neutral variant has chroma 0. Hue per severity matches the
+ *  hex palette in severity-colors.ts. */
+interface NebulaStops {
+  outerColor: string;
+  outerOpacity: number;
+}
+const NEBULA_INNER_COLOR = 'oklch(0.04 0 0)';
+const NEBULA_INNER_OPACITY = 1.0;
+const NEBULA_STOPS_NEUTRAL: NebulaStops = {
+  outerColor: 'oklch(0.20 0 0)',
+  outerOpacity: 1.0,
+};
+const NEBULA_STOPS_BY_SEVERITY: Record<SeverityBand, NebulaStops> = {
+  Kill:        { outerColor: 'oklch(0.30 0.18 25)',  outerOpacity: 1.0 },
+  Weak:        { outerColor: 'oklch(0.28 0.14 35)',  outerOpacity: 1.0 },
+  Mid:         { outerColor: 'oklch(0.30 0.14 70)',  outerOpacity: 1.0 },
+  Strong:      { outerColor: 'oklch(0.30 0.12 150)', outerOpacity: 1.0 },
+  Exceptional: { outerColor: 'oklch(0.32 0.14 150)', outerOpacity: 1.0 },
 };
 
-const FILE_TYPE_ICON_MIN_RADIUS = 12;
-const FILE_TYPE_ICON_MAX_SIZE = 40;
-const FILE_HIT_TARGET_MIN = 22;
-const CONTAINER_HIT_TARGET_MIN = 28;
+/** Planet gradient stops — top-left light-source. Per-language hue shift at
+ *  low chroma (0.04) so files remain primarily grey but readable as a class. */
+interface PlanetStops {
+  highlight: string;
+  mid: string;
+  shade: string;
+}
+const PLANET_BY_LANG: Record<string, PlanetStops> = {
+  default: {
+    highlight: 'oklch(0.86 0 0)',
+    mid:       'oklch(0.40 0 0)',
+    shade:     'oklch(0.08 0 0)',
+  },
+  md: {
+    highlight: 'oklch(0.86 0.04 240)',
+    mid:       'oklch(0.40 0.04 240)',
+    shade:     'oklch(0.08 0.04 240)',
+  },
+  ts: {
+    highlight: 'oklch(0.86 0.04 220)',
+    mid:       'oklch(0.40 0.04 220)',
+    shade:     'oklch(0.08 0.04 220)',
+  },
+  json: {
+    highlight: 'oklch(0.86 0.04 80)',
+    mid:       'oklch(0.40 0.04 80)',
+    shade:     'oklch(0.08 0.04 80)',
+  },
+  yaml: {
+    highlight: 'oklch(0.86 0.04 30)',
+    mid:       'oklch(0.40 0.04 30)',
+    shade:     'oklch(0.08 0.04 30)',
+  },
+  mdc: {
+    highlight: 'oklch(0.86 0.04 290)',
+    mid:       'oklch(0.40 0.04 290)',
+    shade:     'oklch(0.08 0.04 290)',
+  },
+};
+
+/** Map a file-language to its planet-gradient-id. tsx/jsx fold into ts, mdx
+ *  folds into md, yml into yaml. Unknown languages get the neutral default. */
+function planetGradientIdForLang(lang: string | undefined): string {
+  if (!lang) return 'planet-default';
+  if (lang === 'ts' || lang === 'tsx' || lang === 'js' || lang === 'jsx') return 'planet-ts';
+  if (lang === 'md' || lang === 'mdx') return 'planet-md';
+  if (lang === 'json') return 'planet-json';
+  if (lang === 'yaml' || lang === 'yml') return 'planet-yaml';
+  if (lang === 'mdc') return 'planet-mdc';
+  return 'planet-default';
+}
+
+function edgeBadgePosition(radius: number): { x: number; y: number; disc: number } {
+  return {
+    x: radius * BADGE_COS,
+    y: radius * BADGE_SIN,
+    disc: BADGE_DISC_RADIUS,
+  };
+}
+
+// ─── Gradient defs (rendered once in the SVG <defs>) ───────────────────────
 
 export function SphereGradientDefs() {
   return (
     <>
-      {NODE_KINDS.map((kind) => {
-        const { highlight, shade } = GRADIENT_STOPS[kind];
+      {/* Nebula — neutral (no severity) */}
+      <radialGradient id="nebula-neutral" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stopColor={NEBULA_INNER_COLOR} stopOpacity={NEBULA_INNER_OPACITY} />
+        <stop offset="100%" stopColor={NEBULA_STOPS_NEUTRAL.outerColor} stopOpacity={NEBULA_STOPS_NEUTRAL.outerOpacity} />
+      </radialGradient>
+
+      {/* Nebula — severity-tinted (bubbled-up findings) */}
+      {(Object.keys(NEBULA_STOPS_BY_SEVERITY) as SeverityBand[]).map((band) => {
+        const stops = NEBULA_STOPS_BY_SEVERITY[band];
         return (
           <radialGradient
-            key={kind}
-            id={`sphere-${kind}`}
-            cx="35%"
-            cy="35%"
-            r="65%"
+            key={band}
+            id={`nebula-severity-${band}`}
+            cx="50%"
+            cy="50%"
+            r="50%"
           >
-            <stop offset="0%" stopColor={highlight} />
-            <stop offset="65%" stopColor={shade} />
-            <stop offset="100%" stopColor={shade} stopOpacity="0.85" />
+            <stop offset="0%"   stopColor={NEBULA_INNER_COLOR} stopOpacity={NEBULA_INNER_OPACITY} />
+            <stop offset="100%" stopColor={stops.outerColor} stopOpacity={stops.outerOpacity} />
           </radialGradient>
         );
       })}
+
+      {/* Planet — solid 3D, top-left light source. cx=30 cy=25 r=75 places the
+          highlight at the upper-left and lets the shade sweep across the
+          bottom-right (Apple-classic-orb proportions). */}
+      {Object.entries(PLANET_BY_LANG).map(([key, stops]) => (
+        <radialGradient
+          key={key}
+          id={`planet-${key}`}
+          cx="30%"
+          cy="25%"
+          r="75%"
+        >
+          <stop offset="0%"   stopColor={stops.highlight} />
+          <stop offset="45%"  stopColor={stops.mid} />
+          <stop offset="100%" stopColor={stops.shade} />
+        </radialGradient>
+      ))}
     </>
   );
 }
+
+// ─── Sphere root ───────────────────────────────────────────────────────────
 
 export function Sphere({
   node,
@@ -145,19 +227,20 @@ export function Sphere({
 }) {
   const reducedMotion = useReducedMotion();
 
-  // Role-based opacity (Apple-Maps parent-ghost-ring effect)
+  // Role-based opacity (Apple-Maps parent-ghost-ring effect).
   const roleOpacity =
     focusRole === 'ancestor' ? 0.32 :
     focusRole === 'sibling' ? 0.5 :
     1;
 
-  // Calm Motion-Budget: Hover 1.02, Active 1.03 (was 1.04 / 1.05).
+  // V2: hover 1.03, active 1.04. Slightly bigger than Polish-V because the
+  // glow-halo carries less of the "this is hot" signal at low opacities.
   const innerScale = reducedMotion
     ? 1
     : isHovered
-      ? 1.02
+      ? 1.03
       : isActive
-        ? 1.03
+        ? 1.04
         : 1;
 
   const interactive = onSelect != null;
@@ -207,6 +290,7 @@ export function Sphere({
           node={node}
           isActive={isActive}
           isHovered={isHovered}
+          isPulsing={isPulsing}
           revealDelay={revealDelay}
           reducedMotion={!!reducedMotion}
           innerScale={innerScale}
@@ -222,12 +306,83 @@ export function Sphere({
   );
 }
 
+// ─── Edge-Badge severity indicator (shared between File + Container) ───────
+
+function EdgeBadge({
+  radius,
+  severity,
+  isPulsing,
+  reducedMotion,
+  revealDelay,
+}: {
+  radius: number;
+  severity: SeverityBand;
+  isPulsing: boolean;
+  reducedMotion: boolean;
+  revealDelay: number;
+}) {
+  const color = severityHex(severity);
+  const { x, y, disc } = edgeBadgePosition(radius);
+  const iconSize = disc * BADGE_ICON_RATIO;
+
+  return (
+    <g transform={`translate(${x} ${y})`} style={{ pointerEvents: 'none' }}>
+      {/* Pulse-halo around the badge (NOT around the whole sphere) — only on
+          the single chosen pulsing finding-leaf. */}
+      {isPulsing && !reducedMotion ? (
+        <m.circle
+          r={disc + 4}
+          fill={color}
+          fillOpacity={0}
+          animate={{
+            r: [disc + 2, disc + 10, disc + 2],
+            fillOpacity: [0, 0.4, 0],
+          }}
+          transition={{
+            duration: BADGE_PULSE_DURATION_S,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: revealDelay + OUTLINE_DELAY_AFTER_REVEAL,
+          }}
+        />
+      ) : null}
+
+      {/* Filled severity-color disc — no border. */}
+      <m.circle
+        r={disc}
+        fill={color}
+        initial={reducedMotion ? false : { opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={
+          reducedMotion
+            ? { duration: 0 }
+            : {
+                duration: 0.4,
+                delay: revealDelay + OUTLINE_DELAY_AFTER_REVEAL,
+                ease: EASE_OUT_EXPO,
+              }
+        }
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      />
+
+      {/* White severity-icon centred in the disc. */}
+      <SeverityIcon
+        severity={severity}
+        size={iconSize}
+        color={BADGE_ICON_COLOR}
+        delay={revealDelay + OUTLINE_DELAY_AFTER_REVEAL}
+      />
+    </g>
+  );
+}
+
 // ─── Container (workspace / customer / repo / submodule / folder) ──────────
 
 function ContainerSphereBody({
   node,
   isActive,
   isHovered,
+  isPulsing,
   revealDelay,
   reducedMotion,
   innerScale,
@@ -241,6 +396,7 @@ function ContainerSphereBody({
   node: LayoutNode;
   isActive: boolean;
   isHovered: boolean;
+  isPulsing: boolean;
   revealDelay: number;
   reducedMotion: boolean;
   innerScale: number;
@@ -256,28 +412,23 @@ function ContainerSphereBody({
     : { duration: 0.18, ease: EASE_CAMERA };
   const fontSize = CONTAINER_LABEL_FONT_SIZE[node.kind];
   const fontFamily = labelFontFamilyVar(node.kind);
-  const hasFinding = node.severity != null;
-  const severityColor = node.severity ? severityHex(node.severity) : null;
+  const severity = node.severity ?? null;
 
-  const ringOpacity = isActive || isHovered
-    ? CONTAINER_RING_OPACITY_ACTIVE
-    : CONTAINER_RING_OPACITY_REST;
-  const ringWidth = isActive || isHovered
-    ? CONTAINER_RING_WIDTH_ACTIVE
-    : CONTAINER_RING_WIDTH_REST;
+  const nebulaId = severity ? `nebula-severity-${severity}` : 'nebula-neutral';
 
-  // Header pill sits just above the ring, anchored center.
-  // Pill height ~= fontSize + 8 vertical padding.
-  const labelPaddingX = Math.max(6, fontSize * 0.55);
-  const labelPaddingY = 4;
-  const pillHeight = fontSize + labelPaddingY * 2;
-  const pillY = -node.radius - 6 - pillHeight;
-  // Estimate pill width from label length (no SVG text-measurement available
-  // pre-render). 0.6× font-size per character is a robust proxy for mono +
-  // sans-serif at this scale.
+  // Hover-glow opacity target (rendered as a separate halo circle).
+  const glowOpacity = isActive
+    ? HOVER_GLOW_OPACITY_ACTIVE
+    : isHovered
+      ? HOVER_GLOW_OPACITY_HOVER
+      : 0;
+
+  // Label pill — V2 transparent glass.
+  const pillHeight = fontSize + LABEL_PILL_PADDING_Y * 2;
+  const pillY = -node.radius - LABEL_PILL_OFFSET - pillHeight;
   const labelChars = node.label.length;
   const pillWidth = Math.max(
-    labelChars * fontSize * 0.6 + labelPaddingX * 2,
+    labelChars * fontSize * 0.6 + LABEL_PILL_PADDING_X * 2,
     fontSize * 2.5,
   );
 
@@ -292,6 +443,17 @@ function ContainerSphereBody({
       }
       style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
     >
+      {/* Hover-glow halo — sits BELOW the sphere body so it reads as a soft
+          outer aura. Does not scale with hover (lives outside scale-group). */}
+      <m.circle
+        r={node.radius + HOVER_GLOW_RADIUS_EXTRA}
+        fill={COLOR_HOVER_GLOW}
+        fillOpacity={0}
+        animate={{ fillOpacity: reducedMotion ? 0 : glowOpacity }}
+        transition={{ duration: 0.18, ease: EASE_CAMERA }}
+        pointerEvents="none"
+      />
+
       <m.g
         animate={{ scale: innerScale }}
         transition={innerTransition}
@@ -322,41 +484,38 @@ function ContainerSphereBody({
           />
         ) : null}
 
-        {/* Container body: ring + 5%-tint, no gradient. */}
+        {/* Nebula body — radial gradient, no hard ring. */}
         <circle
           r={node.radius}
-          fill={COLOR_CONTAINER_TINT}
-          stroke={COLOR_CONTAINER_RING}
-          strokeWidth={ringWidth}
-          strokeOpacity={ringOpacity}
+          fill={`url(#${nebulaId})`}
           pointerEvents="none"
         />
 
-        {/* Severity outline on the ring itself when the container has a finding. */}
-        {hasFinding && severityColor ? (
-          <m.circle
-            r={node.radius + 2}
-            fill="none"
-            stroke={severityColor}
-            strokeWidth={ringWidth + 0.3}
-            initial={reducedMotion ? false : { strokeOpacity: 0 }}
-            animate={{ strokeOpacity: isActive || isHovered ? 1.0 : 0.7 }}
-            transition={
-              reducedMotion
-                ? { duration: 0 }
-                : {
-                    duration: 0.4,
-                    delay: revealDelay + OUTLINE_DELAY_AFTER_REVEAL,
-                    ease: EASE_OUT_EXPO,
-                  }
-            }
-            pointerEvents="none"
-          />
-        ) : null}
+        {/* Inner-glow hint — very dezenter Boundary-Marker (0.5px / 10 % op). */}
+        <circle
+          r={Math.max(0, node.radius - 1)}
+          fill="none"
+          stroke={COLOR_INNER_GLOW_HINT}
+          strokeWidth={0.5}
+          strokeOpacity={COLOR_INNER_GLOW_HINT_OPACITY}
+          pointerEvents="none"
+        />
       </m.g>
 
-      {/* Header pill — always-visible, above the ring. Click-target too,
-          so users can grab the folder by its label, not just the rim. */}
+      {/* Edge-Badge severity — outside the scale-group so it stays anchored
+          to the original radius; otherwise it would drift on hover. */}
+      {severity ? (
+        <EdgeBadge
+          radius={node.radius}
+          severity={severity}
+          isPulsing={isPulsing}
+          reducedMotion={reducedMotion}
+          revealDelay={revealDelay}
+        />
+      ) : null}
+
+      {/* Header pill — always-visible, above the sphere. Click-target so
+          users can grab the folder by its label, not just the rim. */}
       <g
         onClick={interactive ? handleClick : undefined}
         style={{
@@ -369,10 +528,12 @@ function ContainerSphereBody({
           y={pillY}
           width={pillWidth}
           height={pillHeight}
-          rx={4}
-          ry={4}
+          rx={LABEL_PILL_RX}
+          ry={LABEL_PILL_RX}
           fill={COLOR_LABEL_PILL_BG}
+          fillOpacity={COLOR_LABEL_PILL_BG_OPACITY}
           stroke={COLOR_LABEL_PILL_BORDER}
+          strokeOpacity={COLOR_LABEL_PILL_BORDER_OPACITY}
           strokeWidth={1}
         />
         <text
@@ -430,158 +591,98 @@ function FileSphereBody({
   const innerTransition = reducedMotion
     ? { duration: 0 }
     : { duration: 0.18, ease: EASE_CAMERA };
-  const hasFinding = node.severity != null;
-  const severityColor = node.severity ? severityHex(node.severity) : null;
+  const severity = node.severity ?? null;
+  // V2 Iter-2: severity-files render as neutral 3D-planet so the badge is
+  // the only severity-signal. File-type-tint only applies to clean files —
+  // keeps red/orange/green badges visually unambiguous on a grey surface.
+  const planetId = severity ? 'planet-default' : planetGradientIdForLang(node.language);
 
-  const outlineOpacityTarget = isActive || isHovered ? 1.0 : 0.85;
-  const outlineWidth = isActive || isHovered ? 3.0 : 2.2;
-
-  // File-type icon: only render when radius is big enough AND no severity
-  // (severity icon takes priority — never both centred on the same sphere).
-  const fileTypeIcon = !hasFinding && node.radius >= FILE_TYPE_ICON_MIN_RADIUS && node.language
-    ? FILE_TYPE_ICON[node.language] ?? FileIconLucide
-    : null;
-  const fileTypeIconSize = fileTypeIcon
-    ? Math.min(FILE_TYPE_ICON_MAX_SIZE, node.radius * 0.85)
-    : 0;
+  const glowOpacity = isActive
+    ? HOVER_GLOW_OPACITY_ACTIVE
+    : isHovered
+      ? HOVER_GLOW_OPACITY_HOVER
+      : 0;
 
   return (
-    <>
-      {/* Pulsing glow halo — only on the single chosen finding-leaf. */}
-      {hasFinding && severityColor && isPulsing && !reducedMotion ? (
-        <m.circle
-          r={node.radius + 16}
-          fill={severityColor}
-          fillOpacity={0}
-          animate={{
-            fillOpacity: [0, 0.32, 0],
-            r: [node.radius + 8, node.radius + 32, node.radius + 8],
-          }}
-          transition={{
-            duration: 2.4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            delay: GLOW_START_AFTER_REVEAL + revealDelay,
-          }}
-          pointerEvents="none"
-        />
-      ) : null}
+    <m.g
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.75 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={
+        reducedMotion
+          ? { duration: 0 }
+          : { duration: 0.5, delay: revealDelay, ease: EASE_OUT_EXPO }
+      }
+      style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+    >
+      {/* Hover-glow halo — outside the scale-group. */}
+      <m.circle
+        r={node.radius + HOVER_GLOW_RADIUS_EXTRA}
+        fill={COLOR_HOVER_GLOW}
+        fillOpacity={0}
+        animate={{ fillOpacity: reducedMotion ? 0 : glowOpacity }}
+        transition={{ duration: 0.18, ease: EASE_CAMERA }}
+        pointerEvents="none"
+      />
 
       <m.g
-        initial={reducedMotion ? false : { opacity: 0, scale: 0.75 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={
-          reducedMotion
-            ? { duration: 0 }
-            : { duration: 0.5, delay: revealDelay, ease: EASE_OUT_EXPO }
+        animate={{ scale: innerScale }}
+        transition={innerTransition}
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          cursor: interactive ? 'pointer' : 'default',
+        }}
+        onMouseEnter={() => onHoverIn?.(node.id)}
+        onMouseLeave={() => onHoverOut?.(node.id)}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        role={interactive ? 'button' : undefined}
+        tabIndex={interactive ? 0 : undefined}
+        aria-label={ariaLabel}
+        className={
+          interactive
+            ? '[outline:none] focus-visible:[outline:2px_solid_var(--color-ring)] focus-visible:[outline-offset:4px]'
+            : undefined
         }
-        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
       >
-        <m.g
-          animate={{ scale: innerScale }}
-          transition={innerTransition}
-          style={{
-            transformBox: 'fill-box',
-            transformOrigin: 'center',
-            cursor: interactive ? 'pointer' : 'default',
-          }}
-          onMouseEnter={() => onHoverIn?.(node.id)}
-          onMouseLeave={() => onHoverOut?.(node.id)}
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          role={interactive ? 'button' : undefined}
-          tabIndex={interactive ? 0 : undefined}
-          aria-label={ariaLabel}
-          className={
-            interactive
-              ? '[outline:none] focus-visible:[outline:2px_solid_var(--color-ring)] focus-visible:[outline-offset:4px]'
-              : undefined
-          }
-        >
-          {interactive ? (
-            <circle
-              r={Math.max(node.radius, FILE_HIT_TARGET_MIN)}
-              fill="transparent"
-              pointerEvents="all"
-            />
-          ) : null}
-
-          {/* File body — gradient sphere stays for the planetary look. */}
+        {interactive ? (
           <circle
-            r={node.radius}
-            fill={`url(#sphere-${node.kind})`}
-            stroke={COLOR_FILE_STROKE}
-            strokeWidth={0.5}
-            strokeOpacity={0.18}
-            pointerEvents="none"
+            r={Math.max(node.radius, FILE_HIT_TARGET_MIN)}
+            fill="transparent"
+            pointerEvents="all"
           />
+        ) : null}
 
-          {hasFinding && severityColor ? (
-            <m.circle
-              r={node.radius + 2}
-              fill="none"
-              stroke={severityColor}
-              strokeWidth={outlineWidth}
-              initial={reducedMotion ? false : { strokeOpacity: 0 }}
-              animate={{ strokeOpacity: outlineOpacityTarget }}
-              transition={
-                reducedMotion
-                  ? { duration: 0 }
-                  : {
-                      duration: 0.4,
-                      delay: revealDelay + OUTLINE_DELAY_AFTER_REVEAL,
-                      ease: EASE_OUT_EXPO,
-                    }
-              }
-            />
-          ) : null}
+        {/* Planet body — radial gradient with top-left light source. */}
+        <circle
+          r={node.radius}
+          fill={`url(#${planetId})`}
+          pointerEvents="none"
+        />
 
-          {/* Severity icon takes priority — only renders when finding present.
-              Disc + Icon proportional zur Sphere-Größe: ~55 % radius, capped
-              bei 22 viewBox-units. Icon ist 1.4× Disc-Radius (Diameter ≈ 70 %
-              der Disc-Fläche) — so sitzt das Icon klar innerhalb der Disc-Pille. */}
-          {hasFinding && severityColor && node.severity ? (() => {
-            const discRadius = Math.min(22, Math.max(10, node.radius * 0.55));
-            const iconSize = discRadius * 1.4;
-            return (
-              <>
-                <circle
-                  r={discRadius}
-                  fill="oklch(0.10 0 0)"
-                  stroke={severityColor}
-                  strokeWidth={1.5}
-                  pointerEvents="none"
-                />
-                <SeverityIcon
-                  severity={node.severity}
-                  size={iconSize}
-                  color={severityColor}
-                  delay={revealDelay + OUTLINE_DELAY_AFTER_REVEAL}
-                />
-              </>
-            );
-          })() : null}
-
-          {/* File-type codicon for clean files at a readable size. */}
-          {fileTypeIcon ? (() => {
-            const Icon = fileTypeIcon;
-            const half = fileTypeIconSize / 2;
-            return (
-              <Icon
-                x={-half}
-                y={-half}
-                width={fileTypeIconSize}
-                height={fileTypeIconSize}
-                stroke={COLOR_FILE_TYPE_ICON}
-                strokeWidth={1.5}
-                style={{ pointerEvents: 'none' }}
-                aria-hidden
-              />
-            );
-          })() : null}
-        </m.g>
+        {/* Rim highlight — hauchdünner planetary edge. */}
+        <circle
+          r={node.radius}
+          fill="none"
+          stroke={COLOR_RIM_HIGHLIGHT}
+          strokeWidth={0.4}
+          strokeOpacity={COLOR_RIM_HIGHLIGHT_OPACITY}
+          pointerEvents="none"
+        />
       </m.g>
-    </>
+
+      {/* Edge-Badge severity — outside the scale-group, anchored to original
+          radius. Replaces the Polish-V centred severity-disc + outline ring. */}
+      {severity ? (
+        <EdgeBadge
+          radius={node.radius}
+          severity={severity}
+          isPulsing={isPulsing}
+          reducedMotion={reducedMotion}
+          revealDelay={revealDelay}
+        />
+      ) : null}
+    </m.g>
   );
 }
 

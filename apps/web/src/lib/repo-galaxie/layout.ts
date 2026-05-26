@@ -29,11 +29,12 @@ export interface PackOptions {
   padding?: number | ((depth: number) => number);
 }
 
-/** Galaxie-Polish-V: noch großzügigeres Padding pro Tiefe. */
+/** Galaxie-V2 Iter-2: noch mehr Atemraum, besonders bei depth-1 (Folder-zu-
+ *  Folder-Distanz) und depth-2+ (Files innerhalb Folder). */
 function defaultPaddingForDepth(depth: number): number {
-  if (depth === 0) return 38;
-  if (depth === 1) return 30;
-  return 20;
+  if (depth === 0) return 60;
+  if (depth === 1) return 52;
+  return 36;
 }
 
 const DEFAULT_PACK_OPTIONS: Required<PackOptions> = {
