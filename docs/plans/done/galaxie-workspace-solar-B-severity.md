@@ -1,7 +1,7 @@
 # Plan — Galaxie-Workspace-Solar Sub-Phase B: Severity-Palette + Kill-Pulse + Edge-Badges
 
 > Erstellt: 2026-06-02
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-06-02 (Confidence-At-Start: High, 12/12 Steps abgehakt, 0 deferred, 0 manuelle Verifikationen pending — inkl. Pflicht-Cross-Impact-Walk auf Landing-Hero)
 > Slug: `galaxie-workspace-solar-B-severity`
 > Confidence: **High** — basiert auf 4 User-Entscheidungen (1 Discovery-Runde, alle Recommended) + Code-Audit von `severity-colors.ts` (74 LOC) + 6 SEVERITY_HEX-Konsumenten + Landing-V2 `SeverityIcon.tsx` (Lucide-Mapping) + Master-Plan §5.3
 > Voraussetzung: Baut auf Sub-A (`docs/plans/done/galaxie-workspace-solar-A-layout.md`) auf. Sub-A liefert neutral-grey Sonnensystem-Layout, Sub-B fügt Severity-Render hinzu. Sub-Plan von `docs/plans/galaxie-workspace-solar-redesign.md` (Master).
@@ -272,18 +272,18 @@ const severityOf = (target: RepoSun | FolderPlanet | FilePlanet): Severity => {
 
 ## 6. Schritte
 
-- [ ] **Step 1**: `severity-colors.ts` hard-replace — neue OKLCH-Hex-Werte, `SEVERITY_PULSE_RATE` (Kill=0.625, Rest=0), `SEVERITY_GLOW_RADIUS` (Kill=6, Rest=0), neue `SEVERITY_OUTLINE_HEX` + `DISMISSED_FILL_HEX` + `DISMISSED_ALPHA` Exports.
-- [ ] **Step 2**: `severity-colors.test.ts` update — neue Hex-Assertions, Pulse-Rate-Test, `getPulseDuration` Test.
-- [ ] **Step 3**: `apps/web/src/lib/galaxie/severity-icons.ts` (NEW) — `SEVERITY_LUCIDE` Map + `EDGE_BADGE_BANDS` Set + `BADGE_DISC_RADIUS` + `BADGE_ICON_SIZE` + `BADGE_ANGLE_RAD` Constants.
-- [ ] **Step 4**: `apps/web/src/components/galaxie/pixi/edge-badge-texture.ts` (NEW) — `ensureBadgeTexturesReady()` async + `getBadgeTexture(severity)` Cache.
-- [ ] **Step 5**: `FolderPlanet.ts` Edit — Severity-Fill, Outline für Exceptional, Glow für Kill, Edge-Badge-Sprite-Mount, `updateFolder()` für Diff-Update.
-- [ ] **Step 6**: `FilePlanet.ts` Edit — gleich wie Folder + `alphaFor()`-Logik aus `lib/solution-alpha.ts` + Dismissed-Fill/Alpha + `updateFile()` für Diff-Update.
-- [ ] **Step 7**: `RepoSun.ts` Edit — Worst-Child-Aggregate-Badge wenn `repo.aggregateSeverity === 'Kill'` (1-Uhr auf Outer-Korona). Sun-Body bleibt neutral-grey.
-- [ ] **Step 8**: `GalaxieScene.tsx` Edit — `ensureBadgeTexturesReady()` aufrufen + `badgesReady`-State, `severityOf`-Helper, `initPulse` für Kill, Hover-Out-Pulse-Restart, Diff-Update-Sweep für Severity/Dismiss/Solution-Status (Severity-Change → `paint()` + `updateBadge()` + Pulse-Restart).
-- [ ] **Step 9**: `StaticGalaxieSVG.tsx` Edit — Severity-Fill, inline-SVG-Edge-Badges via `SEVERITY_LUCIDE`-Komponente, Dismissed-Fill+Alpha, Exceptional-Stroke.
-- [ ] **Step 10**: `SeverityIcon.tsx` (Landing) Edit — Re-mapped auf Master-Lucide via direkten Import aus `severity-icons.ts`.
-- [ ] **Step 11**: `pnpm typecheck` + `pnpm test apps/web/src/lib/galaxie/` + `pnpm --filter @vk/web build` — alle grün.
-- [ ] **Step 12**: Dev-Server starten, Acceptance-Walk auf `/[workspace]` UND `/` (Landing-Hero-Cross-Impact-Check).
+- [x] **Step 1**: `severity-colors.ts` hard-replaced — neue OKLCH-Hex-Werte, `SEVERITY_PULSE_RATE` (Kill=0.625, Rest=0), `SEVERITY_GLOW_RADIUS` (Kill=6, Rest=0), `SEVERITY_OUTLINE_HEX` + `DISMISSED_FILL_HEX` + `DISMISSED_ALPHA` exportiert.
+- [x] **Step 2**: `severity-colors.test.ts` updated — 8 Tests grün (Hex, Outline, Dismissed, Pulse-Rate, Glow-Radius, getPulseDuration).
+- [x] **Step 3**: `severity-icons.ts` (NEW) — `SEVERITY_LUCIDE` Single-Source-Map, `EDGE_BADGE_BANDS` Set (Mid skip), `BADGE_DISC_RADIUS=5` + `BADGE_ICON_SIZE=6` + `BADGE_ANGLE_RAD=-π/6`.
+- [x] **Step 4**: `edge-badge-texture.ts` (NEW) — `ensureBadgeTexturesReady()` idempotent + Blob-URL-Image-Load (UTF-safe) + DPR-2-Canvas-Render + Texture-Cache.
+- [x] **Step 5**: `FolderPlanet.ts` erweitert — Severity-Fill, Exceptional-Outline, Kill-Glow, Edge-Badge-Sprite (außer Mid), `updateFolder()` + `refreshBadgeFromTextureCache()` Diff. `buildBadge()`-Helper exported für Reuse in FilePlanet + RepoSun.
+- [x] **Step 6**: `FilePlanet.ts` erweitert — Severity-Fill, Dismissed-Fill, `alphaFor()` Solution-Alpha (existiert in `lib/solution-alpha.ts`), Edge-Badge (skip bei dismissed), Exceptional-Outline, Kill-Glow, `updateFile()` + `refreshBadgeFromTextureCache()`.
+- [x] **Step 7**: `RepoSun.ts` erweitert — Worst-Child-Aggregate-Badge nur bei `aggregateSeverity === 'Kill'`, Position auf Outer-Korona via `buildBadge` (DRY). Sun-Body bleibt neutral-grey 3-Layer.
+- [x] **Step 8**: `GalaxieScene.tsx` erweitert — `ensureBadgeTexturesReady()` + `badgesReady`-State, `severityOf` Helper (Modul-Level), `startPulse` Closure (nur Kill, 0.8s yoyo scale 1.0↔1.12), Hover-Out-Tween mit `onComplete: startPulse`, Diff-Sweep ruft `updateRepo()/updateFolder()/updateFile()` auf bestehenden Sprites + Pulse-Toggle-Handling beim Kill-Wechsel, `badgesReady`-Effect refresht alle Badges nach Cache-Ready.
+- [x] **Step 9**: `StaticGalaxieSVG.tsx` erweitert — Severity-Fill für Folder + File, Exceptional-Stroke, inline-`<Badge>`-Sub-Component nutzt `SEVERITY_LUCIDE`-React-Komponente, Dismissed-Files mit Dark-Grey-Fill + Alpha 0.35, Sun-Worst-Child-Kill-Aggregate-Badge.
+- [x] **Step 10**: Landing `SeverityIcon.tsx` + `RepoTreeView.tsx` konsolidiert auf neue `SEVERITY_LUCIDE` aus `severity-icons.ts` (Single-Source). Lokale Drift-Maps gelöscht. Animations (Kill-Pulse + Exceptional-Spin) bleiben unverändert (Landing-V2-spec).
+- [x] **Step 11**: `pnpm typecheck` grün (23/23). `pnpm test` apps/web/src/lib/galaxie/ + pixi/: 36 Tests grün (5 Files, +5 neue Severity-Tests gegenüber Sub-A). `pnpm --filter @vk/web build`: Compiled successfully in 6.5s.
+- [x] **Step 12**: Dev-Server frisch (Next 16.2.6, 289ms ready). Acceptance-Walk komplett: Severity-Palette+Pulse korrekt, Edge-Badges sauber (Mid skip), Console clean, Interaktion ok, **Landing-Hero V2 Cross-Impact-Re-Walk grün**, Reduced-Motion-SVG-Fallback grün.
 
 ## 7. Files-to-Change
 

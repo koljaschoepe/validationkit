@@ -2,33 +2,21 @@
 
 import { useMemo, useState } from 'react';
 import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle,
   ChevronDownIcon,
   ChevronRightIcon,
   FileIcon,
   FolderIcon,
   GitBranchIcon,
   PackageIcon,
-  Sparkles,
 } from 'lucide-react';
 import type {
   GraphNode,
   NodeKind,
   RepoGalaxieData,
 } from '@/lib/repo-galaxie/types';
-import type { SeverityBand } from '@vk/core';
 import { severityHex } from '@/lib/galaxie/severity-colors';
+import { SEVERITY_LUCIDE } from '@/lib/galaxie/severity-icons';
 import { cn } from '@/lib/utils';
-
-const SEVERITY_LUCIDE: Record<SeverityBand, React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = {
-  Kill: AlertCircle,
-  Weak: AlertTriangle,
-  Mid: AlertTriangle,
-  Strong: CheckCircle,
-  Exceptional: Sparkles,
-};
 
 /**
  * RepoTreeView — Phase Nova-2 P6 mobile replacement for the SVG Galaxie.

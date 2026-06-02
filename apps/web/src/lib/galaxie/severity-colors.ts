@@ -1,22 +1,38 @@
 import type { Severity } from './types';
 
 /**
- * Three-tier traffic-light severity palette (Frontend-Relaunch v2, May 2026).
- * Kill+Weak = red (Weak slightly dimmer), Mid = orange, Strong+Exceptional
- * = green (Exceptional slightly brighter). Hex values approximate the OKLCH
- * tokens in globals.css; Pixi only renders RGB so we provide hex here.
+ * Asymmetric-salience severity palette (Galaxie-Workspace-Solar Sub-B, Jun 2026).
  *
- * Within red/green tiers, severity is further encoded via icon + border
- * style + font weight in SeverityBadge — color is a redundant signal, not
- * the only one, so color-blind users and high-glare situations still parse it.
+ * Only Kill screams. Weak is muted orange, Mid is the neutral anchor (no badge),
+ * Strong is a calm teal tint, Exceptional is a neutral grey with a thin indigo
+ * outline (no fill tint). The narrow lightness band (0.58–0.74) keeps brightness
+ * roughly equal across non-Kill bands; Kill stands out via maxed chroma (0.20)
+ * and a six-pixel glow. Teal (165°) and indigo (270°) are off the red-green axis
+ * to stay deuteranopia-safe.
+ *
+ * Hex values approximate the OKLCH tokens documented inline. Pixi only renders
+ * RGB so the hex map is the practical single source for both PIXI canvas + SVG
+ * fallback + landing-hero.
  */
 export const SEVERITY_HEX: Record<Severity, string> = {
-  Kill: '#dc2f2f',         // oklch(0.62 0.24 25)
-  Weak: '#b65d52',         // oklch(0.58 0.18 30)
-  Mid: '#d49545',          // oklch(0.66 0.18 60)
-  Strong: '#4f9466',       // oklch(0.60 0.18 145)
-  Exceptional: '#6fb685',  // oklch(0.72 0.18 145)
+  Kill: '#c64a3a',         // oklch(0.58 0.20 25)
+  Weak: '#cf8a4f',         // oklch(0.70 0.13 55)
+  Mid: '#9aa3b3',          // oklch(0.68 0.02 250) — anchor, near-neutral
+  Strong: '#7eb8a4',       // oklch(0.74 0.06 165)
+  Exceptional: '#acacac',  // oklch(0.70 0 0) — neutral fill, see SEVERITY_OUTLINE_HEX
 };
+
+/**
+ * Per-band outline color. Only `Exceptional` renders a 1 px stroke; the indigo
+ * (`oklch(0.62 0.14 270)`) signals "rare / special" without competing with Kill.
+ */
+export const SEVERITY_OUTLINE_HEX: Partial<Record<Severity, string>> = {
+  Exceptional: '#7a73d8', // oklch(0.62 0.14 270)
+};
+
+/** Dismissed finding fill + alpha (master plan §5.3.3 dismissed row). */
+export const DISMISSED_FILL_HEX = '#4d4d4d'; // oklch(0.40 0 0)
+export const DISMISSED_ALPHA = 0.35;
 
 export function hexToPixiNumber(hex: string): number {
   return parseInt(hex.replace('#', ''), 16);
@@ -35,36 +51,36 @@ export function severityHex(s: Severity): string {
 }
 
 /**
- * Pixi GlowFilter radius per band. Encodes severity via halo size,
- * since hue is no longer load-bearing.
+ * GlowFilter radius per band. Only Kill glows (6 px bloom in Kill-hex). Every
+ * other band stays calm — glow is a salience signal, not a category one.
  */
 export const SEVERITY_GLOW_RADIUS: Record<Severity, number> = {
-  Kill: 24,
-  Weak: 16,
-  Mid: 8,
-  Strong: 0,
-  Exceptional: 12,
-};
-
-/**
- * Pulse rate in Hz for GSAP-driven scale tweens. 0 = static.
- * Only Kill and Weak pulse, to keep the canvas calm.
- */
-export const SEVERITY_PULSE_RATE: Record<Severity, number> = {
-  Kill: 1.8,
-  Weak: 1.0,
+  Kill: 6,
+  Weak: 0,
   Mid: 0,
   Strong: 0,
   Exceptional: 0,
 };
 
 /**
- * Convert a severity's pulse-rate (Hz) into half-period seconds for a
- * yoyo-tween (`gsap.to(..., { yoyo: true, repeat: -1, duration })`). Returns
- * `null` if the severity does not pulse — callers should skip the tween in
- * that case, not pass `null` to GSAP.
+ * Pulse rate in Hz for GSAP-driven scale tweens. Only Kill pulses; the rate
+ * 0.625 Hz corresponds to a 1.6 s yoyo cycle (half-period ≈ 0.8 s) — the
+ * master-plan §5.3.3 spec. `0` means no pulse.
+ */
+export const SEVERITY_PULSE_RATE: Record<Severity, number> = {
+  Kill: 0.625,
+  Weak: 0,
+  Mid: 0,
+  Strong: 0,
+  Exceptional: 0,
+};
+
+/**
+ * Convert a severity's pulse-rate (Hz) into half-period seconds for a yoyo
+ * tween (`gsap.to(..., { yoyo: true, repeat: -1, duration })`). Returns `null`
+ * if the severity does not pulse — callers must skip the tween in that case.
  *
- * Math: 1.8Hz = 1 cycle per ~0.556s = up+down legs of ~0.278s each.
+ * Math: 0.625 Hz = 1 cycle per 1.6 s = up/down legs of 0.8 s each.
  */
 export function getPulseDuration(severity: Severity): number | null {
   const rate = SEVERITY_PULSE_RATE[severity];

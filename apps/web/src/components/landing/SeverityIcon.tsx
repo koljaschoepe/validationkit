@@ -1,33 +1,25 @@
 'use client';
 
-import type { ComponentType, SVGProps } from 'react';
 import { m, useReducedMotion } from 'motion/react';
-import { AlertCircle, AlertTriangle, CheckCircle, Sparkles } from 'lucide-react';
 import type { SeverityBand } from '@vk/core';
+import { SEVERITY_LUCIDE } from '@/lib/galaxie/severity-icons';
 
 /**
  * Severity-Icon rendered at the centre of a Sphere — Apple-Maps-POI-style.
  *
- * Kill   → AlertCircle, pulses scale 1→1.08 (1.4 s loop)
+ * Kill   → OctagonX, pulses scale 1→1.08 (1.4 s loop)
  * Weak   → AlertTriangle, 2 px stroke, static
- * Mid    → AlertTriangle, 1.5 px stroke, static
+ * Mid    → MinusCircle, 1.5 px stroke, static
  * Strong → CheckCircle, static
  * Exceptional → Sparkles, rotates 0→360 over 8 s
+ *
+ * Lucide mapping comes from the single source `@/lib/galaxie/severity-icons.ts`
+ * so the landing demo and the real workspace galaxy stay in sync.
  *
  * Size is in viewBox-units so the icon scales together with the sphere it
  * sits in (Apple-Maps "POI is a fixed proportion of the marker"). The lucide
  * <svg> is rendered as a nested SVG-viewport placed at (-size/2, -size/2).
  */
-
-type LucideIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number; color?: string }>;
-
-const ICON_BY_SEVERITY: Record<SeverityBand, LucideIcon> = {
-  Kill: AlertCircle as LucideIcon,
-  Weak: AlertTriangle as LucideIcon,
-  Mid: AlertTriangle as LucideIcon,
-  Strong: CheckCircle as LucideIcon,
-  Exceptional: Sparkles as LucideIcon,
-};
 
 const STROKE_WIDTH: Record<SeverityBand, number> = {
   Kill: 2.6,
@@ -52,7 +44,7 @@ export function SeverityIcon({
   delay?: number;
 }) {
   const reducedMotion = useReducedMotion();
-  const Icon = ICON_BY_SEVERITY[severity];
+  const Icon = SEVERITY_LUCIDE[severity];
   const half = size / 2;
 
   const iconEl = (

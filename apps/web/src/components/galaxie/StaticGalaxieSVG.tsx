@@ -6,8 +6,21 @@ import {
   SOLAR_LAYOUT_CONSTANTS,
 } from "@/lib/galaxie/solar-layout";
 import { generateMockGalaxieData } from "@/lib/galaxie/mock-data";
+import {
+  DISMISSED_ALPHA,
+  DISMISSED_FILL_HEX,
+  SEVERITY_HEX,
+  SEVERITY_OUTLINE_HEX,
+} from "@/lib/galaxie/severity-colors";
+import {
+  BADGE_ICON_SIZE,
+  EDGE_BADGE_BANDS,
+  SEVERITY_LUCIDE,
+} from "@/lib/galaxie/severity-icons";
 import type {
+  FileNode,
   GalaxieData,
+  Severity,
   SolarLayoutNode,
 } from "@/lib/galaxie/types";
 import { Inspector } from "./Inspector";
@@ -16,20 +29,16 @@ import { ActivationChecklist } from "./ActivationChecklist";
 import { EmptyGalaxie } from "./EmptyGalaxie";
 
 /**
- * Static-SVG fallback rendering of the workspace galaxy. Used when the user
- * has `prefers-reduced-motion: reduce` set — we skip the PixiJS bundle
- * entirely and ship a flat SVG instead. The Inspector flow is preserved by
- * reusing the existing component; click on a file-planet opens it in the
- * same portal-mounted panel as the PixiJS path.
- *
- * Sub-A: pure layout stage. All nodes render in neutral grey; severity colour,
- * edge badges, and orbit rings arrive in Sub-B / Sub-C.
+ * Static-SVG fallback for `prefers-reduced-motion: reduce`. Same data + layout
+ * as the PixiJS path, no pulse / glow / hover affordance — severity comes
+ * across via fill colour, edge-badge and (for Exceptional) outline. Mid stays
+ * anchor-neutral (no badge), Dismissed renders dark-grey at reduced alpha.
  */
 
 const SUN_INNER_COLOR = "#ececec";
 const SUN_MID_COLOR = "#7f7f7f";
 const SUN_OUTER_COLOR = "#1f1f1f";
-const PLANET_FILL = "#acacac";
+const BADGE_DISC_RADIUS_SVG = 5;
 
 const { SUN_RADIUS, FOLDER_PLANET_RADIUS, FILE_PLANET_RADIUS } =
   SOLAR_LAYOUT_CONSTANTS;
@@ -58,6 +67,14 @@ export function StaticGalaxieSVG({
   const fileById = useMemo(
     () => new Map(data.files.map((f) => [f.id, f])),
     [data.files],
+  );
+  const folderById = useMemo(
+    () => new Map(layout.folders.map((f) => [f.id, f])),
+    [layout.folders],
+  );
+  const repoById = useMemo(
+    () => new Map(data.repos.map((r) => [r.id, r])),
+    [data.repos],
   );
 
   const isEmptyRealWorkspace =
@@ -107,79 +124,85 @@ export function StaticGalaxieSVG({
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Layer 1 — Repo suns */}
+        {/* Layer 1 — Repo suns + worst-child aggregate badge (Kill only) */}
         <g aria-hidden="true">
-          {suns.map((sun) => (
-            <g key={sun.id}>
-              <circle
-                cx={sun.x}
-                cy={sun.y}
-                r={SUN_RADIUS * 1.0}
-                fill={SUN_OUTER_COLOR}
-                fillOpacity={0.18}
-              />
-              <circle
-                cx={sun.x}
-                cy={sun.y}
-                r={SUN_RADIUS * 0.75}
-                fill={SUN_MID_COLOR}
-                fillOpacity={0.45}
-              />
-              <circle
-                cx={sun.x}
-                cy={sun.y}
-                r={SUN_RADIUS * 0.45}
-                fill={SUN_INNER_COLOR}
-              />
-            </g>
-          ))}
+          {suns.map((sun) => {
+            const repo = repoById.get(sun.id);
+            return (
+              <g key={sun.id}>
+                <circle
+                  cx={sun.x}
+                  cy={sun.y}
+                  r={SUN_RADIUS * 1.0}
+                  fill={SUN_OUTER_COLOR}
+                  fillOpacity={0.18}
+                />
+                <circle
+                  cx={sun.x}
+                  cy={sun.y}
+                  r={SUN_RADIUS * 0.75}
+                  fill={SUN_MID_COLOR}
+                  fillOpacity={0.45}
+                />
+                <circle
+                  cx={sun.x}
+                  cy={sun.y}
+                  r={SUN_RADIUS * 0.45}
+                  fill={SUN_INNER_COLOR}
+                />
+                {repo && repo.aggregateSeverity === "Kill" ? (
+                  <Badge
+                    severity="Kill"
+                    cx={sun.x + SUN_RADIUS * 0.866}
+                    cy={sun.y - SUN_RADIUS * 0.5}
+                  />
+                ) : null}
+              </g>
+            );
+          })}
         </g>
 
         {/* Layer 2 — Folder planets */}
         <g aria-hidden="true">
-          {folderPlanets.map((planet) => (
-            <circle
-              key={planet.id}
-              cx={planet.x}
-              cy={planet.y}
-              r={FOLDER_PLANET_RADIUS}
-              fill={PLANET_FILL}
-            />
-          ))}
+          {folderPlanets.map((planet) => {
+            const folder = folderById.get(planet.id);
+            if (!folder) return null;
+            const severity = folder.aggregateSeverity;
+            const fill = SEVERITY_HEX[severity];
+            const stroke = SEVERITY_OUTLINE_HEX[severity];
+            return (
+              <g key={planet.id}>
+                <circle
+                  cx={planet.x}
+                  cy={planet.y}
+                  r={FOLDER_PLANET_RADIUS}
+                  fill={fill}
+                  stroke={stroke ?? "none"}
+                  strokeWidth={stroke ? 1 : 0}
+                />
+                {EDGE_BADGE_BANDS.has(severity) ? (
+                  <Badge
+                    severity={severity}
+                    cx={planet.x + FOLDER_PLANET_RADIUS * 0.866}
+                    cy={planet.y - FOLDER_PLANET_RADIUS * 0.5}
+                  />
+                ) : null}
+              </g>
+            );
+          })}
         </g>
 
-        {/* Layer 3 — File planets (root files only — foldered files appear via
-            folder-pivot in Sub-C and are not rendered in Sub-A). */}
+        {/* Layer 3 — File planets (root files; clickable) */}
         {filePlanets.map((planet) => {
           const file = fileById.get(planet.id);
           if (!file) return null;
           return (
-            <g key={planet.id}>
-              <circle
-                cx={planet.x}
-                cy={planet.y}
-                r={FILE_PLANET_RADIUS}
-                fill={PLANET_FILL}
-              />
-              <rect
-                x={planet.x - 22}
-                y={planet.y - 22}
-                width={44}
-                height={44}
-                fill="transparent"
-                role="button"
-                tabIndex={0}
-                aria-label={`Open finding: ${file.path}`}
-                style={{ cursor: "pointer", outline: "none" }}
-                onClick={() => setSelectedFileId(file.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelectedFileId(file.id);
-                  }
-                }}
-              />
-            </g>
+            <FilePlanetSvg
+              key={planet.id}
+              planet={planet}
+              file={file}
+              onSelect={setSelectedFileId}
+            />
           );
         })}
       </svg>
@@ -192,6 +215,85 @@ export function StaticGalaxieSVG({
         />
       ) : null}
     </div>
+  );
+}
+
+function FilePlanetSvg({
+  planet,
+  file,
+  onSelect,
+}: {
+  planet: SolarLayoutNode;
+  file: FileNode;
+  onSelect: (id: string) => void;
+}) {
+  const dismissed = file.dismissStatus === "dismissed";
+  const severity = file.severity;
+  const fill = dismissed ? DISMISSED_FILL_HEX : SEVERITY_HEX[severity];
+  const stroke = dismissed ? undefined : SEVERITY_OUTLINE_HEX[severity];
+  const opacity = dismissed ? DISMISSED_ALPHA : 1;
+  return (
+    <g key={planet.id} opacity={opacity}>
+      <circle
+        cx={planet.x}
+        cy={planet.y}
+        r={FILE_PLANET_RADIUS}
+        fill={fill}
+        stroke={stroke ?? "none"}
+        strokeWidth={stroke ? 1 : 0}
+      />
+      {!dismissed && EDGE_BADGE_BANDS.has(severity) ? (
+        <Badge
+          severity={severity}
+          cx={planet.x + FILE_PLANET_RADIUS * 0.866}
+          cy={planet.y - FILE_PLANET_RADIUS * 0.5}
+        />
+      ) : null}
+      <rect
+        x={planet.x - 22}
+        y={planet.y - 22}
+        width={44}
+        height={44}
+        fill="transparent"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open finding: ${file.path}`}
+        style={{ cursor: "pointer", outline: "none" }}
+        onClick={() => onSelect(file.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(file.id);
+          }
+        }}
+      />
+    </g>
+  );
+}
+
+function Badge({
+  severity,
+  cx,
+  cy,
+}: {
+  severity: Severity;
+  cx: number;
+  cy: number;
+}) {
+  const LucideIcon = SEVERITY_LUCIDE[severity];
+  const discFill = SEVERITY_HEX[severity];
+  return (
+    <g transform={`translate(${cx}, ${cy})`}>
+      <circle cx={0} cy={0} r={BADGE_DISC_RADIUS_SVG} fill={discFill} />
+      <g transform={`translate(${-BADGE_ICON_SIZE / 2}, ${-BADGE_ICON_SIZE / 2})`}>
+        <LucideIcon
+          size={BADGE_ICON_SIZE}
+          color="#ffffff"
+          strokeWidth={2.4}
+          aria-hidden="true"
+        />
+      </g>
+    </g>
   );
 }
 

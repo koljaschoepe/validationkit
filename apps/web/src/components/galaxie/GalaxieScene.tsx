@@ -23,8 +23,10 @@ import type {
   FolderNode,
   GalaxieData,
   LayoutNode,
+  Severity,
   SolarLayoutNode,
 } from '@/lib/galaxie/types';
+import { getPulseDuration } from '@/lib/galaxie/severity-colors';
 import { isMobileViewport } from '@/lib/galaxie/device';
 import {
   DEFAULT_WORKSPACE_SLUG,
@@ -35,6 +37,7 @@ import { Camera } from './pixi/Camera';
 import { RepoSun } from './pixi/RepoSun';
 import { FolderPlanet } from './pixi/FolderPlanet';
 import { FilePlanet } from './pixi/FilePlanet';
+import { ensureBadgeTexturesReady } from './pixi/edge-badge-texture';
 import { GalaxieTooltip, type TooltipState } from './Tooltip';
 import { ZoomIndicator } from './ZoomIndicator';
 import { MiniMap } from './MiniMap';
@@ -92,6 +95,9 @@ export default function GalaxieScene({
   const fileParam = searchParams?.get('file') ?? null;
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  // Sub-B — edge-badge textures rasterize asynchronously. Until ready, planet
+  // sprites mount without badges; we re-render when the promise resolves.
+  const [badgesReady, setBadgesReady] = useState(false);
   const [inspectorFileId, setInspectorFileId] = useState<string | null>(
     fileParam,
   );
@@ -161,6 +167,18 @@ export default function GalaxieScene({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // Kick off the badge-texture rasterizer once. The promise is idempotent, so
+  // safe to call from multiple GalaxieScene instances (e.g. workspace + demo).
+  useEffect(() => {
+    let cancelled = false;
+    ensureBadgeTexturesReady().then(() => {
+      if (!cancelled) setBadgesReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const applyCamera = useCallback(() => {
@@ -531,6 +549,7 @@ export default function GalaxieScene({
               data={galaxieData}
               folders={solarLayout.folders}
               layoutById={solarLayoutById}
+              badgesReady={badgesReady}
             />
           </Application>
 
@@ -581,6 +600,14 @@ export default function GalaxieScene({
   );
 }
 
+type SolarSprite = RepoSun | FolderPlanet | FilePlanet;
+
+function severityOf(target: SolarSprite): Severity {
+  if (target instanceof FilePlanet) return target.file.severity;
+  if (target instanceof FolderPlanet) return target.folder.aggregateSeverity;
+  return target.repo.aggregateSeverity;
+}
+
 function GalaxieWorld({
   worldRef,
   centerX,
@@ -593,6 +620,7 @@ function GalaxieWorld({
   data,
   folders,
   layoutById,
+  badgesReady,
 }: {
   worldRef: MutableRefObject<Container | null>;
   centerX: number;
@@ -605,12 +633,14 @@ function GalaxieWorld({
   data: GalaxieData;
   folders: FolderNode[];
   layoutById: Map<string, SolarLayoutNode>;
+  badgesReady: boolean;
 }) {
   const localRef = useRef<Container | null>(null);
   // Stable sprite map for diff-updates (avoids destroy + rebuild on every
   // `data` change). Lifecycle owned by the mount-effect below.
   const spritesRef = useRef<Map<string, Container>>(new Map());
-  // GSAP context for hover tweens; Sub-A has no pulse — Sub-B re-introduces it.
+  // GSAP context for hover + pulse tweens. Sub-B reintroduces the Kill pulse
+  // (removed in Sub-A while everything was neutral-grey).
   const ctxRef = useRef<gsap.Context | null>(null);
 
   // Mount-effect (runs once per Container): ctx setup, event handlers, teardown.
@@ -623,6 +653,28 @@ function GalaxieWorld({
     ctxRef.current = ctx;
 
     world.eventMode = 'passive';
+
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Start the Kill-only pulse on a sprite. Hover-out tween re-arms this so
+    // the canvas keeps breathing after the cursor leaves a Kill planet.
+    const startPulse = (sprite: Container, severity: Severity) => {
+      if (reducedMotion) return;
+      const duration = getPulseDuration(severity);
+      if (duration === null) return;
+      ctx.add(() => {
+        gsap.to(sprite.scale, {
+          x: 1.12,
+          y: 1.12,
+          duration,
+          yoyo: true,
+          repeat: -1,
+          ease: 'sine.inOut',
+        });
+      });
+    };
 
     const onOver = (e: FederatedPointerEvent) => {
       const target = e.target;
@@ -655,12 +707,14 @@ function GalaxieWorld({
         target instanceof RepoSun
       ) {
         gsap.killTweensOf(target.scale);
+        const sev = severityOf(target);
         ctx.add(() => {
           gsap.to(target.scale, {
             x: 1,
             y: 1,
             duration: 0.2,
             ease: 'power2.out',
+            onComplete: () => startPulse(target, sev),
           });
         });
       }
@@ -682,6 +736,12 @@ function GalaxieWorld({
     world.on('pointerout', onOut);
     world.on('pointertap', onTap);
 
+    // Expose startPulse on the world so the diff-effect can rearm pulses after
+    // a severity change without re-creating the GSAP context. We stash it on a
+    // symbol-keyed field rather than module-scope to keep one Galaxie instance
+    // per pulse-pool (multiple scenes can coexist in dev React StrictMode).
+    (world as unknown as { __startPulse?: typeof startPulse }).__startPulse = startPulse;
+
     return () => {
       ctx.revert();
       ctxRef.current = null;
@@ -697,12 +757,14 @@ function GalaxieWorld({
     };
   }, [worldRef, onHover, onSunClick, onFolderClick, onFileClick]);
 
-  // Diff-effect: add new entities, reposition existing, destroy orphans.
-  // Z-order: suns added first (back), folders + files on top — sprite Z is the
-  // order of addChild, so reusing existing sprites preserves stacking.
+  // Diff-effect: add new entities, reposition existing, destroy orphans, and
+  // re-render severity / dismiss / solution-status on changed entities.
   useEffect(() => {
     const world = localRef.current;
     if (!world) return;
+    const startPulse =
+      (world as unknown as { __startPulse?: (s: Container, sev: Severity) => void })
+        .__startPulse;
 
     const sprites = spritesRef.current;
     const nextIds = new Set<string>();
@@ -723,6 +785,7 @@ function GalaxieWorld({
       if (existing instanceof RepoSun) {
         existing.x = node.x;
         existing.y = node.y;
+        existing.updateRepo(repo);
       } else {
         const sprite = new RepoSun(repo, node, sunScale);
         world.addChild(sprite);
@@ -739,6 +802,7 @@ function GalaxieWorld({
       if (existing instanceof FolderPlanet) {
         existing.x = node.x;
         existing.y = node.y;
+        existing.updateFolder(folder);
       } else {
         const sprite = new FolderPlanet(folder, node, folderScale);
         world.addChild(sprite);
@@ -757,10 +821,22 @@ function GalaxieWorld({
       if (existing instanceof FilePlanet) {
         existing.x = node.x;
         existing.y = node.y;
+        const wasPulsing = existing.file.severity === 'Kill';
+        existing.updateFile(file);
+        // Pulse restart when Kill state toggles.
+        if (file.severity === 'Kill' && !wasPulsing) {
+          gsap.killTweensOf(existing.scale);
+          existing.scale.set(1);
+          startPulse?.(existing, 'Kill');
+        } else if (wasPulsing && file.severity !== 'Kill') {
+          gsap.killTweensOf(existing.scale);
+          existing.scale.set(1);
+        }
       } else {
         const sprite = new FilePlanet(file, node, fileScale);
         world.addChild(sprite);
         sprites.set(node.id, sprite);
+        if (file.severity === 'Kill') startPulse?.(sprite, 'Kill');
       }
     }
 
@@ -773,8 +849,18 @@ function GalaxieWorld({
         sprites.delete(id);
       }
     }
-
   }, [data, folders, layoutById]);
+
+  // Badge-cache becomes ready after async rasterization. Refresh every mounted
+  // sprite so the badges that were skipped at mount-time now appear.
+  useEffect(() => {
+    if (!badgesReady) return;
+    for (const sprite of spritesRef.current.values()) {
+      if (sprite instanceof RepoSun) sprite.refreshBadgeFromTextureCache();
+      else if (sprite instanceof FolderPlanet) sprite.refreshBadgeFromTextureCache();
+      else if (sprite instanceof FilePlanet) sprite.refreshBadgeFromTextureCache();
+    }
+  }, [badgesReady]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);
