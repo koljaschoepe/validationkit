@@ -15,8 +15,16 @@ import { useGesture } from '@use-gesture/react';
 import gsap from 'gsap';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
 import { computeLayout } from '@/lib/galaxie/layout';
-import type { GalaxieData, LayoutNode, Severity } from '@/lib/galaxie/types';
-import { getPulseDuration } from '@/lib/galaxie/severity-colors';
+import {
+  computeSolarLayout,
+  getClusterCenters,
+} from '@/lib/galaxie/solar-layout';
+import type {
+  FolderNode,
+  GalaxieData,
+  LayoutNode,
+  SolarLayoutNode,
+} from '@/lib/galaxie/types';
 import { isMobileViewport } from '@/lib/galaxie/device';
 import {
   DEFAULT_WORKSPACE_SLUG,
@@ -24,9 +32,9 @@ import {
   type MockWorkspace,
 } from '@/lib/galaxie/mock-workspaces';
 import { Camera } from './pixi/Camera';
-import { CustomerStar } from './pixi/CustomerStar';
-import { RepoMoon } from './pixi/RepoMoon';
-import { FileAsteroid } from './pixi/FileAsteroid';
+import { RepoSun } from './pixi/RepoSun';
+import { FolderPlanet } from './pixi/FolderPlanet';
+import { FilePlanet } from './pixi/FilePlanet';
 import { GalaxieTooltip, type TooltipState } from './Tooltip';
 import { ZoomIndicator } from './ZoomIndicator';
 import { MiniMap } from './MiniMap';
@@ -107,14 +115,29 @@ export default function GalaxieScene({
   // Mock-data always has customers, so the public demo skips this branch.
   const isEmptyRealWorkspace =
     initialData !== undefined && initialData.customers.length === 0;
-  const galaxieLayout = useMemo(() => computeLayout(galaxieData), [galaxieData]);
-  const layoutById = useMemo(
-    () => new Map<string, LayoutNode>(galaxieLayout.nodes.map((n) => [n.id, n])),
-    [galaxieLayout],
+
+  // Sub-A — Solar-Layout (Sonnensystem-pro-Repo, Multi-Sonnen-Cluster pro Customer).
+  // Drives GalaxieWorld rendering. See `docs/plans/galaxie-workspace-solar-A-layout.md`.
+  const solarLayout = useMemo(() => computeSolarLayout(galaxieData), [galaxieData]);
+  const solarLayoutById = useMemo(
+    () =>
+      new Map<string, SolarLayoutNode>(
+        solarLayout.nodes.map((n) => [n.id, n]),
+      ),
+    [solarLayout],
+  );
+
+  // Legacy bridge for MiniMap — MiniMap still consumes the old 3-level layout
+  // and will migrate in a follow-up phase. Both layouts read the same
+  // `galaxieData`, so they stay in sync.
+  const legacyLayout = useMemo(() => computeLayout(galaxieData), [galaxieData]);
+  const legacyLayoutById = useMemo(
+    () => new Map<string, LayoutNode>(legacyLayout.nodes.map((n) => [n.id, n])),
+    [legacyLayout],
   );
 
   const zoomLevels = useMemo<ZoomLevel[]>(() => {
-    const customers = galaxieLayout.nodes.filter((n) => n.level === 1);
+    const centers = getClusterCenters(galaxieData);
     const focus = (
       c: { x: number; y: number } | undefined,
       scale: number,
@@ -123,11 +146,11 @@ export default function GalaxieScene({
     return [
       { x: 0, y: 0, scale: 0.45 },
       { x: 0, y: 0, scale: 1.0 },
-      focus(customers[0], 1.7),
-      focus(customers[1], 1.7),
-      focus(customers[2], 1.7),
+      focus(centers[0], 1.7),
+      focus(centers[1], 1.7),
+      focus(centers[2], 1.7),
     ];
-  }, [galaxieLayout]);
+  }, [galaxieData]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -239,13 +262,27 @@ export default function GalaxieScene({
   }, [tweenTo, isStatic, zoomLevels]);
 
   // Sprint G3 — single helper to derive a tween target from a node id.
+  // Sub-A: looks up against the solar layout (suns + folders + root files).
   const tweenToNode = useCallback(
     (nodeId: string, scale: number) => {
-      const node = layoutById.get(nodeId);
+      const node = solarLayoutById.get(nodeId);
       if (!node) return;
       tweenTo({ x: -node.x * scale, y: -node.y * scale, scale });
     },
-    [tweenTo, layoutById],
+    [tweenTo, solarLayoutById],
+  );
+
+  // Customer search results have no own sprite in the solar layout — tween to
+  // the cluster center instead.
+  const tweenToCustomerCluster = useCallback(
+    (customerId: string, scale: number) => {
+      const center = getClusterCenters(galaxieData).find(
+        (c) => c.customerId === customerId,
+      );
+      if (!center) return;
+      tweenTo({ x: -center.x * scale, y: -center.y * scale, scale });
+    },
+    [tweenTo, galaxieData],
   );
 
   const handleSearchPick = useCallback(
@@ -253,10 +290,10 @@ export default function GalaxieScene({
       if (res.kind === 'file' && res.file) {
         tweenToNode(res.file.id, 3.5);
       } else {
-        tweenToNode(res.customer.id, 1.7);
+        tweenToCustomerCluster(res.customer.id, 1.7);
       }
     },
-    [tweenToNode],
+    [tweenToNode, tweenToCustomerCluster],
   );
 
   const handleMiniMapJump = useCallback(
@@ -292,18 +329,21 @@ export default function GalaxieScene({
     });
   }, [router, pathname, searchParams]);
 
-  const handleCustomerClick = useCallback(
-    (customerId: string) => {
+  // Sub-A — Sun-Click pans to the repo's sun; Folder-Click pans deeper; both
+  // are non-destructive layout-stage interactions. Sub-C will replace these
+  // with the Datadog-Pivot side-panel.
+  const handleSunClick = useCallback(
+    (repoId: string) => {
       if (isStatic) return;
-      tweenToNode(customerId, 1.7);
+      tweenToNode(repoId, 3.5);
     },
     [tweenToNode, isStatic],
   );
 
-  const handleRepoClick = useCallback(
-    (repoId: string) => {
+  const handleFolderClick = useCallback(
+    (folderId: string) => {
       if (isStatic) return;
-      tweenToNode(repoId, 3.5);
+      tweenToNode(folderId, 4.5);
     },
     [tweenToNode, isStatic],
   );
@@ -422,7 +462,7 @@ export default function GalaxieScene({
     if (deepLinkAppliedRef.current) return;
     if (!fileParam) return;
     if (!size) return;
-    if (!layoutById.has(fileParam)) {
+    if (!solarLayoutById.has(fileParam)) {
       // Unknown id — silently strip from URL.
       closeInspector();
       deepLinkAppliedRef.current = true;
@@ -430,7 +470,7 @@ export default function GalaxieScene({
     }
     tweenToNode(fileParam, 5);
     deepLinkAppliedRef.current = true;
-  }, [fileParam, size, layoutById, tweenToNode, closeInspector]);
+  }, [fileParam, size, solarLayoutById, tweenToNode, closeInspector]);
 
   // The actual FileNode for the open inspector, looked up from data.
   const inspectorFile = useMemo(() => {
@@ -485,11 +525,12 @@ export default function GalaxieScene({
               centerY={size.h / 2}
               camera={cameraRef.current}
               onHover={setTooltip}
-              onCustomerClick={handleCustomerClick}
-              onRepoClick={handleRepoClick}
+              onSunClick={handleSunClick}
+              onFolderClick={handleFolderClick}
               onFileClick={handleFileClick}
               data={galaxieData}
-              layoutById={layoutById}
+              folders={solarLayout.folders}
+              layoutById={solarLayoutById}
             />
           </Application>
 
@@ -509,7 +550,7 @@ export default function GalaxieScene({
                 viewportSize={size}
                 onJump={handleMiniMapJump}
                 data={galaxieData}
-                layoutById={layoutById}
+                layoutById={legacyLayoutById}
               />
               <UniversalSearch onPick={handleSearchPick} data={galaxieData} />
             </>
@@ -546,10 +587,11 @@ function GalaxieWorld({
   centerY,
   camera,
   onHover,
-  onCustomerClick,
-  onRepoClick,
+  onSunClick,
+  onFolderClick,
   onFileClick,
   data,
+  folders,
   layoutById,
 }: {
   worldRef: MutableRefObject<Container | null>;
@@ -557,24 +599,21 @@ function GalaxieWorld({
   centerY: number;
   camera: Camera;
   onHover: (state: TooltipState | null) => void;
-  onCustomerClick: (id: string) => void;
-  onRepoClick: (id: string) => void;
-  onFileClick: (id: string) => void;
+  onSunClick: (repoId: string) => void;
+  onFolderClick: (folderId: string) => void;
+  onFileClick: (fileId: string) => void;
   data: GalaxieData;
-  layoutById: Map<string, LayoutNode>;
+  folders: FolderNode[];
+  layoutById: Map<string, SolarLayoutNode>;
 }) {
   const localRef = useRef<Container | null>(null);
-  // Sprint 2 — keep a stable map of mounted sprites so the data-effect can
-  // diff updates instead of destroying + rebuilding all 15k+ sprites on
-  // every `data` change. Lifecycle owned by the mount-effect below.
+  // Stable sprite map for diff-updates (avoids destroy + rebuild on every
+  // `data` change). Lifecycle owned by the mount-effect below.
   const spritesRef = useRef<Map<string, Container>>(new Map());
-  // GSAP context for all tweens spawned inside this sub-tree (pulse + hover).
-  // ctx.revert() in the mount-effect cleanup kills them in one shot.
+  // GSAP context for hover tweens; Sub-A has no pulse — Sub-B re-introduces it.
   const ctxRef = useRef<gsap.Context | null>(null);
 
-  // Mount-effect (runs once per Container): ctx setup, event handlers,
-  // final teardown when GalaxieWorld unmounts. Deliberately does NOT depend
-  // on `data` or `layoutById` — those drive the diff-effect below.
+  // Mount-effect (runs once per Container): ctx setup, event handlers, teardown.
   useEffect(() => {
     const world = localRef.current;
     if (!world) return;
@@ -585,43 +624,12 @@ function GalaxieWorld({
 
     world.eventMode = 'passive';
 
-    const severityOf = (
-      target: CustomerStar | RepoMoon | FileAsteroid,
-    ): Severity => {
-      if (target instanceof FileAsteroid) return target.file.severity;
-      if (target instanceof RepoMoon) return target.repo.aggregateSeverity;
-      return target.customer.aggregateSeverity;
-    };
-
-    // Hover-out tween onComplete restarts the pulse, so the canvas keeps
-    // breathing when the cursor leaves a Kill/Weak sprite.
-    const startPulseInCtx = (sprite: Container, severity: Severity) => {
-      const duration = getPulseDuration(severity);
-      if (duration === null) return;
-      if (
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ) {
-        return;
-      }
-      ctx.add(() => {
-        gsap.to(sprite.scale, {
-          x: 1.15,
-          y: 1.15,
-          duration,
-          yoyo: true,
-          repeat: -1,
-          ease: 'sine.inOut',
-        });
-      });
-    };
-
     const onOver = (e: FederatedPointerEvent) => {
       const target = e.target;
       if (
-        target instanceof FileAsteroid ||
-        target instanceof RepoMoon ||
-        target instanceof CustomerStar
+        target instanceof FilePlanet ||
+        target instanceof FolderPlanet ||
+        target instanceof RepoSun
       ) {
         gsap.killTweensOf(target.scale);
         ctx.add(() => {
@@ -633,7 +641,7 @@ function GalaxieWorld({
           });
         });
       }
-      if (target instanceof FileAsteroid) {
+      if (target instanceof FilePlanet) {
         const global = target.getGlobalPosition();
         onHover({ x: global.x, y: global.y, file: target.file });
       }
@@ -642,34 +650,31 @@ function GalaxieWorld({
     const onOut = (e: FederatedPointerEvent) => {
       const target = e.target;
       if (
-        target instanceof FileAsteroid ||
-        target instanceof RepoMoon ||
-        target instanceof CustomerStar
+        target instanceof FilePlanet ||
+        target instanceof FolderPlanet ||
+        target instanceof RepoSun
       ) {
         gsap.killTweensOf(target.scale);
-        const sev = severityOf(target);
         ctx.add(() => {
           gsap.to(target.scale, {
             x: 1,
             y: 1,
             duration: 0.2,
             ease: 'power2.out',
-            onComplete: () => startPulseInCtx(target, sev),
           });
         });
       }
-      if (target instanceof FileAsteroid) onHover(null);
+      if (target instanceof FilePlanet) onHover(null);
     };
 
-    // Sprint G3 — click-drill-in via pointertap.
     const onTap = (e: FederatedPointerEvent) => {
       const target = e.target;
-      if (target instanceof FileAsteroid) {
+      if (target instanceof FilePlanet) {
         onFileClick(target.file.id);
-      } else if (target instanceof RepoMoon) {
-        onRepoClick(target.repo.id);
-      } else if (target instanceof CustomerStar) {
-        onCustomerClick(target.customer.id);
+      } else if (target instanceof FolderPlanet) {
+        onFolderClick(target.folder.id);
+      } else if (target instanceof RepoSun) {
+        onSunClick(target.repo.id);
       }
     };
 
@@ -690,132 +695,76 @@ function GalaxieWorld({
       spritesRef.current.clear();
       worldRef.current = null;
     };
-  }, [worldRef, onHover, onCustomerClick, onRepoClick, onFileClick]);
+  }, [worldRef, onHover, onSunClick, onFolderClick, onFileClick]);
 
-  // Diff-effect: runs whenever `data` or `layoutById` change. Instead of
-  // destroying + rebuilding every sprite (the pre-Sprint-2 behavior, costly
-  // at 15k sprites), we add new entities, update existing positions/severity,
-  // and only destroy entities that disappeared. Pulse tweens are (re-)started
-  // inside the same GSAP context as the mount-effect's event handlers.
+  // Diff-effect: add new entities, reposition existing, destroy orphans.
+  // Z-order: suns added first (back), folders + files on top — sprite Z is the
+  // order of addChild, so reusing existing sprites preserves stacking.
   useEffect(() => {
     const world = localRef.current;
-    const ctx = ctxRef.current;
-    if (!world || !ctx) return;
-
-    const reducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const initPulse = (sprite: Container, severity: Severity) => {
-      const duration = getPulseDuration(severity);
-      if (duration === null || reducedMotion) return;
-      ctx.add(() => {
-        gsap.to(sprite.scale, {
-          x: 1.15,
-          y: 1.15,
-          duration,
-          yoyo: true,
-          repeat: -1,
-          ease: 'sine.inOut',
-        });
-      });
-    };
+    if (!world) return;
 
     const sprites = spritesRef.current;
     const nextIds = new Set<string>();
 
-    // Sprint 3 — mobile-aware sprite scaling. Plan-default factors: customer
-    // 1.5×, repo 1.6×, file 1.8× on <640px viewports. Computed once per
-    // diff-effect run, applied at construction time. Orientation-change live
-    // updates are out-of-scope (Plan §3 A7).
     const isMobile = isMobileViewport();
-    const customerScale = isMobile ? 1.5 : 1;
-    const repoScale = isMobile ? 1.6 : 1;
+    const sunScale = isMobile ? 1.4 : 1;
+    const folderScale = isMobile ? 1.6 : 1;
     const fileScale = isMobile ? 1.8 : 1;
 
-    // Customers
-    for (const c of data.customers) {
-      nextIds.add(c.id);
-      const existing = sprites.get(c.id);
-      if (existing instanceof CustomerStar) {
-        const ln = layoutById.get(c.id);
-        if (ln) {
-          existing.x = ln.x;
-          existing.y = ln.y;
-        }
-        if (existing.customer.aggregateSeverity !== c.aggregateSeverity) {
-          gsap.killTweensOf(existing.scale);
-          existing.scale.set(1);
-          existing.updateSeverity(c.aggregateSeverity);
-          initPulse(existing, c.aggregateSeverity);
-        }
+    const fileById = new Map(data.files.map((f) => [f.id, f]));
+
+    // Layer 1 — Suns
+    for (const repo of data.repos) {
+      nextIds.add(repo.id);
+      const existing = sprites.get(repo.id);
+      const node = layoutById.get(repo.id);
+      if (!node) continue;
+      if (existing instanceof RepoSun) {
+        existing.x = node.x;
+        existing.y = node.y;
       } else {
-        const ln = layoutById.get(c.id);
-        if (!ln) continue;
-        const sprite = new CustomerStar(c, ln, customerScale);
+        const sprite = new RepoSun(repo, node, sunScale);
         world.addChild(sprite);
-        sprites.set(c.id, sprite);
-        initPulse(sprite, c.aggregateSeverity);
+        sprites.set(repo.id, sprite);
       }
     }
 
-    // Repos
-    for (const r of data.repos) {
-      nextIds.add(r.id);
-      const existing = sprites.get(r.id);
-      if (existing instanceof RepoMoon) {
-        const ln = layoutById.get(r.id);
-        if (ln) {
-          existing.x = ln.x;
-          existing.y = ln.y;
-        }
-        if (existing.repo.aggregateSeverity !== r.aggregateSeverity) {
-          gsap.killTweensOf(existing.scale);
-          existing.scale.set(1);
-          existing.updateSeverity(r.aggregateSeverity);
-          initPulse(existing, r.aggregateSeverity);
-        }
+    // Layer 2 — Folder planets
+    for (const folder of folders) {
+      nextIds.add(folder.id);
+      const existing = sprites.get(folder.id);
+      const node = layoutById.get(folder.id);
+      if (!node) continue;
+      if (existing instanceof FolderPlanet) {
+        existing.x = node.x;
+        existing.y = node.y;
       } else {
-        const ln = layoutById.get(r.id);
-        if (!ln) continue;
-        const sprite = new RepoMoon(r, ln, repoScale);
+        const sprite = new FolderPlanet(folder, node, folderScale);
         world.addChild(sprite);
-        sprites.set(r.id, sprite);
-        initPulse(sprite, r.aggregateSeverity);
+        sprites.set(folder.id, sprite);
       }
     }
 
-    // Files
-    for (const f of data.files) {
-      nextIds.add(f.id);
-      const existing = sprites.get(f.id);
-      if (existing instanceof FileAsteroid) {
-        const ln = layoutById.get(f.id);
-        if (ln) {
-          existing.x = ln.x;
-          existing.y = ln.y;
-        }
-        if (
-          existing.file.severity !== f.severity ||
-          existing.file.dismissStatus !== f.dismissStatus ||
-          existing.file.solutionStatus !== f.solutionStatus
-        ) {
-          gsap.killTweensOf(existing.scale);
-          existing.scale.set(1);
-          existing.updateFile(f);
-          initPulse(existing, f.severity);
-        }
+    // Layer 3 — File planets (root files only — foldered files render through
+    // the folder pivot in Sub-C; in Sub-A they are not rendered).
+    for (const node of layoutById.values()) {
+      if (node.kind !== 'file') continue;
+      nextIds.add(node.id);
+      const existing = sprites.get(node.id);
+      const file = fileById.get(node.id);
+      if (!file) continue;
+      if (existing instanceof FilePlanet) {
+        existing.x = node.x;
+        existing.y = node.y;
       } else {
-        const ln = layoutById.get(f.id);
-        if (!ln) continue;
-        const sprite = new FileAsteroid(f, ln, fileScale);
+        const sprite = new FilePlanet(file, node, fileScale);
         world.addChild(sprite);
-        sprites.set(f.id, sprite);
-        initPulse(sprite, f.severity);
+        sprites.set(node.id, sprite);
       }
     }
 
-    // Remove sprites whose entity disappeared from `data`.
+    // Remove sprites whose underlying entity disappeared.
     for (const [id, sprite] of sprites) {
       if (!nextIds.has(id)) {
         gsap.killTweensOf(sprite.scale);
@@ -824,7 +773,8 @@ function GalaxieWorld({
         sprites.delete(id);
       }
     }
-  }, [data, layoutById]);
+
+  }, [data, folders, layoutById]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);

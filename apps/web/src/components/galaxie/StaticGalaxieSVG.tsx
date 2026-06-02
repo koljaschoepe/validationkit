@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { computeLayout } from "@/lib/galaxie/layout";
+import {
+  computeSolarLayout,
+  SOLAR_LAYOUT_CONSTANTS,
+} from "@/lib/galaxie/solar-layout";
 import { generateMockGalaxieData } from "@/lib/galaxie/mock-data";
 import type {
   GalaxieData,
-  LayoutNode,
-  Severity,
+  SolarLayoutNode,
 } from "@/lib/galaxie/types";
 import { Inspector } from "./Inspector";
 import { type OnboardingState } from "./OnboardingBanner";
@@ -16,26 +18,21 @@ import { EmptyGalaxie } from "./EmptyGalaxie";
 /**
  * Static-SVG fallback rendering of the workspace galaxy. Used when the user
  * has `prefers-reduced-motion: reduce` set — we skip the PixiJS bundle
- * (~200KB JS) entirely and ship a flat SVG instead. The Inspector flow is
- * preserved by reusing the existing component; click on a file-asteroid
- * opens it in the same portal-mounted panel as the PixiJS path.
+ * entirely and ship a flat SVG instead. The Inspector flow is preserved by
+ * reusing the existing component; click on a file-planet opens it in the
+ * same portal-mounted panel as the PixiJS path.
  *
- * Tradeoffs vs the PixiJS path:
- * - No pan / zoom / pinch — the SVG fills its container at one viewBox.
- * - No hover affordance + pulse animations (matches reduced-motion intent).
- * - No tooltips on file hover; clicking is the only interaction.
- * - Multi-workspace switching, MiniMap, Cmd+K, and Auto-Tour are not wired —
- *   reduced-motion users do not need a tour, and the chrome adds little when
- *   panning is gone.
+ * Sub-A: pure layout stage. All nodes render in neutral grey; severity colour,
+ * edge badges, and orbit rings arrive in Sub-B / Sub-C.
  */
 
-const SEVERITY_COLOR_VAR: Record<Severity, string> = {
-  Kill: "var(--color-sev-kill)",
-  Weak: "var(--color-sev-weak)",
-  Mid: "var(--color-sev-mid)",
-  Strong: "var(--color-sev-strong)",
-  Exceptional: "var(--color-sev-exceptional)",
-};
+const SUN_INNER_COLOR = "#ececec";
+const SUN_MID_COLOR = "#7f7f7f";
+const SUN_OUTER_COLOR = "#1f1f1f";
+const PLANET_FILL = "#acacac";
+
+const { SUN_RADIUS, FOLDER_PLANET_RADIUS, FILE_PLANET_RADIUS } =
+  SOLAR_LAYOUT_CONSTANTS;
 
 export function StaticGalaxieSVG({
   initialData,
@@ -55,13 +52,13 @@ export function StaticGalaxieSVG({
 
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
-  const layout = useMemo(() => computeLayout(data), [data]);
-  const nodeById = useMemo(
-    () => new Map<string, LayoutNode>(layout.nodes.map((n) => [n.id, n])),
-    [layout],
-  );
-
+  const layout = useMemo(() => computeSolarLayout(data), [data]);
   const viewBox = useMemo(() => computeViewBox(layout.nodes), [layout.nodes]);
+
+  const fileById = useMemo(
+    () => new Map(data.files.map((f) => [f.id, f])),
+    [data.files],
+  );
 
   const isEmptyRealWorkspace =
     initialData !== undefined && initialData.customers.length === 0;
@@ -74,6 +71,10 @@ export function StaticGalaxieSVG({
   if (isEmptyRealWorkspace) {
     return <EmptyGalaxie workspaceSlug={workspaceSlug ?? "default"} />;
   }
+
+  const suns = layout.nodes.filter((n) => n.kind === "sun");
+  const folderPlanets = layout.nodes.filter((n) => n.kind === "folder");
+  const filePlanets = layout.nodes.filter((n) => n.kind === "file");
 
   return (
     <div
@@ -102,83 +103,79 @@ export function StaticGalaxieSVG({
       <svg
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
         role="img"
-        aria-label={`Static galaxy view of ${data.customers.length} customers, ${data.files.length} files`}
+        aria-label={`Static galaxy view of ${data.repos.length} repos, ${data.files.length} files`}
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Layer 1 — Customer stars */}
+        {/* Layer 1 — Repo suns */}
         <g aria-hidden="true">
-          {data.customers.map((c) => {
-            const ln = nodeById.get(c.id);
-            if (!ln) return null;
-            const color = SEVERITY_COLOR_VAR[c.aggregateSeverity];
-            return (
-              <g key={c.id}>
-                <circle
-                  cx={ln.x}
-                  cy={ln.y}
-                  r={32}
-                  fill={color}
-                  fillOpacity={0.12}
-                />
-                <circle
-                  cx={ln.x}
-                  cy={ln.y}
-                  r={20}
-                  fill={color}
-                  fillOpacity={0.32}
-                />
-                <circle cx={ln.x} cy={ln.y} r={11} fill={color} />
-              </g>
-            );
-          })}
+          {suns.map((sun) => (
+            <g key={sun.id}>
+              <circle
+                cx={sun.x}
+                cy={sun.y}
+                r={SUN_RADIUS * 1.0}
+                fill={SUN_OUTER_COLOR}
+                fillOpacity={0.18}
+              />
+              <circle
+                cx={sun.x}
+                cy={sun.y}
+                r={SUN_RADIUS * 0.75}
+                fill={SUN_MID_COLOR}
+                fillOpacity={0.45}
+              />
+              <circle
+                cx={sun.x}
+                cy={sun.y}
+                r={SUN_RADIUS * 0.45}
+                fill={SUN_INNER_COLOR}
+              />
+            </g>
+          ))}
         </g>
 
-        {/* Layer 2 — Repo moons */}
+        {/* Layer 2 — Folder planets */}
         <g aria-hidden="true">
-          {data.repos.map((r) => {
-            const ln = nodeById.get(r.id);
-            if (!ln) return null;
-            const color = SEVERITY_COLOR_VAR[r.aggregateSeverity];
-            return (
-              <g key={r.id}>
-                <circle
-                  cx={ln.x}
-                  cy={ln.y}
-                  r={9}
-                  fill={color}
-                  fillOpacity={0.22}
-                />
-                <circle cx={ln.x} cy={ln.y} r={5.5} fill={color} />
-              </g>
-            );
-          })}
+          {folderPlanets.map((planet) => (
+            <circle
+              key={planet.id}
+              cx={planet.x}
+              cy={planet.y}
+              r={FOLDER_PLANET_RADIUS}
+              fill={PLANET_FILL}
+            />
+          ))}
         </g>
 
-        {/* Layer 3 — File asteroids (clickable) */}
-        {data.files.map((f) => {
-          const ln = nodeById.get(f.id);
-          if (!ln) return null;
-          const dimmed = f.dismissStatus === "dismissed";
-          const color = dimmed ? "var(--muted-foreground)" : SEVERITY_COLOR_VAR[f.severity];
+        {/* Layer 3 — File planets (root files only — foldered files appear via
+            folder-pivot in Sub-C and are not rendered in Sub-A). */}
+        {filePlanets.map((planet) => {
+          const file = fileById.get(planet.id);
+          if (!file) return null;
           return (
-            <g key={f.id}>
-              <circle cx={ln.x} cy={ln.y} r={2.4} fill={color} />
+            <g key={planet.id}>
+              <circle
+                cx={planet.x}
+                cy={planet.y}
+                r={FILE_PLANET_RADIUS}
+                fill={PLANET_FILL}
+              />
               <rect
-                x={ln.x - 22}
-                y={ln.y - 22}
+                x={planet.x - 22}
+                y={planet.y - 22}
                 width={44}
                 height={44}
                 fill="transparent"
                 role="button"
                 tabIndex={0}
-                aria-label={`Open finding: ${f.path}`}
+                aria-label={`Open finding: ${file.path}`}
                 style={{ cursor: "pointer", outline: "none" }}
-                onClick={() => setSelectedFileId(f.id)}
+                onClick={() => setSelectedFileId(file.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setSelectedFileId(f.id);
+                    setSelectedFileId(file.id);
                   }
                 }}
               />
@@ -205,7 +202,7 @@ interface ViewBox {
   h: number;
 }
 
-function computeViewBox(nodes: LayoutNode[]): ViewBox {
+function computeViewBox(nodes: SolarLayoutNode[]): ViewBox {
   if (nodes.length === 0) {
     return { x: -400, y: -400, w: 800, h: 800 };
   }
@@ -219,8 +216,8 @@ function computeViewBox(nodes: LayoutNode[]): ViewBox {
     if (n.x > maxX) maxX = n.x;
     if (n.y > maxY) maxY = n.y;
   }
-  // Padding so the customer-star halos do not clip the viewBox edges.
-  const pad = 80;
+  // Padding so the sun coronas do not clip the viewBox edges.
+  const pad = SUN_RADIUS + 20;
   return {
     x: minX - pad,
     y: minY - pad,

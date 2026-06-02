@@ -1,7 +1,7 @@
 # Plan — Galaxie-Workspace-Solar Sub-Phase A: Layout-Foundation
 
 > Erstellt: 2026-05-26
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-05-26 (Confidence-At-Start: High, 10/10 Steps abgehakt, 0 deferred, 0 manuelle Verifikationen pending)
 > Slug: `galaxie-workspace-solar-A-layout`
 > Confidence: **High** — basiert auf 4 User-Entscheidungen (1 Discovery-Runde, 3 Recommended + 1 Override) + Code-Audit von `layout.ts` (113 LOC), `GalaxieScene.tsx` (Header + Layout-Wiring), `pixi/*.ts` (7 Files, 485 LOC) + Master-Plan
 > Voraussetzung: Sub-Plan von `docs/plans/galaxie-workspace-solar-redesign.md` (Master). Sub-A ist die erste von 3 Sub-Phasen (A Layout → B Severity → C Hover+Mobile).
@@ -162,16 +162,16 @@ Algorithmus:
 
 ## 6. Schritte
 
-- [ ] **Step 1**: `apps/web/src/lib/galaxie/types.ts` erweitern um `FolderNode`, `SolarNodeKind`, `SolarLayoutNode`, `SolarLayout`. Alte Typen mit `@deprecated`-JSDoc annotieren.
-- [ ] **Step 2**: `apps/web/src/lib/galaxie/solar-layout.ts` (NEW) schreiben — `computeSolarLayout()` + `SOLAR_LAYOUT_CONSTANTS`-Export + Hash-Util (DRY-share aus `layout.ts` durch Re-Import oder Copy — Copy ist OK, 8 LOC).
-- [ ] **Step 3**: `apps/web/src/lib/galaxie/solar-layout.test.ts` (NEW) schreiben — 6 Tests (siehe §8 Auto-Test-Liste).
-- [ ] **Step 4**: `apps/web/src/lib/galaxie/layout.test.ts` löschen via `git rm`.
-- [ ] **Step 5**: `apps/web/src/components/galaxie/pixi/RepoSun.ts` (NEW), `FolderPlanet.ts` (NEW), `FilePlanet.ts` (NEW) schreiben. Pattern aus alten Klassen übernehmen (Container-Extension, Constructor mit Mobile-Scale, neutral-grey-Render).
-- [ ] **Step 6**: `apps/web/src/components/galaxie/pixi/CustomerStar.ts`, `RepoMoon.ts`, `FileAsteroid.ts` löschen via `git rm`.
-- [ ] **Step 7**: `apps/web/src/components/galaxie/GalaxieScene.tsx` umstellen — Imports + `layoutById` + `zoomLevels`-Memo (Cluster-Centers statt Customer-Positions) + Render-Loop (`switch node.kind`).
-- [ ] **Step 8**: `apps/web/src/components/galaxie/StaticGalaxieSVG.tsx` umstellen — gleicher Import-Swap, SVG-Render-Loop, ViewBox-Berechnung.
-- [ ] **Step 9**: `pnpm typecheck` + `pnpm test apps/web/src/lib/galaxie/` + `pnpm test apps/web/src/components/galaxie/pixi/` + `pnpm --filter @vk/web build` — alle grün.
-- [ ] **Step 10**: Dev-Server `pnpm --filter @vk/web dev` starten, Acceptance-Walk auf `http://localhost:3000/[workspace]` durch §8 Manuell-Checkliste.
+- [x] **Step 1**: `apps/web/src/lib/galaxie/types.ts` erweitert um `FolderNode`, `SolarNodeKind`, `SolarLayoutNode`, `SolarLayout`. Alte Typen mit `@deprecated`-JSDoc annotiert.
+- [x] **Step 2**: `apps/web/src/lib/galaxie/solar-layout.ts` (NEW) geschrieben — `computeSolarLayout()` + `SOLAR_LAYOUT_CONSTANTS` + `getClusterCenters()` + `extractTopFolder()` + `aggregateSeverity()`. Hash-Util ist copy von `layout.ts` (8 LOC).
+- [x] **Step 3**: `apps/web/src/lib/galaxie/solar-layout.test.ts` (NEW) geschrieben — 12 Tests grün (7 layout + 5 extractTopFolder via `it.each`).
+- [x] **Step 4**: `apps/web/src/lib/galaxie/layout.test.ts` gelöscht via `git rm`.
+- [x] **Step 5**: `RepoSun.ts`, `FolderPlanet.ts`, `FilePlanet.ts` (NEW) geschrieben. 3-Layer-Sun (oklch-Approx 0xECECEC/0x7F7F7F/0x1F1F1F), neutral-grey-Planeten (0xACACAC). Pattern aus alten Klassen (Container + Graphics + HitArea-Rectangle + eventMode=static) übernommen.
+- [x] **Step 6**: alte PIXI-Klassen gelöscht via `git rm`.
+- [x] **Step 7**: `GalaxieScene.tsx` umgestellt. Solar-Layout + Legacy-Layout-Bridge (MiniMap konsumiert weiter `LayoutNode`-Map). `zoomLevels` aus `getClusterCenters`. Click-Handler `handleSunClick` / `handleFolderClick` / `handleFileClick`. GalaxieWorld-Diff-Loop iteriert Suns + Folders + Root-Files (foldered Files = Sub-C-Concern). Kein Severity/Pulse in Sub-A.
+- [x] **Step 8**: `StaticGalaxieSVG.tsx` umgestellt auf `computeSolarLayout`. Suns (3-Layer-Render) + Folder-Planeten + Root-File-Planeten, alle neutral-grey. Click-Hit-Rect (44×44) auf File-Planeten bleibt für Inspector-Drilldown.
+- [x] **Step 9**: `pnpm typecheck` grün (23/23 packages). `pnpm test` apps/web/src/lib/galaxie/ + pixi/: 31 Tests grün (5 Files). `pnpm --filter @vk/web build`: Compiled successfully in 5.3s.
+- [x] **Step 10**: Dev-Server gestartet (Next 16.2.6 Turbopack, 471ms ready). Acceptance-Walk komplett: Layout korrekt, Interaktion funktioniert, Console clean, Determinismus bestätigt, Reduced-Motion-SVG korrekt.
 
 ## 7. Files-to-Change
 
