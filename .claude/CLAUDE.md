@@ -10,7 +10,8 @@ Solo-Developer-Projekt, deployed auf Vercel.
 
 Phase Nova-3a läuft in `docs/plans/nova-3-repo-polish-and-prod-prep.md` (basiert auf 12-Subagent-Audit unter `docs/audits/2026-05/`). Foundation-Cleanup + Landing-Hero-Polish + Stripe-Test-Mode-Verify. Tests-Critical-Paths + Workspace-Hub-Polish sind nach Nova-3b verschoben (eigener /plan-Cycle).
 
-**Recently Shipped (Mai 2026):**
+**Recently Shipped (Mai–Juni 2026):**
+- **Galaxie-Workspace-Solar** (✅ 2026-06-03) — Workspace-Audit-Galaxie komplett redesigned: Sonnensystem-pro-Repo + Asymm-Severity (nur Kill schreit) + Calm-by-Default + Datadog-Pivot + Mobile-List ≤639 px. Master + 3 Sub-Pläne in `docs/plans/done/galaxie-workspace-solar-redesign/`. Sub-A `03a53b9`, Sub-B `a1df899`, Sub-C `b8ebb04`. Landing-Hero V2 läuft mit gleicher SEVERITY_HEX-Palette mit (Cross-Impact-Re-Walk grün).
 - **SaaS-Pricing V2 Polish — Email + Pack-Modal** (✅ 2026-05-21) — 3 React-Email-Templates, BuyCreditPackModal, Stripe-Webhook-Erweiterung (`f159d2a`)
 - **SaaS-Pricing Sub-Plan-C — UI + Compliance** (✅ 2026-05-21) — /pricing rewritten, BYOK-Settings, Legal-Pages (`120e2ce`)
 - **SaaS-Pricing Sub-Plan-B — Stripe Meters + Credits + Webhooks** (✅ 2026-05-21) — Test-Mode-Bootstrap-Script, Meter-Idempotenz (`931e025`)
@@ -35,7 +36,7 @@ Letzter Repo-Audit: [docs/audits/2026-05/_synthesis.md](../docs/audits/2026-05/_
 |-------------|--------------------------------------------|
 | Monorepo    | Turborepo + pnpm                           |
 | Web         | Next.js 16 + App Router (Cache Components-Adoption ist Nova-3a-Goal — aktuell 0 `'use cache'`-Directives) |
-| Galaxie     | SVG + motion (Landing/Hero); PixiJS v8 + @pixi/react (legacy /[workspace], Nova-3+ Migration offen). KEIN R3F. |
+| Galaxie     | SVG + motion (Landing/Hero); PixiJS v8 + @pixi/react + GSAP (Workspace-Solar-Galaxie: Sonnensystem-pro-Repo + Hover-Reveal + Datadog-Pivot + Mobile-List). R3F bewusst verworfen. |
 | Auth        | Better-Auth 1.6 + Magic-Link (Resend); Workspaces über eigene `workspace`+`membership`-Tabellen (kein Org-Plugin) |
 | DB          | Neon Postgres + Drizzle (pgvector im Vision-Stack, aber NOCH NICHT installiert — V2 nach Embeddings-Roadmap) |
 | Cache       | Vercel Runtime Cache (Redis im docker-compose für Local-DEV, aber kein Client-Wiring im Code — Phase-0-Note bleibt) |

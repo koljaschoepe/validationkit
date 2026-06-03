@@ -4,6 +4,20 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Galaxie-Workspace-Solar (✅ 2026-06-03)
+
+Workspace-Audit-Galaxie komplett neu gedacht — Sonnensystem-pro-Repo statt freier Planeten-Wolke, asymmetrische Severity-Salienz (nur Kill schreit) statt 5-Hue-Bunt, Calm-by-Default mit Hover-Reveal, Datadog-Pivot statt Modal, Mobile-List statt PixiJS-on-Phone. Master + 3 Sub-Pläne in `docs/plans/done/galaxie-workspace-solar-redesign/`, basiert auf 12 User-Entscheidungen (4 Discovery-Runden), 12 Web-Research-Agents und Code-Audit von 9 Files.
+
+- **Master**: `docs/plans/done/galaxie-workspace-solar-redesign/galaxie-workspace-solar-redesign.md`
+- **Sub-A Layout-Foundation** (`03a53b9`, 2026-05-26): `solar-layout.ts` + `SolarLayoutNode` + `FolderNode` deterministisch hash-sortiert, Multi-Sonnen-Cluster pro Customer, neue PIXI-Klassen `RepoSun` + `FolderPlanet` + `FilePlanet` (alte `CustomerStar`/`RepoMoon`/`FileAsteroid` gelöscht). 12 neue Vitest-Tests. MiniMap-Bridge mit deprecated `layout.ts` läuft weiter.
+- **Sub-B Asymm-Severity + Pulse + Edge-Badges** (`a1df899`, 2026-05-26): `SEVERITY_HEX` Hard-Replace auf OKLCH-Asymm-Palette (Kill `#c64a3a` sat-Rot mit Bloom + 0.625 Hz Pulse; Weak `#cf8a4f` gedämpft Orange; Mid `#9aa3b3` neutral-Anker ohne Badge; Strong `#7eb8a4` Teal; Exceptional neutral + 1 px Indigo-Stroke; Dismissed `#4d4d4d` Alpha 0.35). Lucide-Edge-Badges (`OctagonX`/`AlertTriangle`/`MinusCircle`/`CheckCircle`/`Sparkles`) via `renderToStaticMarkup` → Blob-URL → DPR-2-Canvas → `PIXI.Texture.from` cached. Worst-Child-Aggregate-Badge auf Sun nur bei Kill. Landing-Hero V2 läuft mit gleicher Palette mit (Cross-Impact-Re-Walk pflichtig + grün).
+- **Sub-C Hover-Reveal + Datadog-Pivot + Mobile-List** (`b8ebb04`, 2026-06-03): `EdgeContainer` + `OrbitContainer` + `SelectedEdgeContainer` mit Container.alpha-Tween für Reveal-Layers. Hover-Scale auf 1.08 reduziert (statt Sub-B 1.5), `setHoverGlow(active)` auf allen 3 PIXI-Klassen. Datadog-Pivot via `inspectorTarget`-State → derived `selectedNodeId` → GSAP-Proxy-Dim-Tween schont Sub-B-Solution-Status-Alphas via `baseAlphas`-Cache. Inspector major-refactored auf `target`-Prop-Union (`FileInspector` + `FolderInspector` als Sub-Components, Click-Outside-Detection rAF-deferred). `SolarListView.tsx` für Mobile ≤639 px mit Severity-Filter-Chips + 44 pt Rows + Bottom-Sheet-Inspector. `StaticGalaxieSVG` zeigt Orbits + Edges permanent bei strokeOpacity 0.10.
+- **Tech-Stack-Verzicht**: PixiJS v8 + GSAP bleibt (R3F-Migration explizit verworfen, +150 kB Bundle-Tax disproportional zum Schmerz).
+- **Tests**: typecheck 23/23, vitest 36/36 (+17 neue: 12 solar-layout, 5 severity), next build ~6 s. Acceptance-Walks Desktop + Mobile-Emulation + Reduced-Motion + Landing-Regression alle grün.
+- **Discovery-Pattern-Validierung**: 4 Discovery-Runden im Master, je 1 in Sub-A/B/C; alle Recommended-Antworten außer QA4 (Test-Migration override) und QC1 (Major-Refactor von Inspector statt Hard-Replace = sparte 200+ LOC).
+- **Deferred / Out-of-Scope** (alle dokumentiert): rekursive Folder-Hierarchie + Visual-Sub-Sonnen-Pivot, MiniMap-Migration + Pivot-Indicator, Semantic-Zoom-Cutoffs (Mapbox-Style), Filter-Chips in Desktop-Toolbar, Saved-Views, UniversalSearch-Anpassung, Submodul-Drift-Edges, `@tanstack/react-virtual` bei >500 Files, R3F-Migration (Nova-3+).
+- **Folge-Cleanup-Item**: `apps/web/src/lib/galaxie/layout.ts` ist `@deprecated`-frozen für MiniMap-Bridge, kann mit MiniMap-Migration-Phase gelöscht werden.
+
 ## SaaS-Pricing V2 Polish-Pack — Email + Pack-Modal (✅ 2026-05-21)
 
 Polish-Pack auf Master SaaS-Pricing-Redesign. Schließt 3 von 4 Sub-C-Deferrals.
