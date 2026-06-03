@@ -20,12 +20,15 @@ import {
   getClusterCenters,
 } from '@/lib/galaxie/solar-layout';
 import type {
+  FileNode,
   FolderNode,
   GalaxieData,
+  InspectorTarget,
   LayoutNode,
   Severity,
   SolarLayoutNode,
 } from '@/lib/galaxie/types';
+import { extractTopFolder } from '@/lib/galaxie/solar-layout';
 import { getPulseDuration } from '@/lib/galaxie/severity-colors';
 import { isMobileViewport } from '@/lib/galaxie/device';
 import {
@@ -38,6 +41,8 @@ import { RepoSun } from './pixi/RepoSun';
 import { FolderPlanet } from './pixi/FolderPlanet';
 import { FilePlanet } from './pixi/FilePlanet';
 import { ensureBadgeTexturesReady } from './pixi/edge-badge-texture';
+import { EdgeContainer, SelectedEdgeContainer } from './pixi/edges';
+import { OrbitContainer } from './pixi/orbits';
 import { GalaxieTooltip, type TooltipState } from './Tooltip';
 import { ZoomIndicator } from './ZoomIndicator';
 import { MiniMap } from './MiniMap';
@@ -98,8 +103,10 @@ export default function GalaxieScene({
   // Sub-B — edge-badge textures rasterize asynchronously. Until ready, planet
   // sprites mount without badges; we re-render when the promise resolves.
   const [badgesReady, setBadgesReady] = useState(false);
-  const [inspectorFileId, setInspectorFileId] = useState<string | null>(
-    fileParam,
+  // Sub-C — Datadog pivot state. `inspectorTarget` drives both the side-panel
+  // and the dim-others tween (via `selectedNodeId` derived below).
+  const [inspectorTarget, setInspectorTarget] = useState<InspectorTarget | null>(
+    null,
   );
   const switcherWorkspaces = workspaces ?? MOCK_WORKSPACES;
   const [workspace, setWorkspace] = useState(
@@ -121,6 +128,13 @@ export default function GalaxieScene({
   // Mock-data always has customers, so the public demo skips this branch.
   const isEmptyRealWorkspace =
     initialData !== undefined && initialData.customers.length === 0;
+
+  const selectedNodeId =
+    inspectorTarget?.kind === 'file'
+      ? inspectorTarget.file.id
+      : inspectorTarget?.kind === 'folder'
+        ? inspectorTarget.folder.id
+        : null;
 
   // Sub-A — Solar-Layout (Sonnensystem-pro-Repo, Multi-Sonnen-Cluster pro Customer).
   // Drives GalaxieWorld rendering. See `docs/plans/galaxie-workspace-solar-A-layout.md`.
@@ -322,12 +336,12 @@ export default function GalaxieScene({
     [tweenTo],
   );
 
-  // Sprint G3 — click-handlers wired into GalaxieWorld via props.
-  const openInspector = useCallback(
-    (fileId: string) => {
-      setInspectorFileId(fileId);
+  // Sub-C — file-mode open: persist via ?file= URL param so reloads restore it.
+  const openFileInspector = useCallback(
+    (file: FileNode) => {
+      setInspectorTarget({ kind: 'file', file });
       const params = new URLSearchParams(searchParams?.toString() ?? '');
-      params.set('file', fileId);
+      params.set('file', file.id);
       // Cast: Next 16 typed-routes can't express dynamic query strings here.
       router.replace(
         `${pathname}?${params.toString()}` as never,
@@ -337,8 +351,22 @@ export default function GalaxieScene({
     [router, pathname, searchParams],
   );
 
+  // Sub-C — folder-mode open: ephemeral state, no URL sync (folder ids are
+  // synthetic `${repoId}::folder::${name}` which would clutter the URL).
+  const openFolderInspector = useCallback(
+    (folder: FolderNode) => {
+      const files = galaxieData.files.filter(
+        (f) =>
+          f.repoId === folder.repoId &&
+          extractTopFolder(f.path) === folder.name,
+      );
+      setInspectorTarget({ kind: 'folder', folder, files });
+    },
+    [galaxieData.files],
+  );
+
   const closeInspector = useCallback(() => {
-    setInspectorFileId(null);
+    setInspectorTarget(null);
     const params = new URLSearchParams(searchParams?.toString() ?? '');
     params.delete('file');
     const qs = params.toString();
@@ -347,13 +375,13 @@ export default function GalaxieScene({
     });
   }, [router, pathname, searchParams]);
 
-  // Sub-A — Sun-Click pans to the repo's sun; Folder-Click pans deeper; both
-  // are non-destructive layout-stage interactions. Sub-C will replace these
-  // with the Datadog-Pivot side-panel.
+  // Sub-C — Sun-Click is camera-only (no pivot, no dim, no panel). Folder/File
+  // open the Datadog pivot via setInspectorTarget; GalaxieWorld observes the
+  // resulting `selectedNodeId` and runs the dim-others tween + sticky edge.
   const handleSunClick = useCallback(
     (repoId: string) => {
       if (isStatic) return;
-      tweenToNode(repoId, 3.5);
+      tweenToNode(repoId, 1.7);
     },
     [tweenToNode, isStatic],
   );
@@ -361,17 +389,32 @@ export default function GalaxieScene({
   const handleFolderClick = useCallback(
     (folderId: string) => {
       if (isStatic) return;
-      tweenToNode(folderId, 4.5);
+      const folder = solarLayout.folders.find((f) => f.id === folderId);
+      if (!folder) return;
+      openFolderInspector(folder);
+      tweenToNode(folderId, 4);
     },
-    [tweenToNode, isStatic],
+    [tweenToNode, isStatic, solarLayout.folders, openFolderInspector],
   );
 
   const handleFileClick = useCallback(
     (fileId: string) => {
-      openInspector(fileId);
+      const file = galaxieData.files.find((f) => f.id === fileId);
+      if (!file) return;
+      openFileInspector(file);
       if (!isStatic) tweenToNode(fileId, 5);
     },
-    [openInspector, tweenToNode, isStatic],
+    [galaxieData.files, openFileInspector, tweenToNode, isStatic],
+  );
+
+  // Folder-Inspector row-click drills into a single file. We also re-pivot so
+  // the camera follows the selection — keeps the spatial mental model.
+  const handleSelectFileFromFolder = useCallback(
+    (file: FileNode) => {
+      openFileInspector(file);
+      if (!isStatic) tweenToNode(file.id, 5);
+    },
+    [openFileInspector, tweenToNode, isStatic],
   );
 
   // Auto-tour for the landing static-demo. After warm-up, cycle through
@@ -420,11 +463,11 @@ export default function GalaxieScene({
         await sleep(900);
         if (cancelled || tourPausedRef.current) return;
 
-        setInspectorFileId(file.id);
+        setInspectorTarget({ kind: 'file', file });
         await sleep(2200);
         if (cancelled || tourPausedRef.current) return;
 
-        setInspectorFileId(null);
+        setInspectorTarget(null);
         const overview = zoomLevels[0];
         if (overview) tweenTo(overview);
         await sleep(1500);
@@ -470,31 +513,34 @@ export default function GalaxieScene({
   const replayTour = useCallback(() => {
     tourPausedRef.current = false;
     tourActiveRef.current = false;
-    setInspectorFileId(null);
+    setInspectorTarget(null);
     setTourPaused(false);
   }, []);
 
-  // Deep-link: on first mount, if ?file=… is set, zoom to that file.
+  // Deep-link: on first mount, if ?file=… is set, open + zoom to that file.
   const deepLinkAppliedRef = useRef(false);
   useEffect(() => {
     if (deepLinkAppliedRef.current) return;
     if (!fileParam) return;
     if (!size) return;
-    if (!solarLayoutById.has(fileParam)) {
+    const file = galaxieData.files.find((f) => f.id === fileParam);
+    if (!file || !solarLayoutById.has(fileParam)) {
       // Unknown id — silently strip from URL.
       closeInspector();
       deepLinkAppliedRef.current = true;
       return;
     }
+    setInspectorTarget({ kind: 'file', file });
     tweenToNode(fileParam, 5);
     deepLinkAppliedRef.current = true;
-  }, [fileParam, size, solarLayoutById, tweenToNode, closeInspector]);
-
-  // The actual FileNode for the open inspector, looked up from data.
-  const inspectorFile = useMemo(() => {
-    if (!inspectorFileId) return null;
-    return galaxieData.files.find((f) => f.id === inspectorFileId) ?? null;
-  }, [inspectorFileId, galaxieData.files]);
+  }, [
+    fileParam,
+    size,
+    galaxieData.files,
+    solarLayoutById,
+    tweenToNode,
+    closeInspector,
+  ]);
 
   if (isEmptyRealWorkspace) {
     return <EmptyGalaxie workspaceSlug={workspace} />;
@@ -550,6 +596,7 @@ export default function GalaxieScene({
               folders={solarLayout.folders}
               layoutById={solarLayoutById}
               badgesReady={badgesReady}
+              selectedNodeId={selectedNodeId}
             />
           </Application>
 
@@ -575,14 +622,15 @@ export default function GalaxieScene({
             </>
           )}
 
-          {inspectorFile && (
+          {inspectorTarget && (
             <Inspector
-              file={inspectorFile}
+              target={inspectorTarget}
               onClose={closeInspector}
+              onSelectFile={handleSelectFileFromFolder}
               readOnly={readOnly}
             />
           )}
-          {tooltip && !inspectorFile && <GalaxieTooltip state={tooltip} />}
+          {tooltip && !inspectorTarget && <GalaxieTooltip state={tooltip} />}
           {enableAutoTour && tourPaused && (
             <button
               type="button"
@@ -621,6 +669,7 @@ function GalaxieWorld({
   folders,
   layoutById,
   badgesReady,
+  selectedNodeId,
 }: {
   worldRef: MutableRefObject<Container | null>;
   centerX: number;
@@ -634,6 +683,7 @@ function GalaxieWorld({
   folders: FolderNode[];
   layoutById: Map<string, SolarLayoutNode>;
   badgesReady: boolean;
+  selectedNodeId: string | null;
 }) {
   const localRef = useRef<Container | null>(null);
   // Stable sprite map for diff-updates (avoids destroy + rebuild on every
@@ -642,6 +692,14 @@ function GalaxieWorld({
   // GSAP context for hover + pulse tweens. Sub-B reintroduces the Kill pulse
   // (removed in Sub-A while everything was neutral-grey).
   const ctxRef = useRef<gsap.Context | null>(null);
+  // Sub-C — hover/select reveal layers. Each owns a single Graphics object so
+  // a single GSAP tween on its Container.alpha fades the whole layer at once
+  // (master plan §5.1, QC4). All four live as direct children of `worldRef`
+  // below the sprite layer so planets render above their edges + orbits.
+  const orbitContainerRef = useRef<OrbitContainer | null>(null);
+  const edgeContainerRef = useRef<EdgeContainer | null>(null);
+  const hoverEdgeRef = useRef<SelectedEdgeContainer | null>(null);
+  const selectedEdgeRef = useRef<SelectedEdgeContainer | null>(null);
 
   // Mount-effect (runs once per Container): ctx setup, event handlers, teardown.
   useEffect(() => {
@@ -653,6 +711,22 @@ function GalaxieWorld({
     ctxRef.current = ctx;
 
     world.eventMode = 'passive';
+
+    // Reveal layers — z-order back-to-front: orbits → edges → hover-edge →
+    // selected-edge. Sprites are addChild'd onto `world` later by the diff
+    // effect, so they render above all reveal layers.
+    const orbits = new OrbitContainer();
+    const edges = new EdgeContainer();
+    const hoverEdge = new SelectedEdgeContainer();
+    const selectedEdge = new SelectedEdgeContainer();
+    world.addChild(orbits);
+    world.addChild(edges);
+    world.addChild(hoverEdge);
+    world.addChild(selectedEdge);
+    orbitContainerRef.current = orbits;
+    edgeContainerRef.current = edges;
+    hoverEdgeRef.current = hoverEdge;
+    selectedEdgeRef.current = selectedEdge;
 
     const reducedMotion =
       typeof window !== 'undefined' &&
@@ -678,34 +752,90 @@ function GalaxieWorld({
 
     const onOver = (e: FederatedPointerEvent) => {
       const target = e.target;
-      if (
-        target instanceof FilePlanet ||
-        target instanceof FolderPlanet ||
-        target instanceof RepoSun
-      ) {
+      const orbits = orbitContainerRef.current;
+      const edges = edgeContainerRef.current;
+      const hoverEdge = hoverEdgeRef.current;
+
+      if (target instanceof RepoSun) {
+        target.setHoverGlow(true);
+        if (orbits) {
+          gsap.killTweensOf(orbits);
+          ctx.add(() => {
+            gsap.to(orbits, { alpha: 0.18, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+        if (edges) {
+          gsap.killTweensOf(edges);
+          ctx.add(() => {
+            gsap.to(edges, { alpha: 0.15, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+        return;
+      }
+
+      if (target instanceof FilePlanet || target instanceof FolderPlanet) {
+        target.setHoverGlow(true);
         gsap.killTweensOf(target.scale);
         ctx.add(() => {
           gsap.to(target.scale, {
-            x: 1.5,
-            y: 1.5,
+            x: 1.08,
+            y: 1.08,
             duration: 0.2,
             ease: 'power2.out',
           });
         });
-      }
-      if (target instanceof FilePlanet) {
+
+        // Single hover edge from the planet to its sun (Master §5.4 alpha 0.25).
+        const parentSunId =
+          target instanceof FilePlanet
+            ? target.file.repoId
+            : target.folder.repoId;
+        const sunSprite = spritesRef.current.get(parentSunId);
+        if (hoverEdge && sunSprite) {
+          hoverEdge.drawSegment(
+            { x: sunSprite.x, y: sunSprite.y },
+            { x: target.x, y: target.y },
+          );
+          gsap.killTweensOf(hoverEdge);
+          ctx.add(() => {
+            gsap.to(hoverEdge, { alpha: 0.25, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+
         const global = target.getGlobalPosition();
-        onHover({ x: global.x, y: global.y, file: target.file });
+        const tooltipTarget =
+          target instanceof FilePlanet
+            ? ({ kind: 'file' as const, file: target.file })
+            : ({ kind: 'folder' as const, folder: target.folder });
+        onHover({ x: global.x, y: global.y, target: tooltipTarget });
       }
     };
 
     const onOut = (e: FederatedPointerEvent) => {
       const target = e.target;
-      if (
-        target instanceof FilePlanet ||
-        target instanceof FolderPlanet ||
-        target instanceof RepoSun
-      ) {
+      const orbits = orbitContainerRef.current;
+      const edges = edgeContainerRef.current;
+      const hoverEdge = hoverEdgeRef.current;
+
+      if (target instanceof RepoSun) {
+        target.setHoverGlow(false);
+        if (orbits) {
+          gsap.killTweensOf(orbits);
+          ctx.add(() => {
+            gsap.to(orbits, { alpha: 0, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+        if (edges) {
+          gsap.killTweensOf(edges);
+          ctx.add(() => {
+            gsap.to(edges, { alpha: 0, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+        return;
+      }
+
+      if (target instanceof FilePlanet || target instanceof FolderPlanet) {
+        target.setHoverGlow(false);
         gsap.killTweensOf(target.scale);
         const sev = severityOf(target);
         ctx.add(() => {
@@ -717,8 +847,20 @@ function GalaxieWorld({
             onComplete: () => startPulse(target, sev),
           });
         });
+
+        if (hoverEdge) {
+          gsap.killTweensOf(hoverEdge);
+          ctx.add(() => {
+            gsap.to(hoverEdge, {
+              alpha: 0,
+              duration: 0.2,
+              ease: 'power2.out',
+              onComplete: () => hoverEdge.clearSegment(),
+            });
+          });
+        }
+        onHover(null);
       }
-      if (target instanceof FilePlanet) onHover(null);
     };
 
     const onTap = (e: FederatedPointerEvent) => {
@@ -753,6 +895,14 @@ function GalaxieWorld({
         sprite.destroy({ children: true });
       }
       spritesRef.current.clear();
+      for (const layer of [orbits, edges, hoverEdge, selectedEdge]) {
+        world.removeChild(layer);
+        layer.destroy({ children: true });
+      }
+      orbitContainerRef.current = null;
+      edgeContainerRef.current = null;
+      hoverEdgeRef.current = null;
+      selectedEdgeRef.current = null;
       worldRef.current = null;
     };
   }, [worldRef, onHover, onSunClick, onFolderClick, onFileClick]);
@@ -849,6 +999,15 @@ function GalaxieWorld({
         sprites.delete(id);
       }
     }
+
+    // Redraw the reveal layers from the same layout snapshot.
+    const sunNodes = [...layoutById.values()].filter((n) => n.kind === 'sun');
+    const childNodes = [...layoutById.values()].filter((n) => n.kind !== 'sun');
+    const sunPositions = new Map<string, { x: number; y: number }>(
+      sunNodes.map((s) => [s.id, { x: s.x, y: s.y }]),
+    );
+    orbitContainerRef.current?.redraw(sunNodes);
+    edgeContainerRef.current?.redraw(sunPositions, childNodes);
   }, [data, folders, layoutById]);
 
   // Badge-cache becomes ready after async rasterization. Refresh every mounted
@@ -861,6 +1020,98 @@ function GalaxieWorld({
       else if (sprite instanceof FilePlanet) sprite.refreshBadgeFromTextureCache();
     }
   }, [badgesReady]);
+
+  // Sub-C — Datadog pivot dim tween. When `selectedNodeId` changes, fade every
+  // non-selected sprite toward 0.15 of its current alpha (preserving Sub-B's
+  // solution-status / dismiss alpha as the baseline). On close, restore. The
+  // sticky edge from selected → its sun is drawn into `selectedEdgeRef` and
+  // tweened to alpha 0.30 so it survives the dim cascade.
+  const baseAlphasRef = useRef<Map<string, number>>(new Map());
+  const dimProxyRef = useRef({ value: 1 });
+  useEffect(() => {
+    const ctx = ctxRef.current;
+    const selectedEdge = selectedEdgeRef.current;
+    if (!ctx) return;
+
+    const applyDim = () => {
+      const v = dimProxyRef.current.value;
+      for (const [id, sprite] of spritesRef.current) {
+        const base = baseAlphasRef.current.get(id) ?? 1;
+        sprite.alpha = id === selectedNodeId ? base : base * (0.15 + (1 - 0.15) * v);
+      }
+    };
+
+    if (selectedNodeId) {
+      // Cache current alphas as the dim baseline (before any tween changes).
+      baseAlphasRef.current.clear();
+      for (const [id, sprite] of spritesRef.current) {
+        baseAlphasRef.current.set(id, sprite.alpha);
+      }
+      gsap.killTweensOf(dimProxyRef.current);
+      dimProxyRef.current.value = 1;
+      ctx.add(() => {
+        gsap.to(dimProxyRef.current, {
+          value: 0,
+          duration: 0.2,
+          ease: 'power2.out',
+          onUpdate: applyDim,
+        });
+      });
+
+      // Sticky selected-edge from the selected sprite to its parent sun.
+      const selectedSprite = spritesRef.current.get(selectedNodeId);
+      const selectedNode = layoutById.get(selectedNodeId);
+      const parentSunId =
+        selectedNode?.kind === 'sun' ? null : selectedNode?.parentSunId;
+      const sunSprite = parentSunId
+        ? spritesRef.current.get(parentSunId)
+        : null;
+      if (selectedEdge && selectedSprite && sunSprite) {
+        selectedEdge.drawSegment(
+          { x: sunSprite.x, y: sunSprite.y },
+          { x: selectedSprite.x, y: selectedSprite.y },
+        );
+        gsap.killTweensOf(selectedEdge);
+        ctx.add(() => {
+          gsap.to(selectedEdge, {
+            alpha: 0.3,
+            duration: 0.2,
+            ease: 'power2.out',
+          });
+        });
+      }
+    } else {
+      // Pivot close — restore + clear edge.
+      gsap.killTweensOf(dimProxyRef.current);
+      ctx.add(() => {
+        gsap.to(dimProxyRef.current, {
+          value: 1,
+          duration: 0.2,
+          ease: 'power2.out',
+          onUpdate: applyDim,
+          onComplete: () => {
+            // Lock alphas to base; clear cache for the next pivot.
+            for (const [id, sprite] of spritesRef.current) {
+              const base = baseAlphasRef.current.get(id) ?? sprite.alpha;
+              sprite.alpha = base;
+            }
+            baseAlphasRef.current.clear();
+          },
+        });
+      });
+      if (selectedEdge) {
+        gsap.killTweensOf(selectedEdge);
+        ctx.add(() => {
+          gsap.to(selectedEdge, {
+            alpha: 0,
+            duration: 0.2,
+            ease: 'power2.out',
+            onComplete: () => selectedEdge.clearSegment(),
+          });
+        });
+      }
+    }
+  }, [selectedNodeId, layoutById]);
 
   useEffect(() => {
     if (localRef.current) camera.applyTo(localRef.current, centerX, centerY);

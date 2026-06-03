@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
@@ -15,7 +15,13 @@ import gsap from 'gsap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SeverityBadge } from '@/components/ui/severity-badge';
 import { cn } from '@/lib/utils';
-import type { FileNode } from '@/lib/galaxie/types';
+import type {
+  FileNode,
+  FolderNode,
+  InspectorTarget,
+  Severity,
+} from '@/lib/galaxie/types';
+import { SEVERITY_BANDS } from '@/lib/galaxie/types';
 import { whyImportantFor } from './inspector-templates';
 import { AISolutionPlaceholder } from './AISolutionPlaceholder';
 
@@ -34,26 +40,26 @@ const SNOOZE_OPTIONS: Array<{ key: '24h' | '7d' | 'forever'; label: string }> = 
 ];
 
 export function Inspector({
-  file,
+  target,
   onClose,
+  onSelectFile,
   readOnly = false,
 }: {
-  file: FileNode;
+  target: InspectorTarget;
   onClose: () => void;
-  /** When true, hides dismiss/snooze + replaces AI-solution apply with a sign-in CTA. */
+  /** Sub-C — clicking a finding-row inside the folder panel asks the parent to
+   *  reopen the inspector in file-mode (so the parent can also re-pivot the
+   *  camera). Optional: file-mode inspectors don't fire this. */
+  onSelectFile?: (file: FileNode) => void;
+  /** When true, hides dismiss/snooze + replaces AI-solution apply with sign-in CTA. */
   readOnly?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [dismissOpen, setDismissOpen] = useState(false);
-  const [snoozeOpen, setSnoozeOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [actionError, setActionError] = useState<string | null>(null);
 
+  // Slide-in tween — desktop from the right, mobile from below. Gsap context
+  // is scoped to the ref so the tween dies cleanly if we unmount mid-slide.
   useEffect(() => {
     if (!panelRef.current) return;
-    // Desktop slides in from the right, mobile from the bottom — both 300ms.
-    // Sprint 2 — scope the tween to a gsap.context so it gets killed on
-    // unmount instead of running against a detached DOM node.
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     const ctx = gsap.context(() => {
       if (!panelRef.current) return;
@@ -68,6 +74,8 @@ export function Inspector({
     return () => ctx.revert();
   }, []);
 
+  // ESC closes the panel (any focus). Pivot is owned by the parent, which
+  // also wires its own ESC for non-inspector flows (UniversalSearch).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -75,6 +83,78 @@ export function Inspector({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // Click-outside detection. Deferred by one frame so the click that opens
+  // the panel can't immediately close it via the same event tick.
+  useEffect(() => {
+    let armed = false;
+    const raf = requestAnimationFrame(() => {
+      armed = true;
+    });
+    const onDoc = (e: MouseEvent) => {
+      if (!armed) return;
+      if (!panelRef.current) return;
+      if (panelRef.current.contains(e.target as Node)) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('mousedown', onDoc);
+    };
+  }, [onClose]);
+
+  if (typeof document === 'undefined') return null;
+
+  const panelLabel =
+    target.kind === 'file'
+      ? `Finding inspector — ${target.file.path}`
+      : `Folder inspector — ${target.folder.name}`;
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={panelLabel}
+      className={cn(
+        'pointer-events-auto fixed z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
+        // Mobile: bottom sheet
+        'inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t',
+        // Desktop: right sidebar
+        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[380px] sm:rounded-none sm:border-l sm:border-t-0',
+      )}
+    >
+      {target.kind === 'file' ? (
+        <FileInspector file={target.file} onClose={onClose} readOnly={readOnly} />
+      ) : (
+        <FolderInspector
+          folder={target.folder}
+          files={target.files}
+          onClose={onClose}
+          onSelectFile={onSelectFile}
+        />
+      )}
+    </div>,
+    document.body,
+  );
+}
+
+// ── File inspector (existing inspector experience, lifted into a sub-component) ──
+
+function FileInspector({
+  file,
+  onClose,
+  readOnly,
+}: {
+  file: FileNode;
+  onClose: () => void;
+  readOnly: boolean;
+}) {
+  const [dismissOpen, setDismissOpen] = useState(false);
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const isDismissed = file.dismissStatus === 'dismissed';
   const isSnoozed = file.dismissStatus === 'snoozed';
@@ -114,25 +194,8 @@ export function Inspector({
     });
   }
 
-  // Portal out of the galaxy container so `overflow-hidden` on a 60vh hero
-  // (Landing) does not clip the inspector. `position: fixed` makes the panel
-  // viewport-relative.
-  if (typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Finding inspector — ${file.path}`}
-      className={cn(
-        'pointer-events-auto fixed z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
-        // Mobile: bottom sheet
-        'inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t',
-        // Desktop: right sidebar
-        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[380px] sm:rounded-none sm:border-l sm:border-t-0',
-      )}
-    >
+  return (
+    <>
       <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -149,16 +212,14 @@ export function Inspector({
                 open={dismissOpen}
                 onOpenChange={setDismissOpen}
                 trigger={
-                  <button
-                    type="button"
-                    disabled={pending || isDismissed}
-                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-                    title="Dismiss"
+                  <span
+                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                    aria-disabled={pending || isDismissed}
                   >
                     <EyeOffIcon className="size-3" />
                     Dismiss
                     <ChevronDownIcon className="size-2.5" />
-                  </button>
+                  </span>
                 }
               >
                 {DISMISS_OPTIONS.map((o) => (
@@ -176,16 +237,14 @@ export function Inspector({
                 open={snoozeOpen}
                 onOpenChange={setSnoozeOpen}
                 trigger={
-                  <button
-                    type="button"
-                    disabled={pending || isSnoozed}
-                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-                    title="Snooze"
+                  <span
+                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                    aria-disabled={pending || isSnoozed}
                   >
                     <BellIcon className="size-3" />
                     Snooze
                     <ChevronDownIcon className="size-2.5" />
-                  </button>
+                  </span>
                 }
               >
                 {SNOOZE_OPTIONS.map((o) => (
@@ -294,10 +353,130 @@ export function Inspector({
           )}
         </div>
       </Tabs>
-    </div>,
-    document.body,
+    </>
   );
 }
+
+// ── Folder inspector (Sub-C) ─────────────────────────────────────────────────
+
+function FolderInspector({
+  folder,
+  files,
+  onClose,
+  onSelectFile,
+}: {
+  folder: FolderNode;
+  files: FileNode[];
+  onClose: () => void;
+  onSelectFile?: (file: FileNode) => void;
+}) {
+  const [filterChips, setFilterChips] = useState<Set<Severity>>(
+    () => new Set(SEVERITY_BANDS),
+  );
+
+  const breakdown = useMemo(() => {
+    const counts: Record<Severity, number> = {
+      Kill: 0, Weak: 0, Mid: 0, Strong: 0, Exceptional: 0,
+    };
+    for (const f of files) counts[f.severity] += 1;
+    return counts;
+  }, [files]);
+
+  const sortedFiles = useMemo(() => {
+    const rank: Record<Severity, number> = {
+      Kill: 0, Weak: 1, Mid: 2, Strong: 3, Exceptional: 4,
+    };
+    return [...files]
+      .filter((f) => filterChips.has(f.severity))
+      .sort((a, b) => rank[a.severity] - rank[b.severity]);
+  }, [files, filterChips]);
+
+  function toggleChip(sev: Severity) {
+    setFilterChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(sev)) next.delete(sev);
+      else next.add(sev);
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <SeverityBadge severity={folder.aggregateSeverity} />
+            <span className="truncate font-mono text-xs text-white/60">
+              {folder.name}/
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-white/40">
+            {folder.fileCount} {folder.fileCount === 1 ? 'finding' : 'findings'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close inspector (Esc)"
+          className="rounded p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
+        >
+          <XIcon className="size-4" />
+        </button>
+      </header>
+
+      <div className="flex flex-wrap gap-1.5 border-b border-white/10 px-4 py-3">
+        {SEVERITY_BANDS.map((sev) => {
+          const count = breakdown[sev];
+          if (count === 0) return null;
+          const active = filterChips.has(sev);
+          return (
+            <button
+              key={sev}
+              type="button"
+              onClick={() => toggleChip(sev)}
+              aria-pressed={active}
+              className={cn(
+                'rounded px-2 py-0.5 type-mono-sm transition',
+                active
+                  ? 'bg-white/10 text-white'
+                  : 'bg-white/5 text-white/40 line-through',
+              )}
+            >
+              {count} {sev}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {sortedFiles.length === 0 ? (
+          <p className="px-4 py-6 text-center text-xs text-white/40">
+            No findings match the active filters.
+          </p>
+        ) : (
+          <ul className="divide-y divide-white/5">
+            {sortedFiles.map((f) => (
+              <li key={f.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelectFile?.(f)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-white/5"
+                >
+                  <SeverityBadge severity={f.severity} />
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-white/85">
+                    {f.path}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Shared helpers ──────────────────────────────────────────────────────────
 
 function inferCategory(path: string): string {
   const lower = path.toLowerCase();

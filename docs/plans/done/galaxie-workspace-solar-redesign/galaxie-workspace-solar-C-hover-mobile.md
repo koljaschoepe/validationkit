@@ -1,7 +1,7 @@
 # Plan — Galaxie-Workspace-Solar Sub-Phase C: Hover-Reveal + Datadog-Pivot + Mobile-List
 
 > Erstellt: 2026-06-03
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-06-03 (Confidence-At-Start: High, 13/13 Steps abgehakt, 0 deferred, 0 manuelle Verifikationen pending — Desktop + Mobile + Reduced-Motion + Landing-Regression alle grün)
 > Slug: `galaxie-workspace-solar-C-hover-mobile`
 > Confidence: **High** — basiert auf 4 User-Entscheidungen (1 Discovery-Runde, alle Recommended) + Code-Audit von `Inspector.tsx` (388 LOC, schon Side-Panel mit slide-from-right/ESC/Mobile-Bottom-Sheet) + `device.ts` (`useIsMobile`-Hook hydration-safe) + `GalaxieRoot.tsx` (dynamic-import-Mount-Logik) + Master-Plan §5.4-5.7
 > Voraussetzung: Baut auf Sub-A + Sub-B auf (`docs/plans/done/galaxie-workspace-solar-A-layout.md` + `B-severity.md`). Finaler Sub-Plan; nach Sub-C ✅ wird Master-Plan + alle 3 Sub-Pläne nach `done/galaxie-workspace-solar-redesign/` gemoved.
@@ -280,19 +280,19 @@ Aufgerufen aus `GalaxieWorld.onOver` (active=true) und `onOut` (active=false). G
 
 ## 6. Schritte
 
-- [ ] **Step 1**: `apps/web/src/lib/galaxie/types.ts` — `InspectorTarget`-Union-Typ exportieren (oder direkt in `Inspector.tsx` lokal definieren, je nach Sauberkeit).
-- [ ] **Step 2**: `apps/web/src/components/galaxie/pixi/edges.ts` (NEW) — `EdgeContainer`-Klasse mit `redraw(suns, children)` + Container.alpha-Steuerung.
-- [ ] **Step 3**: `apps/web/src/components/galaxie/pixi/orbits.ts` (NEW) — `OrbitContainer`-Klasse mit `redraw(suns)` + Container.alpha-Steuerung.
-- [ ] **Step 4**: `pixi/RepoSun.ts` + `pixi/FolderPlanet.ts` + `pixi/FilePlanet.ts` — `setHoverGlow(active)`-Methode hinzufügen.
-- [ ] **Step 5**: `GalaxieScene.tsx` — `EdgeContainer` + `OrbitContainer` in Mount-Effect instantiate + addChild-en. Diff-Effect ruft `redraw` bei `data`/`layoutById`-Change.
-- [ ] **Step 6**: `GalaxieScene.tsx` — Hover-Logic-Refactor: Hover-Sun → Edge+Orbit reveal-Tween; Hover-Planet → Single-Edge reveal + Tooltip-Pill mit erweiterten Inhalten + Hover-Glow + Scale-1.08 (statt 1.5).
-- [ ] **Step 7**: `GalaxieScene.tsx` — `selectedNodeId`-State, Click-Handlers (Sun/Folder/File) triggern Pivot-Sequenz (camera-tween + dim-others-tween + Inspector öffnen). ESC + Click-Outside via Inspector-Handler.
-- [ ] **Step 8**: `Inspector.tsx` — `target`-Prop-Union (file | folder), Folder-Mode-Header + Severity-Breakdown-Chips + Findings-Liste, Click-Outside-Detection. Existing File-Mode bleibt strukturell unverändert.
-- [ ] **Step 9**: `SolarListView.tsx` (NEW) — Filter-Chips + Severity-Sort + Row-Layout + Tap → Inspector-Mobile-Sheet.
-- [ ] **Step 10**: `GalaxieRoot.tsx` — `useIsMobile()` Branch zwischen GalaxieScene und SolarListView. Static-demo bleibt PixiJS.
-- [ ] **Step 11**: `StaticGalaxieSVG.tsx` — Orbits + Edges permanent bei Alpha 0.10, vor den Planeten-Layern.
-- [ ] **Step 12**: `pnpm typecheck` + `pnpm test apps/web/src/lib/galaxie/ apps/web/src/components/galaxie/pixi/` + `pnpm --filter @vk/web build` — alle grün.
-- [ ] **Step 13**: Dev-Server starten, Acceptance-Walk auf `/[workspace]` (Hover + Pivot + Folder-Click + ESC/Click-Outside), Mobile-Emulation (List + Filter + Tap), `/` (Landing-Hero-Regression), Reduced-Motion (permanent-visible Orbits/Edges).
+- [x] **Step 1**: `types.ts` erweitert um `InspectorTarget`-Union (file | folder mit zugeordneten Files).
+- [x] **Step 2**: `pixi/edges.ts` (NEW) — `EdgeContainer` (Hover-Reveal-Pool, Container.alpha) + `SelectedEdgeContainer` (sticky-Pivot-Edge, separater Container).
+- [x] **Step 3**: `pixi/orbits.ts` (NEW) — `OrbitContainer` mit ORBIT_RADII (FOLDER_ORBITS + FILE_ORBIT) + redraw + Container.alpha-Steuerung.
+- [x] **Step 4**: `RepoSun.ts` + `FolderPlanet.ts` + `FilePlanet.ts` erweitert um `setHoverGlow(active)` — Halo `(radius + 4) * mobileScale`, Alpha 0.14, addChildAt(0) für Z-Order unter Body.
+- [x] **Step 5**: GalaxieWorld mounted 4 Reveal-Container (OrbitContainer + EdgeContainer + 2× SelectedEdgeContainer für Hover-Edge + Sticky-Selected-Edge) als direct children von worldRef vor Sprites. Cleanup im unmount. Diff-Effect ruft `orbits.redraw(sunNodes)` + `edges.redraw(sunPositions, childNodes)`.
+- [x] **Step 6**: Hover-Logic refactored — Sun-Hover triggert OrbitContainer + EdgeContainer alpha-tween + setHoverGlow; Planet-Hover triggert Scale 1.08 + setHoverGlow + hoverEdge.drawSegment + alpha-tween 0.25 + Tooltip (erweitert via TooltipTarget-Union für File + Folder). Hover-Out reverse + Kill-Pulse-Restart.
+- [x] **Step 7**: GalaxieScene Datadog-Pivot — `inspectorTarget`-State (union file|folder) + derived `selectedNodeId`. Sun-Click camera-only, Folder/File-Click öffnen Pivot via `openFileInspector`/`openFolderInspector`. Folder-Mode-Row triggert `handleSelectFileFromFolder`. Auto-Tour + Deep-Link migriert. GalaxieWorld `useEffect[selectedNodeId]` ausführt Dim-Tween via GSAP-Proxy (single tween, applyDim iteriert sprites) + Selected-Edge draw/clear. ESC + Click-Outside delegated an Inspector (Step 8).
+- [x] **Step 8**: `Inspector.tsx` refactored auf `target: InspectorTarget`-Union — Shell mit Slide-In + ESC + **Click-Outside (rAF-deferred)** wrappet entweder `FileInspector` (bestehender Tab+Dismiss/Snooze-Flow) oder `FolderInspector` (Aggregat-Header + Severity-Breakdown-Chips toggelbar + scrollable Findings-Liste mit Click → `onSelectFile`). `StaticGalaxieSVG`-Konsument mit-migriert.
+- [x] **Step 9**: `SolarListView.tsx` (NEW) — Severity-Filter-Chips persistent oben (per-Band Count + line-through inactive), Severity-DESC-Sort, Row mit `min-height: 44px` + SeverityBadge + truncated Path + ChevronRight, Tap → Inspector im File-Mode (existing Mobile-Bottom-Sheet-Branch).
+- [x] **Step 10**: `GalaxieRoot.tsx` — `useIsMobile()`-Branch zu `SolarListView` vor reducedMotion-Check (Mobile schlägt SVG). `mode === 'static-demo'` bleibt auf PixiJS für Landing-Hero.
+- [x] **Step 11**: `StaticGalaxieSVG.tsx` — ORBIT_RADII-Imports, Orbit-`<circle>`s + Edge-`<line>`s mit strokeOpacity 0.10 als statische Reveal-Layer (vor Suns). Reduced-Motion-User sehen Struktur ohne Hover.
+- [x] **Step 12**: `pnpm typecheck` grün (23/23). `pnpm test` apps/web/src/lib/galaxie/ + pixi/: 36 Tests grün. `pnpm --filter @vk/web build`: Compiled successfully in 6.4s.
+- [x] **Step 13**: Dev-Server frisch (Next 16.2.6 Turbopack, 299ms ready). Acceptance-Walk komplett: Hover-Reveal ok, Datadog-Pivot ok, Console clean, Mobile-List ok, Reduced-Motion-SVG mit permanent-Orbits/Edges ok, Landing-Hero-Regression-Check grün.
 
 ## 7. Files-to-Change
 

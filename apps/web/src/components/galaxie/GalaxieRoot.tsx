@@ -6,7 +6,9 @@ import type { MockWorkspace } from '@/lib/galaxie/mock-workspaces';
 import type { OnboardingState } from './OnboardingBanner';
 import { GalaxieSkeleton } from './GalaxieSkeleton';
 import { StaticGalaxieSVG } from './StaticGalaxieSVG';
+import { SolarListView } from './SolarListView';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
+import { useIsMobile } from '@/lib/galaxie/device';
 
 // Pixi touches `window` at module-eval time → bypass SSR strictly via dynamic + ssr:false.
 // This wrapper MUST stay client-side; never import GalaxieScene directly from a server component.
@@ -57,11 +59,23 @@ export interface GalaxieRootProps {
 }
 
 export default function GalaxieRoot(props: GalaxieRootProps) {
-  // Sprint 3 — `prefers-reduced-motion: reduce` users skip the PixiJS bundle
-  // entirely and get a flat SVG instead. Same Inspector flow, no pan/zoom,
-  // no animation. Initial-render is the PixiJS path (server-safe default),
-  // the client corrects after hydration if the OS setting is on.
+  // Sub-C — mobile (≤639 px, Tailwind `sm`) gets the SolarListView instead of
+  // PixiJS. The static-demo mode (landing) stays on PixiJS so the marketing
+  // page keeps its galaxy hero on phones. Both checks run before reduced-motion
+  // so a mobile reduced-motion user still gets the list (rather than an SVG
+  // galaxy on a phone screen).
+  const isMobile = useIsMobile();
   const reducedMotion = useReducedMotion();
+
+  if (props.mode !== 'static-demo' && isMobile) {
+    return (
+      <SolarListView
+        initialData={props.initialData}
+        readOnly={props.readOnly}
+        workspaceSlug={props.initialWorkspaceSlug}
+      />
+    );
+  }
   if (reducedMotion) {
     return (
       <StaticGalaxieSVG

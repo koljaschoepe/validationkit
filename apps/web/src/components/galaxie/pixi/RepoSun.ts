@@ -20,6 +20,8 @@ export class RepoSun extends Container {
   private mobileScale: number;
   private aggregateBadge: Container | null = null;
 
+  private hoverGlow: Graphics | null = null;
+
   constructor(repo: Repo, node: SolarLayoutNode, mobileScale = 1) {
     super();
     this.repo = repo;
@@ -50,6 +52,19 @@ export class RepoSun extends Container {
 
   refreshBadgeFromTextureCache(): void {
     this.updateAggregateBadge(this.repo.aggregateSeverity);
+  }
+
+  setHoverGlow(active: boolean): void {
+    if (active && !this.hoverGlow) {
+      const r = (SUN_RADIUS + 4) * this.mobileScale;
+      this.hoverGlow = new Graphics();
+      this.hoverGlow.circle(0, 0, r).fill({ color: 0xffffff, alpha: 0.14 });
+      this.addChildAt(this.hoverGlow, 0);
+    } else if (!active && this.hoverGlow) {
+      this.removeChild(this.hoverGlow);
+      this.hoverGlow.destroy();
+      this.hoverGlow = null;
+    }
   }
 
   private paint(): void {

@@ -114,3 +114,12 @@ export interface SolarLayout {
   nodes: SolarLayoutNode[];
   folders: FolderNode[];
 }
+
+/**
+ * Inspector target — Sub-C introduces a folder-mode side-panel in addition to
+ * the existing file-mode. The union keeps both render paths in a single
+ * component without an inheritance hierarchy.
+ */
+export type InspectorTarget =
+  | { kind: 'file'; file: FileNode }
+  | { kind: 'folder'; folder: FolderNode; files: FileNode[] };

@@ -5,6 +5,9 @@ import {
   computeSolarLayout,
   SOLAR_LAYOUT_CONSTANTS,
 } from "@/lib/galaxie/solar-layout";
+
+const { FOLDER_ORBITS, FILE_ORBIT } = SOLAR_LAYOUT_CONSTANTS;
+const ORBIT_RADII = [...FOLDER_ORBITS, FILE_ORBIT] as const;
 import { generateMockGalaxieData } from "@/lib/galaxie/mock-data";
 import {
   DISMISSED_ALPHA,
@@ -124,6 +127,40 @@ export function StaticGalaxieSVG({
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
       >
+        {/* Sub-C — orbits + edges permanently visible at alpha 0.10. Reduced-
+            motion users get a static frame of what the PixiJS reveal-on-hover
+            layer shows, so the structure stays legible without animation. */}
+        <g aria-hidden="true" stroke="#ffffff" strokeWidth={0.5} fill="none">
+          {suns.map((sun) =>
+            ORBIT_RADII.map((r) => (
+              <circle
+                key={`${sun.id}-orbit-${r}`}
+                cx={sun.x}
+                cy={sun.y}
+                r={r}
+                strokeOpacity={0.1}
+              />
+            )),
+          )}
+        </g>
+        <g aria-hidden="true" stroke="#ffffff" strokeWidth={0.5}>
+          {[...folderPlanets, ...filePlanets].map((child) => {
+            if (!child.parentSunId) return null;
+            const sun = suns.find((s) => s.id === child.parentSunId);
+            if (!sun) return null;
+            return (
+              <line
+                key={`${child.id}-edge`}
+                x1={sun.x}
+                y1={sun.y}
+                x2={child.x}
+                y2={child.y}
+                strokeOpacity={0.1}
+              />
+            );
+          })}
+        </g>
+
         {/* Layer 1 — Repo suns + worst-child aggregate badge (Kill only) */}
         <g aria-hidden="true">
           {suns.map((sun) => {
@@ -209,7 +246,7 @@ export function StaticGalaxieSVG({
 
       {selectedFile ? (
         <Inspector
-          file={selectedFile}
+          target={{ kind: 'file', file: selectedFile }}
           onClose={() => setSelectedFileId(null)}
           readOnly={readOnly}
         />

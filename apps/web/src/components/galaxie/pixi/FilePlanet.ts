@@ -21,6 +21,7 @@ export class FilePlanet extends Container {
   private graphics: Graphics;
   private mobileScale: number;
   private badge: Container | null = null;
+  private hoverGlow: Graphics | null = null;
 
   constructor(file: FileNode, node: SolarLayoutNode, mobileScale = 1) {
     super();
@@ -58,6 +59,19 @@ export class FilePlanet extends Container {
   /** Re-render the badge after the texture cache becomes ready. */
   refreshBadgeFromTextureCache(): void {
     this.updateBadge(this.file);
+  }
+
+  setHoverGlow(active: boolean): void {
+    if (active && !this.hoverGlow) {
+      const r = (FILE_PLANET_RADIUS + 4) * this.mobileScale;
+      this.hoverGlow = new Graphics();
+      this.hoverGlow.circle(0, 0, r).fill({ color: 0xffffff, alpha: 0.14 });
+      this.addChildAt(this.hoverGlow, 0);
+    } else if (!active && this.hoverGlow) {
+      this.removeChild(this.hoverGlow);
+      this.hoverGlow.destroy();
+      this.hoverGlow = null;
+    }
   }
 
   private paint(file: FileNode): void {
