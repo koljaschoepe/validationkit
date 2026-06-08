@@ -1,4 +1,12 @@
-"use server";
+// K14 (Launch-Verify): server-only module, NOT a "use server" action surface.
+// getRepo/listRepos/addRepo were previously exported as client-reachable RPC
+// endpoints taking a client-supplied workspaceId — a cross-tenant IDOR of the
+// same class Bundle A closed elsewhere (the compound `row.workspaceId !==
+// workspaceId` check only proves repo-membership of the workspace, not that the
+// CALLER belongs to it). server-only removes the RPC surface entirely; the sole
+// caller (repos/[repoId]/page.tsx) resolves the workspace via membership
+// (resolveWorkspaceFromSlug) before calling in.
+import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";

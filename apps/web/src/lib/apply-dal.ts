@@ -365,6 +365,11 @@ export async function pollPRStatus(
 ): Promise<{ state: string } | null> {
   if (!isDbEnabled()) return null;
   const db = getDb();
+  // K15: gate by session-membership. The apply-action carries its workspace FK
+  // directly; verify the caller is a member before echoing PR/patch state, else
+  // a fremder applyActionId leaks another tenant's PR status.
+  const user = await getSessionUser();
+  if (!user) return null;
   const rows = await db
     .select()
     .from(schema.applyAction)
@@ -372,6 +377,7 @@ export async function pollPRStatus(
     .limit(1);
   const row = rows[0];
   if (!row) return null;
+  if (!(await userIsMember(row.workspaceId, user.id))) return null;
   if (row.mode !== "pr") return { state: row.targetStatus ?? "n/a" };
   // GitHub-App-Path isn't wired yet (Sprint 0.11). Until then echo back the
   // last-seen status; G5 doesn't introduce live polling here.

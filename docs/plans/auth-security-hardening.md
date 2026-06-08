@@ -1,7 +1,7 @@
 # Plan — Bundle A · Auth-Security-Hardening + Authz-Helper-Refactor
 
 > Erstellt: 2026-06-08
-> Status: 🟡 In Arbeit — Phase 1 + 2 + 3 (K7/K8/K9) + 4 ✅ (2026-06-08). Offen: K10 (Vercel-KV-Blocker), Confirmation-Email (→ Bundle G), Phase 5 (Tests), Phase 6 (Acceptance + CSP-Enforce-Flip).
+> Status: 🟡 In Arbeit — Phase 1 + 2 + 3 (K7/K8/K9) + 4 ✅ (2026-06-08). **+ K14/K15 ✅ (2026-06-08 Launch-Verify-Reopen):** customers.ts getRepo/listRepos/addRepo → `server-only` (RPC-IDOR-Surface entfernt), pollPRStatus Session+Membership-Gate. Offen: K10 (jetzt via **Upstash-Redis-free** statt Vercel-KV lösbar — Marketplace-Provision nötig), Confirmation-Email (→ Bundle G), Phase 6 (CSP report-Endpoint + connect-src-Einengung + Enforce-Flip). (Phase 5 Tests: User will keine — Verifikation manuell, beide neuen Gates typecheck+lint+293 Tests grün.)
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `auth-security-hardening`
 > Confidence: **High** — basiert auf wave1-03 + wave2-01 (zusammen 13 Kill-IDORs + verifiziert mit file:line)
