@@ -1,6 +1,12 @@
-"use server";
+// server-only (Bundle A K12/K13): this module is the solution DAL, imported
+// only by server code (solution-actions.ts + dal/galaxie.ts) — never by a
+// client component at runtime (AISolutionPlaceholder takes the SolutionRow
+// *type* only). Marking it server-only keeps these reads off the Server-Action
+// surface, so they can't be invoked directly with an attacker-chosen findingId.
+// Access is gated at the action boundary (pollSolution / requestSolution).
+import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import type {
@@ -95,8 +101,34 @@ export async function getSolution(
   return row ? mapRow(row) : null;
 }
 
-/** Bulk-status for galaxie-render — keep a single roundtrip per page. */
+/**
+ * Resolve the workspace that owns a finding (finding → scan). Returns null when
+ * the finding doesn't exist. Used by the action layer to gate finding-scoped
+ * reads (K1 pollSolution).
+ */
+export async function getFindingWorkspaceId(
+  findingId: string,
+): Promise<string | null> {
+  if (!isDbEnabled()) return null;
+  const db = getDb();
+  const rows = await db
+    .select({ workspaceId: schema.scan.workspaceId })
+    .from(schema.finding)
+    .innerJoin(schema.scan, eq(schema.finding.scanId, schema.scan.id))
+    .where(eq(schema.finding.id, findingId))
+    .limit(1);
+  return rows[0]?.workspaceId ?? null;
+}
+
+/**
+ * Bulk-status for galaxie-render — keep a single roundtrip per page. Scoped to
+ * `workspaceId` (K13): the JOIN finding→scan filters out any findingId that
+ * doesn't belong to the rendered workspace, so a stale/foreign id can't leak a
+ * cross-tenant solution status. The caller (galaxie DAL) has already gated
+ * workspace membership at the page level.
+ */
 export async function listSolutionStatusByFinding(
+  workspaceId: string,
   findingIds: string[],
 ): Promise<
   Map<string, { status: SolutionStatus; confidence: SolutionRow["confidence"] }>
@@ -110,7 +142,14 @@ export async function listSolutionStatusByFinding(
       confidence: schema.solution.confidence,
     })
     .from(schema.solution)
-    .where(inArray(schema.solution.findingId, findingIds));
+    .innerJoin(schema.finding, eq(schema.solution.findingId, schema.finding.id))
+    .innerJoin(schema.scan, eq(schema.finding.scanId, schema.scan.id))
+    .where(
+      and(
+        inArray(schema.solution.findingId, findingIds),
+        eq(schema.scan.workspaceId, workspaceId),
+      ),
+    );
   return new Map(
     rows.map((r) => [
       r.findingId,
@@ -133,11 +172,9 @@ export async function getOrGenerateSolution(
   if (!isDbEnabled()) return null;
   const db = getDb();
 
-  // 1) Cache-hit fast-path.
-  const existing = await getSolution(findingId);
-  if (existing && existing.status !== "failed") return existing;
-
-  // 2) Load finding + scan + workspace for membership-gate + generator context.
+  // 1) Gate FIRST: load finding + scan + workspace and verify membership
+  //    before any read, so the cache fast-path (step 2) can't return a
+  //    cross-tenant solution row ahead of the access check.
   const findingRows = await db
     .select({
       finding: schema.finding,
@@ -151,6 +188,10 @@ export async function getOrGenerateSolution(
   if (!row) return null;
 
   if (!(await userIsMember(row.scan.workspaceId, userId))) return null;
+
+  // 2) Cache-hit fast-path (post-gate).
+  const existing = await getSolution(findingId);
+  if (existing && existing.status !== "failed") return existing;
 
   const category = row.finding.category as FindingCategory;
 

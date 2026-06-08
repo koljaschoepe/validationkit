@@ -1,7 +1,9 @@
 "use server";
 
 import { getSessionUser } from "./session";
+import { userIsMember } from "./authz";
 import {
+  getFindingWorkspaceId,
   getOrGenerateSolution,
   getSolution,
   type SolutionRow,
@@ -18,7 +20,14 @@ export async function requestSolution(
 export async function pollSolution(
   findingId: string,
 ): Promise<SolutionRow | null> {
-  // Poll variant — no auth required because it's a read-only lookup and
-  // the inspector already proved access via requestSolution.
+  // K1: the poll variant is a public Server-Action, so it must gate access
+  // itself — an attacker can call it directly with any findingId. Resolve the
+  // owning workspace (finding → scan) and verify session-membership before the
+  // read. Null on denial matches the "no solution yet" contract the client
+  // already handles.
+  const user = await getSessionUser();
+  if (!user) return null;
+  const workspaceId = await getFindingWorkspaceId(findingId);
+  if (!workspaceId || !(await userIsMember(workspaceId, user.id))) return null;
   return getSolution(findingId);
 }

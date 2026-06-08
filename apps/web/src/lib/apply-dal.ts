@@ -7,6 +7,7 @@ import { getDb, isDbEnabled, schema } from "@vk/db";
 import { dispatchPR, LocalGitClient } from "@vk/pr-workflow";
 import { galaxieWorkspaceTag } from "./cache-tags";
 import { userIsMember } from "./authz";
+import { getSessionUser } from "./session";
 import {
   isGitHubAppConfigured,
   resolveApplyMode,
@@ -328,6 +329,19 @@ export async function listApplyActionsForFinding(
 ): Promise<ApplyActionRow[]> {
   if (!isDbEnabled()) return [];
   const db = getDb();
+  // K11: gate by session-membership. Resolve the owning workspace
+  // (finding → scan) and verify the caller is a member before returning the
+  // apply history; empty array on denial.
+  const user = await getSessionUser();
+  if (!user) return [];
+  const findingRows = await db
+    .select({ workspaceId: schema.scan.workspaceId })
+    .from(schema.finding)
+    .innerJoin(schema.scan, eq(schema.finding.scanId, schema.scan.id))
+    .where(eq(schema.finding.id, findingId))
+    .limit(1);
+  const workspaceId = findingRows[0]?.workspaceId;
+  if (!workspaceId || !(await userIsMember(workspaceId, user.id))) return [];
   const rows = await db
     .select()
     .from(schema.applyAction)

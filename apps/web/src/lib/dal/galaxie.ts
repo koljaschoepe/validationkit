@@ -157,6 +157,7 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
 
   // Sprint G4 — bulk-load solution status for all findings in one roundtrip.
   const solutionStatusMap = await listSolutionStatusByFinding(
+    workspaceId,
     findingsRows.map((f) => f.id),
   );
 

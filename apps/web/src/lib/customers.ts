@@ -175,6 +175,9 @@ export async function getRepo(
   const row = rows[0];
   if (!row || row.workspaceId !== workspaceId) return null;
 
+  // K2: scope scans by the repo's FK, not by rootPath. Two repos in different
+  // workspaces can share a rootPath, so the legacy rootPath match leaked
+  // cross-tenant scan history. scan.repoId is the authoritative link.
   const scans = await db
     .select({
       id: schema.scan.id,
@@ -184,7 +187,7 @@ export async function getRepo(
       createdAt: schema.scan.createdAt,
     })
     .from(schema.scan)
-    .where(eq(schema.scan.rootPath, row.rootPath))
+    .where(eq(schema.scan.repoId, repoId))
     .orderBy(desc(schema.scan.createdAt))
     .limit(20);
 

@@ -1,10 +1,11 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import type { AuditFinding, AuditReport, ParserResult } from "@vk/core";
 import { generateBatchFix, isSupported } from "@vk/fixes";
 import { getSessionUser } from "./session";
+import { userIsMember } from "./authz";
 
 export interface FixActionResult {
   ok: boolean;
@@ -31,16 +32,19 @@ export async function generateFixesForScan(
     .select({
       rawScan: schema.scan.rawScan,
       rawReport: schema.scan.rawReport,
+      workspaceId: schema.scan.workspaceId,
     })
     .from(schema.scan)
-    .innerJoin(
-      schema.workspace,
-      eq(schema.scan.workspaceId, schema.workspace.id),
-    )
-    .where(and(eq(schema.scan.id, scanId), eq(schema.workspace.ownerId, user.id)))
+    .where(eq(schema.scan.id, scanId))
     .limit(1);
   const row = rows[0];
-  if (!row || !row.rawScan || !row.rawReport) {
+  // K6: membership-gate instead of the legacy ownerId filter. Same generic
+  // error for a missing row or a non-member so scan existence doesn't leak
+  // cross-tenant.
+  if (!row || !(await userIsMember(row.workspaceId, user.id))) {
+    return { ok: false, error: "Scan not found or not yet complete." };
+  }
+  if (!row.rawScan || !row.rawReport) {
     return { ok: false, error: "Scan not found or not yet complete." };
   }
 

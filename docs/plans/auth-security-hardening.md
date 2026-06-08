@@ -1,7 +1,7 @@
 # Plan — Bundle A · Auth-Security-Hardening + Authz-Helper-Refactor
 
 > Erstellt: 2026-06-08
-> Status: 🟡 In Arbeit — Phase 1 ✅ (2026-06-08), Phase 2–6 offen
+> Status: 🟡 In Arbeit — Phase 1 + 2 ✅ (2026-06-08), Phase 3–6 offen
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `auth-security-hardening`
 > Confidence: **High** — basiert auf wave1-03 + wave2-01 (zusammen 13 Kill-IDORs + verifiziert mit file:line)
@@ -58,16 +58,19 @@ Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Entscheidungen (2026-06-
 - [x] `userIsMember`-Duplikate aus `dal/galaxie.ts` + `apply-dal.ts` + `solution-dal.ts` gelöscht → Import aus authz. `getUserRole`/`requireRole` aus `membership.ts` nach authz konsolidiert; `Role`-Type re-exported. 2 externe Importer (`access/page.tsx`, `install-requests.ts`) umgestellt.
 - [x] `authz.integration.test.ts` — 5 Helper × member/non-member/legacy-owner/pending/allow-list. Unit-Gate grün (293 passed), Integration-Gate läuft auf main-push (Postgres-Service).
 
-### Phase 2 — 13 IDOR-Fixes (~6h)
-- [ ] K1 `pollSolution` — `requireWorkspaceAccess` via `findingId → scanId → workspaceId`
-- [ ] K2 `getRepo` — Join via `repoId` statt `rootPath`
-- [ ] K3 `audit-trail-export.ts:129-148` — `eq(webhookEvent.workspaceId, ctx.workspaceId)` AND
-- [ ] K4 `exportAuditTrail` — Param `workspaceId`, gate via membership
-- [ ] K5 `revokeMember` — `eq(membership.workspaceId, workspaceId)` AND
-- [ ] K6 `getScanStatus` + `generateFixesForScan` — `requireMembership` statt `ownerId===userId`
-- [ ] K11 `listApplyActionsForFinding` — `requireWorkspaceAccess` via finding-chain
-- [ ] K12 `getSolution` direct RPC — `requireWorkspaceAccess`
-- [ ] K13 `listSolutionStatusByFinding` — `requireWorkspaceAccess` pro findingId
+### Phase 2 — 13 IDOR-Fixes (~6h) ✅ 2026-06-08
+
+**Architektur-Entscheidung (load-bearing):** Diese DAL-Reads lagen in `"use server"`-Files = direkt als Server-Action vom Client aufrufbar. Ein `userId`-**Parameter** wäre dabei angreifer-kontrolliert. Pattern: Identität **immer** aus `getSessionUser()` ableiten (nie Client-Param). `solution-dal.ts` → `server-only` umgestellt (nur server-importiert; AISolutionPlaceholder nimmt nur den `SolutionRow`-Type) → Reads von der Action-Surface entfernt, Gating an der Action-Boundary.
+
+- [x] K1 `pollSolution` — Session-Gate: `getSessionUser` → `getFindingWorkspaceId` → `userIsMember`
+- [x] K2 `getRepo` — Scans via `eq(scan.repoId, repoId)` statt `rootPath` (rootPath kann cross-tenant kollidieren)
+- [x] K3 `audit-trail-export` webhook-Block — **Drift:** `webhook_event` hat KEIN `workspaceId`/`repoId` (globaler GitHub-Delivery-Log), DB-Scoping unmöglich → Block komplett aus dem per-Workspace-Export entfernt (Leak eliminiert). Proper-Webhook-Surface = post-launch (§12).
+- [x] K4 `exportAuditTrail` — Membership-basierte Workspace-Resolution (active membership OR legacy owner) statt `ownerId`-only. Kein neuer Param (trust-page-Surface ist single-workspace).
+- [x] K5 `revokeMember` — `and(eq(membership.id, …), eq(membership.workspaceId, workspaceId))` auf target-lookup UND update
+- [x] K6 `getScanStatus` + `generateFixesForScan` — `userIsMember(scan.workspaceId, …)` statt `ownerId===userId` (Member waren fälschlich ausgesperrt)
+- [x] K11 `listApplyActionsForFinding` — Session-Gate via finding→scan→workspace + `userIsMember` (war callerlos, aber exponiert)
+- [x] K12 `getSolution` — durch `server-only`-Umstellung nicht mehr direkt aufrufbar; zusätzlich Cache-Fast-Path-Hole in `getOrGenerateSolution` gefixt (Gate vor Cache-Read)
+- [x] K13 `listSolutionStatusByFinding` — `workspaceId`-Param + JOIN finding→scan-Filter (caching-kompatibel, kein Session-Call im `unstable_cache`-Pfad)
 
 ### Phase 3 — Better-Auth + Headers + Rate-Limit (~4h)
 - [ ] K7 Better-Auth-Hardening (rateLimit/cookies/trustedOrigins)

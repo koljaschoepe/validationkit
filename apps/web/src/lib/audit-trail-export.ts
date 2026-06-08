@@ -1,6 +1,6 @@
 "use server";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 
@@ -38,12 +38,33 @@ export async function exportAuditTrail(): Promise<AuditTrailExport | null> {
 
   const db = getDb();
 
-  const workspaces = await db
+  // K4: resolve the export workspace via active membership (member / admin /
+  // owner), falling back to the legacy ownerId pointer. The previous
+  // ownerId-only gate locked non-owner members out (empty export) and diverged
+  // from the canonical authz model. Single-workspace today (trust-page surface).
+  const membershipRows = await db
     .select({ id: schema.workspace.id })
-    .from(schema.workspace)
-    .where(eq(schema.workspace.ownerId, user.id))
+    .from(schema.membership)
+    .innerJoin(
+      schema.workspace,
+      eq(schema.membership.workspaceId, schema.workspace.id),
+    )
+    .where(
+      and(
+        eq(schema.membership.userId, user.id),
+        eq(schema.membership.status, "active"),
+      ),
+    )
     .limit(1);
-  const ws = workspaces[0];
+  let ws = membershipRows[0];
+  if (!ws) {
+    const ownerRows = await db
+      .select({ id: schema.workspace.id })
+      .from(schema.workspace)
+      .where(eq(schema.workspace.ownerId, user.id))
+      .limit(1);
+    ws = ownerRows[0];
+  }
   if (!ws) {
     return {
       workspaceId: "none",
@@ -122,30 +143,11 @@ export async function exportAuditTrail(): Promise<AuditTrailExport | null> {
     });
   }
 
-  // webhook_event is workspace-implicit via repo. For Sprint-0.10 we ship
-  // workspace-owner-scoped global webhook_events without further filter; the
-  // Compliance-Frame Customer is the workspace owner and is entitled to see
-  // the full webhook stream for their installations.
-  const webhooks = await db
-    .select({
-      deliveryId: schema.webhookEvent.deliveryId,
-      receivedAt: schema.webhookEvent.receivedAt,
-      eventName: schema.webhookEvent.eventName,
-      action: schema.webhookEvent.action,
-      status: schema.webhookEvent.status,
-    })
-    .from(schema.webhookEvent)
-    .orderBy(desc(schema.webhookEvent.receivedAt))
-    .limit(500);
-  for (const w of webhooks) {
-    rows.push({
-      kind: "webhook_event",
-      id: w.deliveryId,
-      createdAt: w.receivedAt.toISOString(),
-      summary: `webhook ${w.eventName}${w.action ? "." + w.action : ""} — ${w.status}`,
-      raw: w as unknown as Record<string, unknown>,
-    });
-  }
+  // K3: webhook_event is a GLOBAL GitHub-delivery log — the table has no
+  // workspaceId/repoId FK, so it cannot be workspace-scoped at the DB level.
+  // The previous "owner sees the full stream" query leaked every tenant's
+  // webhook metadata cross-workspace. Dropped from the per-workspace export
+  // entirely; a properly-linked webhook surface is post-launch (Out-of-Scope).
 
   rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 

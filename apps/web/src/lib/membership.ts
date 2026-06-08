@@ -188,11 +188,19 @@ export async function revokeMember(
     return { ok: false, error: "Only owner can revoke memberships." };
   }
   const db = getDb();
-  // Refuse to revoke the owner via this surface.
+  // K5: scope the target lookup AND the update to `workspaceId`. Without it, an
+  // owner of workspace-A could revoke a membership belonging to workspace-B by
+  // passing B's membershipId — the owner-role check above only proves access to
+  // A. The compound match ties the row to the gated workspace.
   const target = await db
     .select({ role: schema.membership.role, userId: schema.membership.userId })
     .from(schema.membership)
-    .where(eq(schema.membership.id, membershipId))
+    .where(
+      and(
+        eq(schema.membership.id, membershipId),
+        eq(schema.membership.workspaceId, workspaceId),
+      ),
+    )
     .limit(1);
   if (!target[0]) return { ok: false, error: "Member not found." };
   if (target[0].role === "owner") {
@@ -201,7 +209,12 @@ export async function revokeMember(
   await db
     .update(schema.membership)
     .set({ status: "revoked" })
-    .where(eq(schema.membership.id, membershipId));
+    .where(
+      and(
+        eq(schema.membership.id, membershipId),
+        eq(schema.membership.workspaceId, workspaceId),
+      ),
+    );
   // revalidatePath removed 2026-05-21 (customer-route-rename Phase D.2) —
   // the path /customers/<workspaceId>/access never matched a real route.
   return { ok: true };
