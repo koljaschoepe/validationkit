@@ -1,7 +1,7 @@
 # Plan — Bundle A · Auth-Security-Hardening + Authz-Helper-Refactor
 
 > Erstellt: 2026-06-08
-> Status: 🟡 In Arbeit — Phase 1 + 2 ✅ (2026-06-08), Phase 3–6 offen
+> Status: 🟡 In Arbeit — Phase 1 + 2 ✅ + Phase 3 (K7/K8/K9) ✅ (2026-06-08). Offen: K10 (Vercel-KV-Blocker), Phase 4 (GDPR-UI), Phase 5 (Tests), Phase 6 (Acceptance).
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `auth-security-hardening`
 > Confidence: **High** — basiert auf wave1-03 + wave2-01 (zusammen 13 Kill-IDORs + verifiziert mit file:line)
@@ -72,11 +72,11 @@ Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Entscheidungen (2026-06-
 - [x] K12 `getSolution` — durch `server-only`-Umstellung nicht mehr direkt aufrufbar; zusätzlich Cache-Fast-Path-Hole in `getOrGenerateSolution` gefixt (Gate vor Cache-Read)
 - [x] K13 `listSolutionStatusByFinding` — `workspaceId`-Param + JOIN finding→scan-Filter (caching-kompatibel, kein Session-Call im `unstable_cache`-Pfad)
 
-### Phase 3 — Better-Auth + Headers + Rate-Limit (~4h)
-- [ ] K7 Better-Auth-Hardening (rateLimit/cookies/trustedOrigins)
-- [ ] K8 `next.config.ts` headers() — CSP, HSTS, X-Frame, Referrer, Permissions
-- [ ] K9 Magic-Link-Server-Rate-Limit (Better-Auth `magicLink.rateLimit` 3/email/10min + 20/IP/hour)
-- [ ] K10 Rate-Limiter → Upstash/KV (+1 env-var)
+### Phase 3 — Better-Auth + Headers + Rate-Limit (~4h) — K7/K8/K9 ✅ 2026-06-08, K10 deferred
+- [x] K7 Better-Auth-Hardening — `trustedOrigins` (env-driven `AUTH_TRUSTED_ORIGINS`, kein hardcoded Domain), `advanced.useSecureCookies` (prod-gated). **`__Host-`-Cookie-Prefix deferred** — koppelt an die offene Domain/Subdomain-Entscheidung; falsch gesetzt bricht Sign-in.
+- [x] K8 `next.config.ts` `async headers()` — CSP **Report-Only** (24h-Observe, dann enforce per §9) + HSTS (2y, preload) + X-Frame-Options SAMEORIGIN + X-Content-Type-Options nosniff + Referrer-Policy + Permissions-Policy. CSP lässt Stripe-iframes + PixiJS-blob-Worker durch; `connect-src https:` bleibt im Report-Only locker (vor enforce auf exakte Hosts einengen).
+- [x] K9 Magic-Link-Rate-Limit — Better-Auth top-level `rateLimit.customRules["/sign-in/magic-link"] = { window: 600, max: 3 }` (3/10min/**IP**). **Adjustment:** Better-Auth rate-limit ist IP-keyed; per-**email** (Email-Bombing eines Opfers über verteilte IPs) braucht Custom-Storage → späteres Refinement. Global default `window:60, max:100`.
+- [ ] **K10 Rate-Limiter → Vercel KV — DEFERRED (externer Blocker).** Better-Auth-`rateLimit`-Storage ist aktuell in-memory (per-Instance, auf Fluid Compute nicht global). K10 = User provisioniert Vercel-KV-Store → `rateLimit.storage: "secondary-storage"` + `apps/web/src/lib/rate-limit.ts` von in-memory `Map` auf KV. Braucht KV-Store-Anlage + Env-Var auf Vercel.
 
 ### Phase 4 — GDPR Art. 17 (~6h)
 - [ ] Migration: `ip_address` + `user_agent` NULL'able auf `install_decision`/`apply_action`/`dpa_acceptance` (sind sie schon? Verify)

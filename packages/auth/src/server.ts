@@ -36,6 +36,22 @@ export function getAuth(): AuthInstance {
   return created;
 }
 
+/**
+ * Trusted origins for CSRF/CORS validation (K7). Env-driven so the still-open
+ * production-domain decision doesn't block this — set AUTH_TRUSTED_ORIGINS to a
+ * comma-separated list once the domain lands; falls back to the base URL.
+ */
+function resolveTrustedOrigins(): string[] {
+  const explicit = process.env.AUTH_TRUSTED_ORIGINS;
+  if (explicit) {
+    return explicit
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [process.env.AUTH_BASE_URL ?? "http://localhost:3000"];
+}
+
 function createAuth(): AuthInstance {
   // Three transport modes:
   //   1. RESEND_API_KEY set    → smtp.resend.com:465 TLS with API key as password
@@ -71,6 +87,29 @@ function createAuth(): AuthInstance {
       },
     }),
     emailAndPassword: { enabled: false },
+    // K7: explicit trusted-origin allow-list for CSRF/CORS (defaults to baseURL
+    // otherwise).
+    trustedOrigins: resolveTrustedOrigins(),
+    // K7: force the Secure cookie attribute in production. (__Host- prefix is
+    // deferred — it's coupled to the final domain/subdomain layout, which is
+    // still an open decision; forcing it wrong would break sign-in.)
+    advanced: {
+      useSecureCookies: process.env.NODE_ENV === "production",
+    },
+    // K7 + K9: rate-limiting. Enabled by default in production. The global
+    // window/max is the per-IP budget across all auth endpoints; customRules
+    // tightens the magic-link send endpoint to 3 requests / 10 min / IP to
+    // blunt email-bombing. Storage is in-memory (per-instance) for now — K10
+    // swaps it to KV-backed "secondary-storage" for global multi-region
+    // enforcement once the Vercel KV store is provisioned. Per-email limiting
+    // (vs per-IP) is a later refinement that needs custom storage.
+    rateLimit: {
+      window: 60,
+      max: 100,
+      customRules: {
+        "/sign-in/magic-link": { window: 600, max: 3 },
+      },
+    },
     // Session-cookie cache: skip the DB round-trip on every request. Server
     // re-validates against `verification` table after maxAge expires. 300 s
     // matches Linear / Vercel patterns — short enough that logout propagates
