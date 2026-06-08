@@ -38,7 +38,10 @@ export const session = pgTable("session", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // Bundle C: Better-Auth reads session by user_id on every request.
+  index("session_user_idx").on(t.userId),
+]);
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
@@ -56,7 +59,10 @@ export const account = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // Bundle C: Better-Auth resolves the account by user_id on the login path.
+  index("account_user_idx").on(t.userId),
+]);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -81,7 +87,10 @@ export const workspace = pgTable("workspace", {
   name: varchar("name", { length: 200 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // Bundle C: ensureDefaultWorkspace + legacy-owner fallback look up by owner_id.
+  index("workspace_owner_idx").on(t.ownerId),
+]);
 
 // Sprint G2 — Customer as a first-class layer between workspace and repo.
 // ADR-0001 (C2): "1 Customer = 1 Kunden-Org mit N Repos" is the chosen model.
@@ -143,7 +152,11 @@ export const repo = pgTable(
   notifySecret: varchar("notify_secret", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("repo_customer_idx").on(t.customerId)],
+  (t) => [
+    index("repo_customer_idx").on(t.customerId),
+    // Bundle C: repo listings + galaxie load filter by workspace_id.
+    index("repo_workspace_idx").on(t.workspaceId),
+  ],
 );
 
 export const installRequest = pgTable("install_request", {
@@ -166,7 +179,10 @@ export const installRequest = pgTable("install_request", {
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   decisionNote: text("decision_note"),
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // Bundle C: pending-request lists are workspace-scoped, newest-first.
+  index("install_request_workspace_idx").on(t.workspaceId, t.requestedAt.desc()),
+]);
 
 // Sprint 1.2 — membership + RBAC. The Requester→Approver-Bridge depends on
 // {owner, admin, member} role distinction. workspace.ownerId stays as the
@@ -291,7 +307,11 @@ export const scan = pgTable("scan", {
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // Bundle C: scan lists are workspace-scoped newest-first; detail loads by repo.
+  index("scan_workspace_created_idx").on(t.workspaceId, t.createdAt.desc()),
+  index("scan_repo_idx").on(t.repoId),
+]);
 
 export const finding = pgTable(
   "finding",
