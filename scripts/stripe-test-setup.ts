@@ -118,6 +118,9 @@ async function findOrCreateProduct(stripe: Stripe): Promise<string> {
   const created = await stripe.products.create({
     name: "ValidationKit",
     description: "Multi-customer AGENTS.md / CLAUDE.md / SKILL.md audit platform.",
+    // Stripe Tax category: SaaS (business use). Without a tax_code automatic_tax
+    // can't categorise the supply and BLOCKS the checkout in live mode.
+    tax_code: "txcd_10103001",
     metadata: { lookup_key: PRODUCT_LOOKUP_KEY },
   });
   process.stdout.write(`product:  create ${created.id}\n`);
@@ -153,6 +156,7 @@ async function findOrCreateTierPrice(
     product: productId,
     unit_amount: amount,
     currency: "eur",
+    tax_behavior: "exclusive",
     recurring: { interval: cycle === "monthly" ? "month" : "year" },
     lookup_key: lookupKey,
     nickname: `${TIER_LABELS[tier]} — ${cycle}`,
@@ -176,6 +180,7 @@ async function findOrCreatePackPrice(
     product: productId,
     unit_amount: pack.amountCents,
     currency: "eur",
+    tax_behavior: "exclusive",
     lookup_key: pack.lookupKey,
     nickname: `${pack.credits} credits prepaid pack`,
     metadata: { credits: String(pack.credits), kind: "prepaid_pack" },
@@ -229,6 +234,7 @@ async function findOrCreateMeterPrice(
   const created = await stripe.prices.create({
     product: productId,
     currency: "eur",
+    tax_behavior: "exclusive",
     billing_scheme: "per_unit",
     unit_amount: isMicrocent ? 1 : meterPrice.unitAmount,
     ...(isMicrocent

@@ -1,7 +1,7 @@
 # Plan — Bundle B · Payment-Fix-Block + Inngest-Idempotency
 
 > Erstellt: 2026-06-08
-> Status: 🔵 Skelett — /execute nach Bundle A
+> Status: 🟡 In Execute (2026-06-08) — ✅ K-PAY1 (dahlia invoice-shape, `a8a2d56`) · K-PAY2 (auto-overage pipeline, `9757a0d`) · credit_ledger-Idempotenz-Migration 0016 + Stripe-Cancel-on-workspace-delete (`22dc50c`) · tax_code txcd_10103001 + tax_behavior. **Offen:** Credit-Pack-UI verdrahten (User: JA, ~0.5 dd UI), Integration-Test-Fixtures auf dahlia (CI-only, grün via Fallback). **AI-Markup-Meter = GA-out-of-scope** (User-Entscheidung 2026-06-08, s. §12). Inngest-Atomicity (Phase 6) bleibt in B-Scope. **Plan-Drift-Hinweis:** Audit fand K-PAY1 (`invoice.subscription` ganz entfernt) zusätzlich zum geplanten `current_period_end` — beide gefixt.
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `payment-fix-block`
 > Confidence: **High** — wave1-02 + wave2-02 file:line-zitiert
@@ -140,6 +140,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_ledger_invoice_grant
 
 ## 12. Out-of-Scope
 
+- **AI-Markup-Meter (S5)** — GA-out-of-scope (User-Entscheidung 2026-06-08). `markupMicrocents` bleibt 0, kein Flush. Beim Stripe-Live-Bootstrap (Bundle E) den ai_markup-Meter/Price hinter ein Flag legen, damit kein Phantom-Price im Live-Account liegt. Aktivierung post-launch.
 - S3/Blob-Upload für Inngest-Local-Path (V2)
 - Refund-Flow für Credits (V2)
 - Spend-Cap-Soft-Warning-UI (V2 — Bundle G hat nur Email)
