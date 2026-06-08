@@ -708,6 +708,12 @@ export const creditLedger = pgTable(
       t.workspaceId,
       t.createdAt,
     ),
+    // Bundle B: idempotency for the monthly grant (reference_id = invoice.id).
+    // Partial — scoped to monthly_grant so audit_consume / overage rows that
+    // share a scan-id reference_id are not deduped. Matches migration 0016.
+    uniqueIndex("credit_ledger_monthly_grant_idem_idx")
+      .on(t.workspaceId, t.reason, t.referenceId)
+      .where(sql`${t.reason} = 'monthly_grant'`),
   ],
 );
 

@@ -257,13 +257,21 @@ export async function grantCredits(args: {
         .where(eq(schema.subscription.workspaceId, args.workspaceId));
     }
     const balance = await getCreditBalance(args.workspaceId, tx as unknown as Db);
-    await tx.insert(schema.creditLedger).values({
-      workspaceId: args.workspaceId,
-      delta: args.amount,
-      reason: args.reason,
-      referenceId: args.referenceId ?? null,
-      balanceAfter: balance.total,
-    });
+    // Bundle B: replay-safe via the partial unique index on
+    // (workspace_id, reason, reference_id) WHERE reason='monthly_grant'. A
+    // duplicate monthly grant for the same invoice is a no-op at the ledger
+    // level (second line of defense behind the stripe_event PK). Bare DO NOTHING
+    // only fires for monthly_grant — no other reason has a unique constraint.
+    await tx
+      .insert(schema.creditLedger)
+      .values({
+        workspaceId: args.workspaceId,
+        delta: args.amount,
+        reason: args.reason,
+        referenceId: args.referenceId ?? null,
+        balanceAfter: balance.total,
+      })
+      .onConflictDoNothing();
     return { balanceAfter: balance.total };
   });
 }
