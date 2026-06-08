@@ -14,9 +14,9 @@ import { getSessionUser } from "@/lib/session";
 import { resolveWorkspaceFromSlug } from "@/lib/workspace-context";
 import {
   startCheckoutAction,
-  buyPrepaidPackAction,
   openBillingPortalAction,
 } from "@/lib/billing-actions";
+import { BuyCreditPackModal } from "@/components/BuyCreditPackModal";
 import {
   Card,
   CardContent,
@@ -239,19 +239,10 @@ export default async function WorkspaceBillingPage({
               ))}
             </ul>
           )}
-          <div className="flex gap-2 pt-2">
-            <form action={buyPrepaidPackAction}>
-              <input type="hidden" name="size" value="100" />
-              <Button type="submit" variant="outline" size="sm">
-                Buy 100 credits — €25
-              </Button>
-            </form>
-            <form action={buyPrepaidPackAction}>
-              <input type="hidden" name="size" value="500" />
-              <Button type="submit" variant="outline" size="sm">
-                Buy 500 credits — €99
-              </Button>
-            </form>
+          <div className="pt-2">
+            {/* BuyCreditPackModal: single dialog with both pack sizes + value
+                framing + VAT note — the designated surface over bare buttons. */}
+            <BuyCreditPackModal />
           </div>
         </CardContent>
       </Card>

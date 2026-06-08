@@ -47,6 +47,6 @@ Nach Delete: `pnpm install && pnpm typecheck && pnpm --filter @vk/web lint` grü
 
 ## 7. Out-of-Scope / Risiken
 
-- Credit-Pack-UI (`BuyCreditPackModal`/`CreditMeter`/`IntensitySelector`/`cost-estimator`): **nicht hier entscheiden** — Bundle B verdrahtet oder löscht. Falls Bundle B „löschen" wählt, kommt der Delete als zusätzlicher H-Commit.
+- Credit-Pack-UI: **ENTSCHIEDEN (Bundle B, 2026-06-08) → verdrahten.** `BuyCreditPackModal` ist jetzt auf der Settings-Billing-Page verdrahtet → **NICHT löschen**. `CreditMeter` ist für die Galaxie-HUD reserviert (kommt mit Bundle J Logout-Menü) → **NICHT löschen**. **Korrektur zum Audit:** die 3 `create*`-Funktionen in `billing-actions.ts` (createCheckoutSession/createBillingPortalSession/createPrepaidPackCheckoutSession) sind **NICHT tot** — sie werden von den `*Action`-Wrappern derselben Datei genutzt (Dead-Code-Agent übersah intra-file-Caller). NICHT löschen. **Noch offen für H:** `IntensitySelector` + `cost-estimator` (Audit-Intensity-Kostenschätzung, separat vom Pack-UI) — prüfen ob verwaist, dann löschen oder in die Audit-Form ziehen.
 - `lib/galaxie/layout.ts computeLayout` + deprecated Types: **nicht löschen** (live in MiniMap) — Ticket für post-launch MiniMap-Migration.
 - Risiko: versehentliches Löschen eines lazy/dynamic-importierten Files → nach jedem Lösch-Commit `pnpm build` (nicht nur typecheck, fängt dynamische Imports).
