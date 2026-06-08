@@ -1,7 +1,7 @@
 # Plan — Bundle A · Auth-Security-Hardening + Authz-Helper-Refactor
 
 > Erstellt: 2026-06-08
-> Status: 🟡 In Arbeit — Phase 1 + 2 ✅ + Phase 3 (K7/K8/K9) ✅ (2026-06-08). Offen: K10 (Vercel-KV-Blocker), Phase 4 (GDPR-UI), Phase 5 (Tests), Phase 6 (Acceptance).
+> Status: 🟡 In Arbeit — Phase 1 + 2 + 3 (K7/K8/K9) + 4 ✅ (2026-06-08). Offen: K10 (Vercel-KV-Blocker), Confirmation-Email (→ Bundle G), Phase 5 (Tests), Phase 6 (Acceptance + CSP-Enforce-Flip).
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `auth-security-hardening`
 > Confidence: **High** — basiert auf wave1-03 + wave2-01 (zusammen 13 Kill-IDORs + verifiziert mit file:line)
@@ -78,13 +78,16 @@ Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Entscheidungen (2026-06-
 - [x] K9 Magic-Link-Rate-Limit — Better-Auth top-level `rateLimit.customRules["/sign-in/magic-link"] = { window: 600, max: 3 }` (3/10min/**IP**). **Adjustment:** Better-Auth rate-limit ist IP-keyed; per-**email** (Email-Bombing eines Opfers über verteilte IPs) braucht Custom-Storage → späteres Refinement. Global default `window:60, max:100`.
 - [ ] **K10 Rate-Limiter → Vercel KV — DEFERRED (externer Blocker).** Better-Auth-`rateLimit`-Storage ist aktuell in-memory (per-Instance, auf Fluid Compute nicht global). K10 = User provisioniert Vercel-KV-Store → `rateLimit.storage: "secondary-storage"` + `apps/web/src/lib/rate-limit.ts` von in-memory `Map` auf KV. Braucht KV-Store-Anlage + Env-Var auf Vercel.
 
-### Phase 4 — GDPR Art. 17 (~6h)
-- [ ] Migration: `ip_address` + `user_agent` NULL'able auf `install_decision`/`apply_action`/`dpa_acceptance` (sind sie schon? Verify)
-- [ ] `lib/account-actions.ts` `deleteAccount()` server-action + `scrubUserPii()` helper
-- [ ] `lib/workspace-actions.ts` `deleteWorkspace()` server-action (Owner-only, Cascade-Cleanup)
-- [ ] `lib/session-actions.ts` `listActiveSessions()` + `revokeSession(sessionId)`
-- [ ] UI: `account/delete/`, `workspace/delete/`, `account/sessions/`
-- [ ] Confirmation-Email (Bundle G überlappt — koordinieren)
+### Phase 4 — GDPR Art. 17 (~6h) ✅ 2026-06-08
+
+**Entscheidung (load-bearing):** Account-Delete wird **geblockt**, wenn der User Sole-Owner eines Workspaces ist → erst Ownership transferieren/Workspace löschen. Schützt andere Member, keine Orphans. **Pfad-Drift:** Pages existierten bereits als Stubs unter `/account/settings/{delete,sessions}` + `[workspace]/settings/danger` (nicht `[workspace]/settings/account/...` wie §7) → Stubs implementiert statt neue Pages. **Migration entfällt** (PII-Spalten schon nullable, s. §2).
+
+- [x] `lib/pii-scrub.ts` `scrubUserPii()` — NULL ip/ua auf install_decision/apply_action/dpa_acceptance, läuft VOR User-Delete (FK SET NULL löscht sonst den Key)
+- [x] `lib/account-actions.ts` `deleteAccount()` (email-typed-confirm + sole-owner-block + scrub + delete + signOut) + `listSoleOwnedWorkspaces()`
+- [x] `lib/workspace-actions.ts` `deleteWorkspace()` (owner-only via `requireRole`, slug-typed-confirm; alle 13 workspace-FKs sind `cascade` → 1 Delete reicht)
+- [x] `lib/session-actions.ts` `listActiveSessions()` + `revokeSession()` — Revoke via Better-Auth-API (nicht roher DB-Delete, sonst ≤300s Cookie-Cache-Lücke); IDOR-safe via id+userId
+- [x] UI: `account/settings/sessions` (SessionList + Revoke), `account/settings/delete` (typed-confirm + Block-Liste), `[workspace]/settings/danger` (owner-gated typed-confirm). Typecheck/Lint/293 Tests grün, Routen kompilieren (307 → /login).
+- [ ] **Confirmation-Email — DEFERRED an Bundle G** (besitzt Email-Templates + Transport-Infra). `deleteAccount` ruft aktuell keine Email.
 
 ### Phase 5 — Vitest-Bump + Test-Suite (~3h)
 - [ ] K35 `pnpm up vitest@latest @vitest/coverage-v8 @vitest/ui` — verify 4.1.0+

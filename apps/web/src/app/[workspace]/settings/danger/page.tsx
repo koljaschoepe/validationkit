@@ -1,42 +1,65 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { notFound, redirect } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
+import { isAuthEnabled } from '@vk/auth';
+import { getSessionUser } from '@/lib/session';
+import { listUserWorkspaces } from '@/lib/dal/galaxie';
+import { Card, CardContent } from '@/components/ui/card';
+import { DeleteWorkspaceForm } from './DeleteWorkspaceForm';
 
-/**
- * Settings → Danger Zone.
- *
- * Shell with explicit "not yet wired" disclaimer. The interactive
- * DangerConfirm mounts were removed 2026-05-21 (repo-health-Phase 1.18)
- * because they showed a fake workspace-name placeholder and disabled
- * buttons — a Mis-Selling-Risk for Beta sign-ups. The real ownership-
- * transfer + delete-workspace flows land with `nova-2-settings-backend.md`.
- */
-export default function DangerSettingsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function DangerSettingsPage({
+  params,
+}: {
+  params: Promise<{ workspace: string }>;
+}) {
+  if (!isAuthEnabled()) redirect('/login');
+  const user = await getSessionUser();
+  if (!user) redirect('/login');
+  const { workspace } = await params;
+  const accessible = await listUserWorkspaces(user.id);
+  const ws = accessible.find((w) => w.slug === workspace);
+  if (!ws) notFound();
+
+  const isOwner = ws.role === 'owner';
+
   return (
     <>
       <header className="space-y-2 border-b border-border pb-6">
         <h1 className="type-h1 font-semibold tracking-tight">Danger Zone</h1>
         <p className="type-body text-muted-foreground">
-          Transfer ownership or delete the workspace. These actions are
-          irreversible and gated behind explicit typed confirmation.
+          Delete the workspace. This is irreversible and gated behind explicit
+          typed confirmation.
         </p>
       </header>
 
-      <Card className="border-border">
-        <CardContent className="space-y-4 py-8 text-center">
-          <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted">
-            <AlertTriangle className="size-5 text-muted-foreground" />
-          </div>
-          <div className="space-y-2">
+      <Card className="border-destructive/30">
+        <CardContent className="space-y-4 py-6">
+          <div className="space-y-1">
             <p className="type-body font-medium text-foreground">
-              Not yet available
+              Delete this workspace
             </p>
-            <p className="type-body-sm text-muted-foreground max-w-md mx-auto">
-              Ownership transfer and workspace deletion ship together with the
-              Settings-Backend (sub-plan{' '}
-              <code className="text-xs">nova-2-settings-backend.md</code>). Until
-              then, contact support to perform these actions manually.
+            <p className="type-body-sm text-muted-foreground">
+              Permanently removes every customer, repo, scan, finding, fix and
+              membership in <span className="font-mono">{ws.slug}</span>. There
+              is no recovery.
             </p>
           </div>
+
+          {isOwner ? (
+            <DeleteWorkspaceForm workspaceId={ws.id} slug={ws.slug} />
+          ) : (
+            <div className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-4 py-3">
+              <AlertTriangle
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <p className="type-body-sm text-muted-foreground">
+                Only the workspace owner can delete it. Your role is{' '}
+                <span className="font-mono">{ws.role}</span>.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>
