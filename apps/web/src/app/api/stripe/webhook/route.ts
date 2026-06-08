@@ -148,6 +148,9 @@ export async function POST(req: Request): Promise<Response> {
       case "invoice.payment_failed":
         await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
         break;
+      case "customer.deleted":
+        await handleCustomerDeleted(event.data.object as Stripe.Customer);
+        break;
       default:
         break;
     }
@@ -330,10 +333,10 @@ async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   if (!row) return;
 
   // Skip the monthly-grant path for one-time pack invoices — those are
-  // already granted via handleCheckoutCompleted. The invoice.kind heuristic:
-  // subscription-tied invoices carry `subscription`; pack-payment invoices
-  // do not.
-  if (!stringOrNull((invoice as unknown as { subscription?: unknown }).subscription)) {
+  // already granted via handleCheckoutCompleted. Subscription-tied invoices
+  // carry a subscription (under parent.subscription_details in dahlia);
+  // pack-payment invoices do not.
+  if (!subscriptionIdFromInvoice(invoice)) {
     return;
   }
 
@@ -388,6 +391,30 @@ async function handleInvoicePaymentFailed(
       billingUrl: billingUrlForWorkspace(contact.slug),
     }),
   });
+}
+
+// S2 (Launch-Verify): when a customer is deleted in Stripe, null the dangling
+// refs and downgrade to free. Otherwise lookupWorkspaceByCustomer keeps matching
+// a dead customer id and the billing-portal flow opens a portal on a customer
+// that no longer exists (Stripe error). Idempotent: after nulling, a replay
+// finds no workspace and returns early.
+async function handleCustomerDeleted(
+  customer: Stripe.Customer,
+): Promise<void> {
+  const workspaceId = await lookupWorkspaceByCustomer(customer.id);
+  if (!workspaceId) return;
+  await getDb()
+    .update(schema.subscription)
+    .set({
+      tier: "free",
+      status: "canceled",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      currentPeriodEnd: null,
+      creditsQuotaPerCycle: TIERS.free.creditsPerCycle,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.subscription.workspaceId, workspaceId));
 }
 
 interface ApplyTierInput {
@@ -458,9 +485,33 @@ function stringOrNull(value: unknown): string | null {
   return null;
 }
 
+// K-PAY1 (Launch-Verify): Stripe API 2026-04-22.dahlia REMOVED the top-level
+// `invoice.subscription` field — it now lives under
+// `invoice.parent.subscription_details.subscription`. The old guard read the
+// dead top-level field, so it was always null and the monthly credit-grant in
+// handleInvoicePaid never fired for real invoices. Read the dahlia path first,
+// fall back to the legacy top-level field for replays / older fixtures.
+function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  const parentSub = (
+    invoice as unknown as {
+      parent?: {
+        subscription_details?: { subscription?: unknown } | null;
+      } | null;
+    }
+  ).parent?.subscription_details?.subscription;
+  const legacy = (invoice as unknown as { subscription?: unknown }).subscription;
+  return stringOrNull(parentSub) ?? stringOrNull(legacy);
+}
+
 function periodEndFromSubscription(sub: Stripe.Subscription): Date | null {
-  const candidate =
-    (sub as unknown as { current_period_end?: number }).current_period_end;
+  // 2026-04-22.dahlia moved `current_period_end` from the Subscription onto each
+  // SubscriptionItem. Read the first item, fall back to the legacy top-level
+  // field for older fixtures / replays. Without this the billing page renders an
+  // empty/invalid reset date.
+  const itemEnd = sub.items?.data?.[0]?.current_period_end;
+  const legacy = (sub as unknown as { current_period_end?: number })
+    .current_period_end;
+  const candidate = typeof itemEnd === "number" ? itemEnd : legacy;
   return typeof candidate === "number" ? new Date(candidate * 1000) : null;
 }
 

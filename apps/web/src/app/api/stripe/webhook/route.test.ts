@@ -241,7 +241,9 @@ describe("POST /api/stripe/webhook", () => {
       data: {
         object: {
           customer: "cus_x",
-          subscription: "sub_y", // truthy → skips the no-subscription bail-out
+          // dahlia shape: subscription lives under parent.subscription_details
+          // (top-level invoice.subscription was removed) → skips the bail-out
+          parent: { subscription_details: { subscription: "sub_y" } },
           id: "in_test",
         },
       },

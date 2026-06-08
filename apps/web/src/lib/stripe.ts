@@ -108,10 +108,12 @@ export function meterEventName(kind: MeterKind): string {
 }
 
 export function billingBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "http://localhost:3000"
-  );
+  // Operator-precedence fix: `??` binds tighter than `?:`, so the old
+  // `A ?? B ? C : D` always returned C (https://undefined when the VERCEL var
+  // was empty) whenever NEXT_PUBLIC_APP_URL was set. Explicit precedence.
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return "http://localhost:3000";
 }
