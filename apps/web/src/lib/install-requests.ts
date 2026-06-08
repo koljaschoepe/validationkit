@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 import { resolveWorkspaceFromSlug } from "./workspace-context";
-import { getUserRole } from "./membership";
+import { getUserRole } from "./authz";
 
 export interface RequestInstallInput {
   targetRepoLabel: string;

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import type {
@@ -15,6 +15,7 @@ import {
   type FixProposal,
 } from "@vk/fixes";
 import { galaxieWorkspaceTag } from "./cache-tags";
+import { userIsMember } from "./authz";
 
 export type SolutionStatus = "pending" | "ready" | "failed" | "unsupported";
 
@@ -79,35 +80,6 @@ function mapRow(row: typeof schema.solution.$inferSelect): SolutionRow {
   };
 }
 
-async function userIsMember(
-  workspaceId: string,
-  userId: string,
-): Promise<boolean> {
-  const db = getDb();
-  const memberRows = await db
-    .select({ id: schema.membership.id })
-    .from(schema.membership)
-    .where(
-      and(
-        eq(schema.membership.workspaceId, workspaceId),
-        eq(schema.membership.userId, userId),
-        eq(schema.membership.status, "active"),
-      ),
-    )
-    .limit(1);
-  if (memberRows.length > 0) return true;
-  const ownerRows = await db
-    .select({ id: schema.workspace.id })
-    .from(schema.workspace)
-    .where(
-      and(
-        eq(schema.workspace.id, workspaceId),
-        eq(schema.workspace.ownerId, userId),
-      ),
-    )
-    .limit(1);
-  return ownerRows.length > 0;
-}
 
 export async function getSolution(
   findingId: string,

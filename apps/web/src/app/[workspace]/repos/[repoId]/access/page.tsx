@@ -7,11 +7,8 @@ import { getDb, schema } from "@vk/db";
 import { SiteNav } from "@/components/SiteNav";
 import { getSessionUser } from "@/lib/session";
 import { resolveWorkspaceFromSlug } from "@/lib/workspace-context";
-import {
-  getUserRole,
-  listMembers,
-  type Role,
-} from "@/lib/membership";
+import { listMembers } from "@/lib/membership";
+import { getUserRole, type Role } from "@/lib/authz";
 import {
   listPendingRequestsForWorkspace,
   listDecisionsForWorkspace,

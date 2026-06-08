@@ -11,6 +11,7 @@ import type {
 import { SEVERITY_BANDS } from '@/lib/galaxie/types';
 import { galaxieWorkspaceTag } from '@/lib/cache-tags';
 import { listSolutionStatusByFinding } from '@/lib/solution-dal';
+import { userIsMember } from '@/lib/authz';
 
 export interface WorkspaceMeta {
   id: string;
@@ -106,39 +107,6 @@ export function slugifyForBackfill(label: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-}
-
-// Membership check is the authoritative gate per Sprint 1.2 ADR. We also
-// accept the legacy `workspace.ownerId` as fallback for older workspaces
-// whose membership row may not have been backfilled.
-async function userIsMember(
-  workspaceId: string,
-  userId: string,
-): Promise<boolean> {
-  const db = getDb();
-  const memberRows = await db
-    .select({ role: schema.membership.role })
-    .from(schema.membership)
-    .where(
-      and(
-        eq(schema.membership.workspaceId, workspaceId),
-        eq(schema.membership.userId, userId),
-        eq(schema.membership.status, 'active'),
-      ),
-    )
-    .limit(1);
-  if (memberRows.length > 0) return true;
-  const ownerRows = await db
-    .select({ id: schema.workspace.id })
-    .from(schema.workspace)
-    .where(
-      and(
-        eq(schema.workspace.id, workspaceId),
-        eq(schema.workspace.ownerId, userId),
-      ),
-    )
-    .limit(1);
-  return ownerRows.length > 0;
 }
 
 async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {

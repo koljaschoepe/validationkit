@@ -3,8 +3,11 @@
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
+import { getUserRole, type Role } from "./authz";
 
-export type Role = "owner" | "admin" | "member";
+// Role + getUserRole moved to the single-source authz module (Bundle A).
+// Re-exported here so existing `@/lib/membership` importers keep resolving.
+export type { Role };
 
 export interface MemberRow {
   id: string;
@@ -16,28 +19,6 @@ export interface MemberRow {
   acceptedAt: Date | null;
   invitedById: string | null;
   email: string | null;
-}
-
-/** Returns the current user's role in the given workspace, or null. */
-export async function getUserRole(
-  workspaceId: string,
-  userId: string,
-): Promise<Role | null> {
-  const db = getDb();
-  const rows = await db
-    .select({ role: schema.membership.role })
-    .from(schema.membership)
-    .where(
-      and(
-        eq(schema.membership.workspaceId, workspaceId),
-        eq(schema.membership.userId, userId),
-        eq(schema.membership.status, "active"),
-      ),
-    )
-    .limit(1);
-  const r = rows[0]?.role;
-  if (!r) return null;
-  return r === "owner" || r === "admin" || r === "member" ? r : null;
 }
 
 export async function listMembers(workspaceId: string): Promise<MemberRow[]> {
@@ -224,19 +205,4 @@ export async function revokeMember(
   // revalidatePath removed 2026-05-21 (customer-route-rename Phase D.2) —
   // the path /customers/<workspaceId>/access never matched a real route.
   return { ok: true };
-}
-
-/** Throws when role is not in the allow-list. */
-export async function requireRole(
-  workspaceId: string,
-  userId: string,
-  allow: Role[],
-): Promise<Role> {
-  const role = await getUserRole(workspaceId, userId);
-  if (!role || !allow.includes(role)) {
-    throw new Error(
-      `Forbidden: role=${role ?? "none"} not in [${allow.join(", ")}]`,
-    );
-  }
-  return role;
 }

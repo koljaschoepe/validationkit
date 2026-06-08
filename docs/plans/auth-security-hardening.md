@@ -1,7 +1,7 @@
 # Plan — Bundle A · Auth-Security-Hardening + Authz-Helper-Refactor
 
 > Erstellt: 2026-06-08
-> Status: 🔵 Skelett — /execute bereit
+> Status: 🟡 In Arbeit — Phase 1 ✅ (2026-06-08), Phase 2–6 offen
 > Master: `docs/plans/production-launch-readiness.md`
 > Slug: `auth-security-hardening`
 > Confidence: **High** — basiert auf wave1-03 + wave2-01 (zusammen 13 Kill-IDORs + verifiziert mit file:line)
@@ -14,7 +14,14 @@ Alle 13 Auth+DAL-IDORs schließen, Authorization-Logik auf Single-Source konsoli
 
 ## 2. User-Entscheidungen
 
-Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Discovery in Phase 0 via Block-Resolver bei Unklarheit (z.B. Account-Delete soft vs hard).
+Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Entscheidungen (2026-06-08 Pre-Flight, AskUserQuestion):
+- **Account-Delete:** Hard-Delete sofort + PII-Scrub auf retained Audit-Rows (kein Soft-Delete-Grace). → §13 Alt-B verworfen.
+- **CSP-Mode:** Report-Only erst 24h, dann enforce. → §13 bestätigt.
+- **Rate-Limit-Backend:** Vercel KV (Marketplace-Upstash). → §13 bestätigt.
+
+**Pre-Flight Sub-Step-Adjustments (2026-06-08):**
+- **Arg-Order:** Plan-§6 skizzierte `requireWorkspaceAccess(userId, workspaceId)`, aber 100% des Repos nutzt `(workspaceId, userId)`. `authz.ts` folgt der Repo-Konvention `(workspaceId, userId, ...)` — kein Arg-Swap-Footgun.
+- **DB-Migration 0016 entfällt:** §8 nahm an, `ip_address`/`user_agent` seien `TEXT NOT NULL`. Schema-Verify zeigt: alle 3 Tabellen (`install_decision`/`apply_action`/`dpa_acceptance`) sind bereits `text(...)` ohne `.notNull()` → nullable. Wave-2-DB-K-DB-2-Annahme war falsch. PII-Scrub kann direkt `SET NULL` schreiben (Phase 4).
 
 ## 3. Existing-Patterns im Repo
 
@@ -46,10 +53,10 @@ Vom Master-Plan §2 vererbt (Q1-Q8). Bundle-spezifische Discovery in Phase 0 via
 
 ## 6. Schritte
 
-### Phase 1 — Authz-Helper-Refactor (~3h)
-- [ ] `apps/web/src/lib/authz.ts` erstellen mit `requireWorkspaceAccess(userId, workspaceId)` + `requireMembership(userId, workspaceId, role?)` + `requireRole(userId, workspaceId, role)`
-- [ ] `userIsMember` aus `dal/galaxie.ts` extrahieren, `apply-dal.ts` + `solution-dal.ts` Duplikate löschen, alle Caller auf neuen Helper umstellen
-- [ ] Integration-Test pro Helper
+### Phase 1 — Authz-Helper-Refactor (~3h) ✅ 2026-06-08
+- [x] `apps/web/src/lib/authz.ts` erstellt: `userIsMember` + `getUserRole` + `requireWorkspaceAccess` + `requireMembership` + `requireRole`, alle `(workspaceId, userId, ...)`
+- [x] `userIsMember`-Duplikate aus `dal/galaxie.ts` + `apply-dal.ts` + `solution-dal.ts` gelöscht → Import aus authz. `getUserRole`/`requireRole` aus `membership.ts` nach authz konsolidiert; `Role`-Type re-exported. 2 externe Importer (`access/page.tsx`, `install-requests.ts`) umgestellt.
+- [x] `authz.integration.test.ts` — 5 Helper × member/non-member/legacy-owner/pending/allow-list. Unit-Gate grün (293 passed), Integration-Gate läuft auf main-push (Postgres-Service).
 
 ### Phase 2 — 13 IDOR-Fixes (~6h)
 - [ ] K1 `pollSolution` — `requireWorkspaceAccess` via `findingId → scanId → workspaceId`
