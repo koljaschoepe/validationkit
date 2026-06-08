@@ -208,6 +208,26 @@ export async function consumeCredits(args: {
       balanceAfter,
     });
 
+    // K-PAY2 (Launch-Verify): when the spend exceeded the available pool and
+    // overage was allowed, emit a SEPARATE reason='overage' ledger row whose
+    // |delta| is the metered quantity (= the portion over balance). The
+    // credit-aggregator cron / invoice.created flush pick these up (WHERE
+    // reason='overage' + no stripe_meter_event_log on the row id) and report
+    // |delta| units to the Stripe meter. Without this row the entire
+    // overage → meter → invoice pipeline is dead code. The row is a metering
+    // marker only — balanceAfter carries the real (already-0) balance so the
+    // denormalized-balance invariant holds.
+    const overageQty = Math.max(0, args.amount - totalAvailable);
+    if (overageQty > 0) {
+      await tx.insert(schema.creditLedger).values({
+        workspaceId: args.workspaceId,
+        delta: -overageQty,
+        reason: "overage",
+        referenceId: args.referenceId ?? null,
+        balanceAfter,
+      });
+    }
+
     return {
       allowed: true,
       newSubscriptionUsed: newUsed,

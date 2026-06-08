@@ -50,6 +50,8 @@ interface ResolvedActor {
   workspaceId: string | null;
   workspaceSlug: string | null;
   byokFlag: boolean;
+  /** K-PAY2: when true, a drained pool goes to metered overage, not a hard fail. */
+  autoOverageEnabled: boolean;
 }
 
 async function resolveActor(
@@ -62,6 +64,7 @@ async function resolveActor(
       workspaceId: null,
       workspaceSlug: null,
       byokFlag: false,
+      autoOverageEnabled: false,
       rateLimitTier: "anonymous",
     };
   }
@@ -75,6 +78,7 @@ async function resolveActor(
     workspaceId,
     workspaceSlug,
     byokFlag: snap.byokEnabled,
+    autoOverageEnabled: snap.autoOverageEnabled,
     rateLimitTier: snap.tier as TierId,
   };
 }
@@ -119,7 +123,11 @@ export async function auditAction(
   // Pre-audit credit check for signed-in users. Anonymous demos bypass.
   if (actor.workspaceId) {
     const need = creditsForIntensity(actor.intensity);
-    const gate = await canConsume(actor.workspaceId, need);
+    // K-PAY2: honor auto-overage in the pre-check too, else a drained pool is
+    // rejected here before consumeCredits ever gets the chance to meter it.
+    const gate = await canConsume(actor.workspaceId, need, {
+      allowOverage: actor.autoOverageEnabled,
+    });
     if (!gate.allowed) {
       return { ok: false, error: gate.reason ?? "Out of credits." };
     }
@@ -354,6 +362,7 @@ async function runForegroundAudit(
     amount: credits,
     reason: "audit_consume",
     referenceId: row.id,
+    allowOverage: actor.autoOverageEnabled,
   });
   if (!consume.allowed) {
     // Race: another concurrent audit drained the pool between canConsume and

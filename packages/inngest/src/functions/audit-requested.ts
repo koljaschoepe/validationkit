@@ -67,11 +67,22 @@ export const auditRequested: any = inngest.createFunction(
       let totalCostMicrocents = 0;
       if (workspaceIdFromPayload) {
         await step.run("consume-credits", async () => {
+          // K-PAY2: honor the workspace's auto-overage setting so a drained
+          // pool goes to metered overage instead of failing the background
+          // audit. Read it fresh here (payload may be stale by run time).
+          const overageRow = await db
+            .select({
+              autoOverageEnabled: schema.subscription.autoOverageEnabled,
+            })
+            .from(schema.subscription)
+            .where(eq(schema.subscription.workspaceId, workspaceIdFromPayload))
+            .limit(1);
           const result = await consumeCredits({
             workspaceId: workspaceIdFromPayload,
             amount: credits,
             reason: "audit_consume",
             referenceId: scanId,
+            allowOverage: overageRow[0]?.autoOverageEnabled ?? false,
           });
           if (!result.allowed) {
             throw new Error(result.reason ?? "Out of credits.");
