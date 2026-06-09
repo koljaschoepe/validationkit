@@ -35,11 +35,8 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@lhci/cli": "^0.15.1",
-    "@mswjs/data": "^0.16.2",
-    "@next/eslint-plugin-next": "^16.2.6",
     "@types/node": "^22.10.2",
     "dotenv": "^17.4.2",
     "dotenv-cli": "^7.4.4",
@@ -47,7 +44,6 @@
     "eslint-config-next": "^16.2.6",
     "gray-matter": "^4.0.3",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.5",
     "msw": "^2.14.6",
     "stripe": "^22.1.1",
     "tsx": "^4.19.0",
