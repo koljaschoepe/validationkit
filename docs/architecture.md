@@ -98,7 +98,7 @@ LLM-augmented Fix-Suggestion für Context-Bloat: [`@vk/llm/rules/context-bloat-l
 
 - **Landing-Hero** (`/`, `/pricing`, `/login`, marketing surfaces): **SVG + motion** — ([ADR-0004](./adrs/0004-landing-svg-stack.md)). Statische Composition, niedrige FCP, a11y-freundlich.
 - **Workspace-Galaxie** (`/[workspace]/*`): **PixiJS v8 + @pixi/react** ([ADR-0002](./adrs/0002-ui-render-stack.md)) — Pan/Zoom über echte Daten, 60fps @ 10k+ Sprites. Lädt via `dynamic(ssr: false)` (Pixi nutzt `window` at module-eval).
-- **App-Pages** (`/dashboard`, `/billing`, `/[workspace]/scans`, etc.): **Next 16 RSC + Cache Components** (siehe `cacheTag`/`cacheLife`-Pattern in Layouts).
+- **App-Pages** (`/dashboard`, `/billing`, `/[workspace]/scans`, etc.): **Next 16 RSC**. Cache heute via `unstable_cache` + `revalidateTag` (s. `lib/dal/galaxie.ts`); die `'use cache'`/Cache-Components-Migration ist post-launch geplant — aktuell **0 `'use cache'`-Directives**.
 - **Mobile:** Vaul Bottom-Sheet Inspector + Accordion-RepoTreeView (`<768px` heuristic via media-query + container-query).
 - **Reduced-Motion:** `<StaticGalaxieSVG>` als Fallback auch im Workspace, gegated über `prefers-reduced-motion`.
 

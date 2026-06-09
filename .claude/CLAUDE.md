@@ -6,9 +6,9 @@ Skills-Registry, Customer-Workspaces, Billing.
 
 Solo-Developer-Projekt, deployed auf Vercel.
 
-## Aktive Phase (Mai 2026 →): Nova-3a · Repo-Polish + Production-Code-Prep
+## Aktive Phase (Juni 2026 →): Production-Launch-Readiness · Master `docs/plans/production-launch-readiness.md`
 
-Phase Nova-3a läuft in `docs/plans/nova-3-repo-polish-and-prod-prep.md` (basiert auf 12-Subagent-Audit unter `docs/audits/2026-05/`). Foundation-Cleanup + Landing-Hero-Polish + Stripe-Test-Mode-Verify. Tests-Critical-Paths + Workspace-Hub-Polish sind nach Nova-3b verschoben (eigener /plan-Cycle).
+Production-Launch-Readiness läuft (10 Bundles A–J, basiert auf 14-Subagent-Launch-Verify-Audit unter `docs/audits/2026-06-launch-verify/`). Ziel: GA-ready für zahlende DACH-B2B-Kunden auf eigener Domain. **Stand 2026-06-09:** alle *codebaren* Launch-Kills zu (Auth-IDORs · Stripe-Geld-Pfad · Galaxie-Kontrast+Keyboard · Scan-Detail · Impressum+Datenschutz · Email-Footer · Member-Invite-Mail · GitHub-Audit-Timeout). Kritischer Restpfad = **User-extern** (Stripe-Live-KYC, Sentry/Upstash, Domain-Kauf, Impressum-Daten ausfüllen). Verbleibender Code = Strong/Mid-Politur (G-Deliverability, AGB-de, Cleanup-Rest, Galaxie-LOD, Retention-Cron). Nova-3a ist abgeschlossen (`docs/plans/done/nova-3-repo-polish-and-prod-prep.md`).
 
 **Recently Shipped (Mai–Juni 2026):**
 - **Galaxie-Workspace-Solar** (✅ 2026-06-03) — Workspace-Audit-Galaxie komplett redesigned: Sonnensystem-pro-Repo + Asymm-Severity (nur Kill schreit) + Calm-by-Default + Datadog-Pivot + Mobile-List ≤639 px. Master + 3 Sub-Pläne in `docs/plans/done/galaxie-workspace-solar-redesign/`. Sub-A `03a53b9`, Sub-B `a1df899`, Sub-C `b8ebb04`. Landing-Hero V2 läuft mit gleicher SEVERITY_HEX-Palette mit (Cross-Impact-Re-Walk grün).

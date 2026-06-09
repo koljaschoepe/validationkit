@@ -78,7 +78,8 @@ export const verification = pgTable("verification", {
 // Nova-3a Bundle A (Sub-4 K2): ownerId is nullable + ON DELETE SET NULL so a
 // user-delete does NOT wipe the workspace. After a user delete, ownership
 // transfers to the membership row with role='owner' (validated in the DAL).
-// PII-scrub helper that runs on user-delete is a V2 item.
+// PII-scrub on user-delete is implemented: apps/web/src/lib/pii-scrub.ts runs
+// before the user row is deleted (Bundle A Phase 4, account-actions.ts).
 export const workspace = pgTable("workspace", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: text("owner_id").references(() => user.id, {
