@@ -1,5 +1,6 @@
 # Plan — Galaxie Redesign (Track 1)
 
+> Status: ✅ Done — 2026-06-09 (Confidence-At-Start: High · Kern A–G + B.5 ✅, Commit `1df77e2` · Daten-zuerst-Redesign: echte `finding.filePath`-Migration, Multi-Finding-Grouping, Naming/Legend, count-aware Spacing, File≠Folder + On-Canvas-LOD-Labels, Premium-Sun/Sphere/Starfield, A11y-Parität, Submodule. Deferred Politur: B.6 Root↔Submodule-Edge · B.3b foldered-Files-als-Satelliten · F.6-9 Hover/Edges/Motion/Tooltip · G.4 Keyboard-Walk · E.5 KIND_GLYPH. Migration 0018 noch nicht auf Prod-DB [Deploy-Task].)
 > Slug: `galaxie-redesign` · Confidence: **High** · Erstellt 2026-06-09
 > Master: [`galaxie-landing-redesign.md`](./galaxie-landing-redesign.md) · Synthese: `docs/audits/2026-06-frontend-challenge/_synthesis.md`
 > Löst die offenen Reste von `galaxie-legibility-rework.md` (Bundle I) ab — das war „kein Mechanik-Redesign", dies ist es.
