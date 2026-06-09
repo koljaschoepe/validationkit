@@ -380,6 +380,16 @@ async function handleInvoicePaymentFailed(
   const amount = ((invoice.amount_due ?? 0) / 100).toFixed(2);
   const attempts =
     (invoice as unknown as { attempt_count?: number }).attempt_count ?? 1;
+  // Dunning-cap (Bundle G): Stripe smart-retries make ~4 attempts; only email the
+  // first 3 so a paying customer isn't spammed with a "payment failed" mail on
+  // every retry. Beyond that we stay silent and rely on the in-app past-due
+  // banner + the Stripe dunning emails.
+  if (attempts > 3) {
+    console.warn(
+      `[stripe-webhook] dunning cap hit for workspace ${workspaceId} (attempt ${attempts}) — skipping past-due email`,
+    );
+    return;
+  }
   await sendTransactionalEmail({
     to: contact.email,
     subject: `Payment failed for ${contact.workspaceName}`,
