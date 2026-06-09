@@ -6,7 +6,7 @@ export default async function SettingsRoot({
   params: Promise<{ workspace: string }>;
 }) {
   const { workspace } = await params;
-  // Phase Nova-2: `/[workspace]/settings/user/` is gone — user-scope lives
-  // under `/account/settings/profile`. Land on the workspace General-section.
-  redirect(`/${workspace}/settings/general` as never);
+  // Bundle D: land on Members (a real section) — the old `general` default is a
+  // not-yet-backed stub and is now hidden from the settings nav.
+  redirect(`/${workspace}/settings/members` as never);
 }

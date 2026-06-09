@@ -1,12 +1,6 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-import {
-  UserIcon,
-  KeyIcon,
-  BellIcon,
-  LinkIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { UserIcon, KeyIcon, Trash2Icon } from 'lucide-react';
 import { isAuthEnabled } from '@vk/auth';
 import { getSessionUser } from '@/lib/session';
 import { SettingsLayout, type SettingsGroup } from '@/components/ui-vk';
@@ -21,22 +15,15 @@ export const dynamic = 'force-dynamic';
  * `/[workspace]/settings/*` for workspace-scope. Skip-link target inside.
  */
 
+// Bundle D: `notifications` + `connections` were "Coming soon" stubs — hidden
+// from the nav until their backend lands (routes still resolve by direct URL).
+// Profile stays (it shows read-only account info), Sessions + Delete are real.
 const GROUPS: SettingsGroup[] = [
   {
     label: 'You',
     sections: [
       { href: '/account/settings/profile', label: 'Profile', icon: UserIcon },
       { href: '/account/settings/sessions', label: 'Sessions', icon: KeyIcon },
-      {
-        href: '/account/settings/notifications',
-        label: 'Notifications',
-        icon: BellIcon,
-      },
-      {
-        href: '/account/settings/connections',
-        label: 'Connected accounts',
-        icon: LinkIcon,
-      },
     ],
   },
   {
