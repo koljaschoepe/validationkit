@@ -17,9 +17,12 @@ import type { Severity } from '@/lib/galaxie/types';
  * mount before sprites read from `getBadgeTexture(severity)`.
  */
 
-const ICON_SIZE = 12; // SVG source-px (rendered to ~6 px in-canvas via Sprite width/height)
-const DPR = 2;
-const ICON_COLOR = '#ffffff';
+// Bundle I: 12→16 source-px + DPR 2→3 so the in-canvas badge is crisp at ~10px
+// instead of a ~6px blur. Dark icon (was #ffffff) — the severity discs are now
+// light enough that a near-black glyph reads clearly on every band.
+const ICON_SIZE = 16;
+const DPR = 3;
+const ICON_COLOR = '#1f1f1f';
 const ICON_STROKE_WIDTH = 2.4;
 
 const cache = new Map<Severity, Texture>();

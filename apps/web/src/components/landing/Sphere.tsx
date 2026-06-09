@@ -49,9 +49,12 @@ const CONTAINER_HIT_TARGET_MIN = 28;
  *  is a categorical signal, not a quantity, so all badges read the same. */
 const BADGE_COS = Math.cos(-Math.PI / 6); // ≈ 0.866
 const BADGE_SIN = Math.sin(-Math.PI / 6); // -0.5
-const BADGE_DISC_RADIUS = 11;
-const BADGE_ICON_RATIO = 1.3;
-const BADGE_ICON_COLOR = 'oklch(0.98 0 0)';
+const BADGE_DISC_RADIUS = 16; // Bundle I: 11→16 so the badge isn't ~8px at root.
+const BADGE_ICON_RATIO = 1.4; // Bundle I: 1.3→1.4 — larger glyph inside the disc.
+// Bundle I: dark icon (was white oklch 0.98). Every severity disc is now light
+// enough (L ≥ 0.62) that a near-black glyph clears WCAG 1.4.11 on all bands,
+// whereas white failed at 1.9–2.5:1 on the lighter discs.
+const BADGE_ICON_COLOR = 'oklch(0.20 0 0)';
 const BADGE_PULSE_DURATION_S = 2.0;
 
 /** Container label-pill — Polish-V font-sizes + V2 transparent glass pill. */

@@ -14,12 +14,20 @@ import type { Severity } from './types';
  * RGB so the hex map is the practical single source for both PIXI canvas + SVG
  * fallback + landing-hero.
  */
+// Bundle I (Galaxie-Legibility-Rework, Jun 2026): the old palette inverted
+// salience — Kill #c64a3a had the WEAKEST background-contrast of all bands
+// (CR 4.19 vs #0a0a0a) while the "calm" bands sat at 7–8, so the most critical
+// finding was the dimmest dot on the canvas. Kill is now a brighter, more
+// saturated coral-red (CR ≈ 7) so it reads as the loudest band; Mid and
+// Exceptional get a little chroma so the two most common bands stop vanishing
+// into grey. All bands stay light enough that a single DARK badge-icon clears
+// WCAG 1.4.11 on every disc (see BADGE_ICON_COLOR).
 export const SEVERITY_HEX: Record<Severity, string> = {
-  Kill: '#c64a3a',         // oklch(0.58 0.20 25)
+  Kill: '#f4604e',         // oklch(~0.66 0.18 25) — loudest, CR ≈ 7 vs #0a0a0a
   Weak: '#cf8a4f',         // oklch(0.70 0.13 55)
-  Mid: '#9aa3b3',          // oklch(0.68 0.02 250) — anchor, near-neutral
+  Mid: '#b88a52',          // oklch(0.66 0.10 65) — muted amber, out of the grey
   Strong: '#7eb8a4',       // oklch(0.74 0.06 165)
-  Exceptional: '#acacac',  // oklch(0.70 0 0) — neutral fill, see SEVERITY_OUTLINE_HEX
+  Exceptional: '#8a82e0',  // oklch(0.62 0.14 270) — indigo tint = "rare/special"
 };
 
 /**
@@ -31,7 +39,9 @@ export const SEVERITY_OUTLINE_HEX: Partial<Record<Severity, string>> = {
 };
 
 /** Dismissed finding fill + alpha (master plan §5.3.3 dismissed row). */
-export const DISMISSED_FILL_HEX = '#4d4d4d'; // oklch(0.40 0 0)
+// Bundle I: #4d4d4d (CR 2.34) was effectively invisible on the dark canvas so
+// dismissed findings couldn't be found again — lifted to #6b6b6b (CR ≈ 3.9).
+export const DISMISSED_FILL_HEX = '#6b6b6b'; // oklch(0.52 0 0)
 export const DISMISSED_ALPHA = 0.35;
 
 export function hexToPixiNumber(hex: string): number {
@@ -55,7 +65,7 @@ export function severityHex(s: Severity): string {
  * other band stays calm — glow is a salience signal, not a category one.
  */
 export const SEVERITY_GLOW_RADIUS: Record<Severity, number> = {
-  Kill: 6,
+  Kill: 8, // Bundle I: 6→8 for a broader bloom so Kill reads loud area-wide.
   Weak: 0,
   Mid: 0,
   Strong: 0,

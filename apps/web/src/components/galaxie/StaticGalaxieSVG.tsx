@@ -325,7 +325,7 @@ function Badge({
       <g transform={`translate(${-BADGE_ICON_SIZE / 2}, ${-BADGE_ICON_SIZE / 2})`}>
         <LucideIcon
           size={BADGE_ICON_SIZE}
-          color="#ffffff"
+          color="#1f1f1f"
           strokeWidth={2.4}
           aria-hidden="true"
         />
