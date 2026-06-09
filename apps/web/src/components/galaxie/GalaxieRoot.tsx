@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
+import type { MotionValue } from 'motion/react';
 import type { GalaxieData } from '@/lib/galaxie/types';
 import type { MockWorkspace } from '@/lib/galaxie/mock-workspaces';
 import type { OnboardingState } from './OnboardingBanner';
@@ -58,6 +59,14 @@ export interface GalaxieRootProps {
    * `prefers-reduced-motion` (tour is skipped entirely).
    */
   enableAutoTour?: boolean;
+  /**
+   * Landing-Redesign Phase I.3 — scroll-driven camera progress (0..1). When set,
+   * the Pixi scene's camera follows this (spring-smoothed) value through a
+   * waypoint tour instead of auto-touring. Only honoured on the Pixi path; the
+   * reduced-motion (SVG) + mobile (list) fallbacks ignore it. Spread into
+   * GalaxieScene below.
+   */
+  cameraProgress?: MotionValue<number>;
 }
 
 export default function GalaxieRoot(props: GalaxieRootProps) {

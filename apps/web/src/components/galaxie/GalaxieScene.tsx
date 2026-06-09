@@ -13,6 +13,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useGesture } from '@use-gesture/react';
 import gsap from 'gsap';
+import type { MotionValue } from 'motion/react';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
 import { computeLayout } from '@/lib/galaxie/layout';
 import {
@@ -67,6 +68,29 @@ interface InitialZoomLevel {
   scale: number;
 }
 
+// Landing-Redesign Phase I.3 — pure camera interpolation for the scroll-driven
+// tour. Waypoints store pre-multiplied (x = -worldX * scale) targets, matching
+// the gsap tween convention, so a linear lerp keeps framing consistent. Each
+// leg eases with smootherstep for a calm in/out.
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+function cameraStateAtProgress(p: number, wps: ZoomLevel[]): ZoomLevel {
+  if (wps.length <= 1) return wps[0] ?? { x: 0, y: 0, scale: 1 };
+  const segCount = wps.length - 1;
+  const scaled = Math.min(p, 0.999999) * segCount;
+  const seg = Math.min(Math.floor(scaled), segCount - 1);
+  const localT = scaled - seg;
+  const t = localT * localT * (3 - 2 * localT);
+  const a = wps[seg]!;
+  const b = wps[seg + 1]!;
+  return {
+    x: lerp(a.x, b.x, t),
+    y: lerp(a.y, b.y, t),
+    scale: lerp(a.scale, b.scale, t),
+  };
+}
+
 interface GalaxieSceneProps {
   initialData?: GalaxieData;
   initialWorkspaceSlug?: string;
@@ -80,6 +104,14 @@ interface GalaxieSceneProps {
   initialZoomLevel?: InitialZoomLevel;
   /** Landing auto-tour — see GalaxieRootProps.enableAutoTour. */
   enableAutoTour?: boolean;
+  /**
+   * Landing-Redesign Phase I.3 — when provided, a scroll-driven 0..1 progress
+   * MotionValue takes over the camera: a per-frame rAF loop interpolates between
+   * layout-derived waypoints (overview → on-fire cluster → repo → folder/file)
+   * and reveals the inspector near the end. Drag/wheel/auto-tour stay off
+   * (static-demo already disables them). Absent = normal behaviour.
+   */
+  cameraProgress?: MotionValue<number>;
 }
 
 export default function GalaxieScene({
@@ -91,6 +123,7 @@ export default function GalaxieScene({
   readOnly = false,
   initialZoomLevel,
   enableAutoTour = false,
+  cameraProgress,
 }: GalaxieSceneProps = {}) {
   const isStatic = mode === 'static-demo';
   const router = useRouter();
@@ -316,6 +349,86 @@ export default function GalaxieScene({
     },
     [tweenTo, galaxieData],
   );
+
+  // Landing-Redesign Phase I.3 — scroll-driven camera waypoints, derived once
+  // from the layout: overview → an on-fire customer cluster → one of its Kill
+  // repos → a folder/file inside it. The final leg reveals a representative Kill
+  // finding's inspector. All targets are pre-multiplied (x = -worldX * scale).
+  const scrollTour = useMemo(() => {
+    const overview: ZoomLevel = initialZoomLevel ?? { x: 0, y: 0, scale: 0.32 };
+    const customers = galaxieData.customers;
+    const fireCust =
+      customers.find((c) => c.aggregateSeverity === 'Kill') ?? customers[0];
+    if (!fireCust) {
+      return { waypoints: [overview], inspectorFile: null as FileNode | null };
+    }
+    const center = getClusterCenters(galaxieData).find(
+      (c) => c.customerId === fireCust.id,
+    );
+    const cluster: ZoomLevel = center
+      ? { x: -center.x * 0.8, y: -center.y * 0.8, scale: 0.8 }
+      : overview;
+    const fireRepo =
+      galaxieData.repos.find(
+        (r) => r.customerId === fireCust.id && r.aggregateSeverity === 'Kill',
+      ) ?? galaxieData.repos.find((r) => r.customerId === fireCust.id);
+    const sunNode = fireRepo ? solarLayoutById.get(fireRepo.id) : undefined;
+    const repoWp: ZoomLevel = sunNode
+      ? { x: -sunNode.x * 1.7, y: -sunNode.y * 1.7, scale: 1.7 }
+      : cluster;
+    const folder =
+      solarLayout.folders.find((f) => f.repoId === fireRepo?.id && f.nucleus) ??
+      solarLayout.folders.find((f) => f.repoId === fireRepo?.id);
+    const folderNode = folder ? solarLayoutById.get(folder.id) : undefined;
+    const detailWp: ZoomLevel = folderNode
+      ? { x: -folderNode.x * 3.4, y: -folderNode.y * 3.4, scale: 3.4 }
+      : repoWp;
+    const inspectorFile =
+      galaxieData.files.find(
+        (f) => f.repoId === fireRepo?.id && f.severity === 'Kill',
+      ) ??
+      galaxieData.files.find((f) => f.repoId === fireRepo?.id) ??
+      null;
+    return { waypoints: [overview, cluster, repoWp, detailWp], inspectorFile };
+  }, [galaxieData, solarLayout, solarLayoutById, initialZoomLevel]);
+
+  // rAF loop driving the camera from spring-smoothed scroll progress. Runs only
+  // when a progress source is wired (the landing scrollytelling); the workspace
+  // never passes one. Threshold-crossing guards the inspector reveal so we don't
+  // churn React state every frame.
+  const inspectorOpenRef = useRef(false);
+  useEffect(() => {
+    if (!cameraProgress) return;
+    if (!size) return;
+    const wps = scrollTour.waypoints;
+    if (wps.length === 0) return;
+    let raf = 0;
+    const loop = () => {
+      const p = Math.min(1, Math.max(0, cameraProgress.get()));
+      // Apply every frame — applyCamera() no-ops until worldRef is ready, so an
+      // unconditional apply guarantees the transform lands once the Pixi world
+      // mounts (a progress-delta skip here strands the camera at the identity
+      // origin when progress is static at mount). Cost is one matrix write/frame.
+      const cam = cameraStateAtProgress(p, wps);
+      cameraRef.current.x = cam.x;
+      cameraRef.current.y = cam.y;
+      cameraRef.current.scale = cam.scale;
+      applyCamera();
+      // Inspector reveal is threshold-crossing only, so React state doesn't
+      // churn every frame.
+      const wantOpen = p > 0.86 && scrollTour.inspectorFile != null;
+      if (wantOpen && !inspectorOpenRef.current) {
+        inspectorOpenRef.current = true;
+        setInspectorTarget({ kind: 'file', file: scrollTour.inspectorFile! });
+      } else if (!wantOpen && inspectorOpenRef.current) {
+        inspectorOpenRef.current = false;
+        setInspectorTarget(null);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [cameraProgress, size, scrollTour, applyCamera]);
 
   const handleSearchPick = useCallback(
     (res: SearchResult) => {
