@@ -7,8 +7,13 @@ import type {
 } from './types';
 
 export const SOLAR_LAYOUT_CONSTANTS = {
-  CUSTOMER_CLUSTER_RADIUS: 600,
-  SUN_ORBIT_IN_CLUSTER: 220,
+  // Bundle I: 600→750. Clusters were close enough to crowd each other once the
+  // sun orbit widened; scaled up to keep clusters cleanly separated.
+  CUSTOMER_CLUSTER_RADIUS: 750,
+  // Bundle I: 220→300 resolves the accepted Phase-1 sun-overlap risk — at 220
+  // the 5-sun tangential gap (~259px) was below a sun's file-orbit reach
+  // (~260px), so neighbouring repos' file planets overlapped. 300 → ~353px gap.
+  SUN_ORBIT_IN_CLUSTER: 300,
   FOLDER_ORBITS: [60, 95] as const,
   FILE_ORBIT: 130,
   SUN_RADIUS: 28,

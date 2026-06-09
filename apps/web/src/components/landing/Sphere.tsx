@@ -58,12 +58,14 @@ const BADGE_ICON_COLOR = 'oklch(0.20 0 0)';
 const BADGE_PULSE_DURATION_S = 2.0;
 
 /** Container label-pill — Polish-V font-sizes + V2 transparent glass pill. */
+// Bundle I: +4 across the board. At ~0.55 px/unit (root-fill) folder labels were
+// rendering at ~9px (under the legibility floor); these land them at ~11–15px.
 const CONTAINER_LABEL_FONT_SIZE: Record<NodeKind, number> = {
-  workspace: 24,
-  customer: 22,
-  repo: 20,
-  submodule: 17,
-  folder: 16,
+  workspace: 28,
+  customer: 26,
+  repo: 24,
+  submodule: 20,
+  folder: 20,
   file: 0,
 };
 const LABEL_PILL_PADDING_X = 18;
@@ -231,8 +233,10 @@ export function Sphere({
   const reducedMotion = useReducedMotion();
 
   // Role-based opacity (Apple-Maps parent-ghost-ring effect).
+  // Bundle I: ancestor 0.32→0.5 so traversed levels stay legible (a label at
+  // 32% on the dark canvas was unreadable on top of being small).
   const roleOpacity =
-    focusRole === 'ancestor' ? 0.32 :
+    focusRole === 'ancestor' ? 0.5 :
     focusRole === 'sibling' ? 0.5 :
     1;
 
