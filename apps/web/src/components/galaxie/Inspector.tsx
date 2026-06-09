@@ -53,6 +53,7 @@ export function Inspector({
   onClose,
   onSelectFile,
   readOnly = false,
+  contained = false,
 }: {
   target: InspectorTarget;
   onClose: () => void;
@@ -62,6 +63,14 @@ export function Inspector({
   onSelectFile?: (file: FileNode) => void;
   /** When true, hides dismiss/snooze + replaces AI-solution apply with sign-in CTA. */
   readOnly?: boolean;
+  /**
+   * Landing-Redesign Phase I — when embedded in a bounded card (static-demo
+   * showcase) the panel must stay INSIDE the card, not escape to the viewport.
+   * Contained mode skips the body-portal and renders `absolute`, so it anchors
+   * to + is clipped by GalaxieScene's `relative overflow-hidden` root. The
+   * full-bleed workspace keeps the default `fixed` body-portal drawer.
+   */
+  contained?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -120,18 +129,23 @@ export function Inspector({
       ? `Finding inspector — ${target.file.path}`
       : `Folder inspector — ${target.folder.name}`;
 
-  return createPortal(
+  const panel = (
     <div
       ref={panelRef}
       role="dialog"
       aria-modal="true"
       aria-label={panelLabel}
       className={cn(
-        'pointer-events-auto fixed z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
-        // Mobile: bottom sheet
-        'inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t',
+        'pointer-events-auto z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
+        // Contained (landing card) anchors to the relative canvas root; default
+        // is a viewport-fixed drawer for the full-bleed workspace.
+        contained ? 'absolute' : 'fixed',
+        // Mobile: bottom sheet (card-relative % when contained, else viewport vh)
+        'inset-x-0 bottom-0 rounded-t-2xl border-t',
+        contained ? 'h-[82%]' : 'h-[70vh]',
         // Desktop: right sidebar
-        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[380px] sm:rounded-none sm:border-l sm:border-t-0',
+        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:rounded-none sm:border-l sm:border-t-0',
+        contained ? 'sm:w-[340px]' : 'sm:w-[380px]',
       )}
     >
       {target.kind === 'file' ? (
@@ -144,9 +158,12 @@ export function Inspector({
           onSelectFile={onSelectFile}
         />
       )}
-    </div>,
-    document.body,
+    </div>
   );
+
+  // Contained mode renders in-tree (inside GalaxieScene's clipped root); the
+  // workspace drawer portals to body so it floats above all app chrome.
+  return contained ? panel : createPortal(panel, document.body);
 }
 
 // ── File inspector (existing inspector experience, lifted into a sub-component) ──

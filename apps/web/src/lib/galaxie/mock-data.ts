@@ -24,7 +24,7 @@ function hashString(s: string): number {
   return h >>> 0;
 }
 
-type SeverityMix = 'kill-heavy' | 'mixed' | 'strong-heavy';
+type SeverityMix = 'kill-heavy' | 'mixed' | 'strong-heavy' | 'calm' | 'on-fire';
 
 function pickSeverity(rng: () => number, mix: SeverityMix): Severity {
   const r = rng();
@@ -40,6 +40,25 @@ function pickSeverity(rng: () => number, mix: SeverityMix): Severity {
     if (r < 0.15) return 'Weak';
     if (r < 0.35) return 'Mid';
     if (r < 0.75) return 'Strong';
+    return 'Exceptional';
+  }
+  // Landing-Redesign Phase K — `calm` / `on-fire` exist so the public showcase
+  // honours the asymmetric-severity promise ("only fire screams, the rest stays
+  // calm"). A repo aggregates to Kill if ANY of its 10 files is Kill, so to keep
+  // most of the 30-repo portfolio quiet the per-file Kill rate must be tiny
+  // (~1% → ~10% repo-Kill). `on-fire` customers carry the visible blazes.
+  if (mix === 'calm') {
+    if (r < 0.01) return 'Kill';
+    if (r < 0.05) return 'Weak';
+    if (r < 0.3) return 'Mid';
+    if (r < 0.83) return 'Strong';
+    return 'Exceptional';
+  }
+  if (mix === 'on-fire') {
+    if (r < 0.07) return 'Kill';
+    if (r < 0.27) return 'Weak';
+    if (r < 0.6) return 'Mid';
+    if (r < 0.9) return 'Strong';
     return 'Exceptional';
   }
   if (r < 0.15) return 'Kill';
@@ -59,14 +78,33 @@ function aggregate(severities: Severity[]): Severity {
   return 'Mid';
 }
 
-const CUSTOMER_PROFILES: Array<{
+interface CustomerProfile {
   slug: string;
   label: string;
   mix: SeverityMix;
-}> = [
+}
+
+const CUSTOMER_PROFILES: CustomerProfile[] = [
   { slug: 'acme', label: 'Acme Robotics', mix: 'mixed' },
   { slug: 'globex', label: 'Globex Corp', mix: 'kill-heavy' },
   { slug: 'initech', label: 'Initech Labs', mix: 'strong-heavy' },
+];
+
+/**
+ * Landing-Redesign Phase K — a richer agency portfolio for the public
+ * Pixi-Solar showcase (6 customers, 2 "on fire" = kill-heavy). Distinct from
+ * the 3-customer workspace fallback above so the marketing demo reads as a
+ * real multi-tenant agency at a glance. Passed explicitly via
+ * `generateMockGalaxieData(seed, LANDING_DEMO_PROFILES)` — the default stays
+ * 3 customers so the workspace mock + its test are untouched.
+ */
+export const LANDING_DEMO_PROFILES: CustomerProfile[] = [
+  { slug: 'northwind', label: 'Northwind Trading', mix: 'calm' },
+  { slug: 'globex', label: 'Globex Corp', mix: 'on-fire' },
+  { slug: 'acme', label: 'Acme Robotics', mix: 'calm' },
+  { slug: 'umbrella', label: 'Umbrella Health', mix: 'calm' },
+  { slug: 'soylent', label: 'Soylent Systems', mix: 'on-fire' },
+  { slug: 'initech', label: 'Initech Labs', mix: 'calm' },
 ];
 
 const REPO_NAMES = ['core', 'agents', 'docs-portal', 'pipeline', 'platform'];
@@ -129,6 +167,7 @@ export const DEFAULT_MOCK_SEED = 'galaxie-mock-v1';
 
 export function generateMockGalaxieData(
   seedString: string = DEFAULT_MOCK_SEED,
+  profiles: CustomerProfile[] = CUSTOMER_PROFILES,
 ): GalaxieData {
   const rng = mulberry32(hashString(seedString));
 
@@ -136,7 +175,7 @@ export function generateMockGalaxieData(
   const repos: Repo[] = [];
   const files: FileNode[] = [];
 
-  for (const profile of CUSTOMER_PROFILES) {
+  for (const profile of profiles) {
     const customerId = `cust-${profile.slug}`;
     const customerSeverities: Severity[] = [];
 

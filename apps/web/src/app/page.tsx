@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { HeroText } from "@/components/landing/HeroText";
+import { PortfolioShowcase } from "@/components/landing/PortfolioShowcase";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { LandingNarrative } from "@/components/landing/LandingNarrative";
 
@@ -17,6 +18,7 @@ export default function Home() {
       <SiteNav />
       <main id="main-content" aria-label="Main content">
         <HeroText />
+        <PortfolioShowcase />
         <HeroSection />
         <LandingNarrative />
       </main>

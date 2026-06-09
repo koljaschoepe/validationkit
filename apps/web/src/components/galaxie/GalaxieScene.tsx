@@ -623,6 +623,7 @@ export default function GalaxieScene({
               onClose={closeInspector}
               onSelectFile={handleSelectFileFromFolder}
               readOnly={readOnly}
+              contained={isStatic}
             />
           )}
           {tooltip && !inspectorTarget && <GalaxieTooltip state={tooltip} />}
