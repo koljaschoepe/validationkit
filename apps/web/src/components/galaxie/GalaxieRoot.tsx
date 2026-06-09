@@ -101,35 +101,38 @@ export default function GalaxieRoot(props: GalaxieRootProps) {
   if (props.mode === 'static-demo') {
     return <GalaxieScene {...props} />;
   }
-  // Desktop interactive: the PixiJS canvas is mouse-only (WCAG 2.1.1). Offer a
-  // keyboard-reachable List-view toggle that swaps in the fully-accessible
-  // SolarListView (focusable rows → same Inspector). K-A11Y1.
+  // Desktop interactive: SaaS-Premium-Overhaul Bundle A inverts the default —
+  // the triage CONSOLE (SolarListView: keyboard-native, sortable, group-by) is
+  // now the surface you land on; the Pixi galaxie is an on-demand "Map" tab
+  // (portfolio severity-geography), lazy-mounted only when opened. This also
+  // closes the old a11y Kill (mouse-only canvas on the critical path) since the
+  // default surface is fully keyboard-/screenreader-reachable.
   return <InteractiveGalaxie {...props} />;
 }
 
 function InteractiveGalaxie(props: GalaxieRootProps) {
-  const [view, setView] = useState<'galaxy' | 'list'>('galaxy');
+  const [view, setView] = useState<'console' | 'map'>('console');
   return (
     <div className="relative h-full w-full">
       <div
         role="group"
-        aria-label="Galaxie view"
+        aria-label="Workspace-Ansicht"
         className="absolute right-3 top-3 z-50 flex items-center gap-0.5 rounded-md border border-white/10 bg-black/70 p-0.5 backdrop-blur"
       >
         <ViewButton
-          active={view === 'galaxy'}
-          onClick={() => setView('galaxy')}
-          icon={<LayoutGrid className="size-3.5" aria-hidden />}
-          label="Galaxy view"
+          active={view === 'console'}
+          onClick={() => setView('console')}
+          icon={<List className="size-3.5" aria-hidden />}
+          label="Konsole (Triage-Liste, Tastatur-zugänglich)"
         />
         <ViewButton
-          active={view === 'list'}
-          onClick={() => setView('list')}
-          icon={<List className="size-3.5" aria-hidden />}
-          label="List view (keyboard accessible)"
+          active={view === 'map'}
+          onClick={() => setView('map')}
+          icon={<LayoutGrid className="size-3.5" aria-hidden />}
+          label="Map (Galaxie-Portfolio-Überblick)"
         />
       </div>
-      {view === 'list' ? (
+      {view === 'console' ? (
         <SolarListView
           initialData={props.initialData}
           readOnly={props.readOnly}
