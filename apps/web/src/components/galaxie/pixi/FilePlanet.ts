@@ -1,6 +1,8 @@
-import { Container, Graphics, Rectangle } from 'pixi.js';
+import { Container, Graphics, Rectangle, type Text } from 'pixi.js';
 import { GlowFilter } from 'pixi-filters';
 import { SOLAR_LAYOUT_CONSTANTS } from '@/lib/galaxie/solar-layout';
+import { fileDisplayName } from '@/lib/galaxie/humanize';
+import { applyLabelLOD, createNodeLabel, setNodeLabelText } from './NodeLabel';
 import {
   DISMISSED_FILL_HEX,
   SEVERITY_GLOW_RADIUS,
@@ -18,6 +20,7 @@ const { FILE_PLANET_RADIUS } = SOLAR_LAYOUT_CONSTANTS;
 
 export class FilePlanet extends Container {
   file: FileNode;
+  nodeLabel: Text;
   private graphics: Graphics;
   private mobileScale: number;
   private badge: Container | null = null;
@@ -35,6 +38,10 @@ export class FilePlanet extends Container {
     this.addChild(this.graphics);
     this.paint(file);
     this.updateBadge(file);
+
+    // Phase E — on-canvas label (LOD-gated, updated by GalaxieWorld's ticker).
+    this.nodeLabel = createNodeLabel(fileDisplayName(file));
+    this.addChild(this.nodeLabel);
 
     const hitR = 22 * mobileScale;
     this.hitArea = new Rectangle(-hitR, -hitR, hitR * 2, hitR * 2);
@@ -54,6 +61,17 @@ export class FilePlanet extends Container {
       this.paint(file);
       this.updateBadge(file);
     }
+    setNodeLabelText(this.nodeLabel, fileDisplayName(file));
+  }
+
+  /** Phase E — update the label's LOD state for the current camera zoom. */
+  updateLabelLOD(cameraScale: number): void {
+    applyLabelLOD(
+      this.nodeLabel,
+      cameraScale,
+      'file',
+      FILE_PLANET_RADIUS * this.mobileScale,
+    );
   }
 
   /** Re-render the badge after the texture cache becomes ready. */
@@ -92,17 +110,19 @@ export class FilePlanet extends Container {
       ? hexToPixiNumber(DISMISSED_FILL_HEX)
       : hexToPixiNumber(SEVERITY_HEX[file.severity]);
 
+    // Phase E — file = hollow/ringed: a faint fill + a thick severity ring, so
+    // files read as outlined circles vs the folder's solid disc. The ring IS the
+    // file's identity, so the separate Exceptional outline is folded into it.
     this.graphics.clear();
-    this.graphics.circle(0, 0, r).fill({ color: fillColor });
-
-    const outlineHex = !dismissed
-      ? SEVERITY_OUTLINE_HEX[file.severity]
-      : undefined;
-    if (outlineHex) {
-      this.graphics
-        .circle(0, 0, r)
-        .stroke({ width: 1, color: hexToPixiNumber(outlineHex) });
-    }
+    this.graphics.circle(0, 0, r).fill({ color: fillColor, alpha: 0.25 });
+    const ringColor = !dismissed
+      ? hexToPixiNumber(SEVERITY_OUTLINE_HEX[file.severity] ?? SEVERITY_HEX[file.severity])
+      : fillColor;
+    this.graphics.circle(0, 0, r).stroke({ width: 2, color: ringColor });
+    // Phase F — faint upper-left highlight gives the hollow disc a little volume.
+    this.graphics
+      .circle(-r * 0.28, -r * 0.28, r * 0.32)
+      .fill({ color: 0xffffff, alpha: 0.16 });
 
     const glowRadius = dismissed ? 0 : SEVERITY_GLOW_RADIUS[file.severity] * s;
     this.filters =

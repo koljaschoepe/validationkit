@@ -1,6 +1,6 @@
 'use client';
 
-import { Application, extend } from '@pixi/react';
+import { Application, extend, useTick } from '@pixi/react';
 import { Container, Graphics, Text, type FederatedPointerEvent } from 'pixi.js';
 import {
   useCallback,
@@ -28,9 +28,9 @@ import type {
   Severity,
   SolarLayoutNode,
 } from '@/lib/galaxie/types';
-import { extractTopFolder } from '@/lib/galaxie/solar-layout';
 import { getPulseDuration } from '@/lib/galaxie/severity-colors';
 import { isMobileViewport } from '@/lib/galaxie/device';
+import { SPACE_BG } from '@/lib/galaxie/space-bg';
 import {
   DEFAULT_WORKSPACE_SLUG,
   MOCK_WORKSPACES,
@@ -355,11 +355,10 @@ export default function GalaxieScene({
   // synthetic `${repoId}::folder::${name}` which would clutter the URL).
   const openFolderInspector = useCallback(
     (folder: FolderNode) => {
-      const files = galaxieData.files.filter(
-        (f) =>
-          f.repoId === folder.repoId &&
-          extractTopFolder(f.path) === folder.name,
-      );
+      // Galaxie-Redesign Phase B (B.3a) — folders now carry their fileIds, so the
+      // inspector reads them directly instead of re-deriving via path matching.
+      const idSet = new Set(folder.fileIds);
+      const files = galaxieData.files.filter((f) => idSet.has(f.id));
       setInspectorTarget({ kind: 'folder', folder, files });
     },
     [galaxieData.files],
@@ -549,12 +548,8 @@ export default function GalaxieScene({
   return (
     <div
       ref={hostRef}
-      className="relative h-full w-full touch-none overflow-hidden bg-black"
-      style={{
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)',
-        backgroundSize: '28px 28px',
-      }}
+      className="relative h-full w-full touch-none overflow-hidden"
+      style={SPACE_BG}
     >
       {onboarding ? (
         <ActivationChecklist
@@ -700,6 +695,24 @@ function GalaxieWorld({
   const edgeContainerRef = useRef<EdgeContainer | null>(null);
   const hoverEdgeRef = useRef<SelectedEdgeContainer | null>(null);
   const selectedEdgeRef = useRef<SelectedEdgeContainer | null>(null);
+
+  // Phase E — drive on-canvas label LOD from the camera zoom. The ticker only
+  // touches labels when the scale changed meaningfully, so it stays cheap.
+  const lastLabelScaleRef = useRef(-1);
+  useTick(() => {
+    const scale = camera.scale;
+    if (Math.abs(scale - lastLabelScaleRef.current) < 0.002) return;
+    lastLabelScaleRef.current = scale;
+    for (const sprite of spritesRef.current.values()) {
+      if (
+        sprite instanceof RepoSun ||
+        sprite instanceof FolderPlanet ||
+        sprite instanceof FilePlanet
+      ) {
+        sprite.updateLabelLOD(scale);
+      }
+    }
+  });
 
   // Mount-effect (runs once per Container): ctx setup, event handlers, teardown.
   useEffect(() => {
@@ -1006,9 +1019,21 @@ function GalaxieWorld({
     const sunPositions = new Map<string, { x: number; y: number }>(
       sunNodes.map((s) => [s.id, { x: s.x, y: s.y }]),
     );
-    orbitContainerRef.current?.redraw(sunNodes);
+    orbitContainerRef.current?.redraw(sunNodes, childNodes);
     edgeContainerRef.current?.redraw(sunPositions, childNodes);
-  }, [data, folders, layoutById]);
+
+    // Phase E — apply the current label LOD to freshly (re)built sprites so
+    // labels don't stay hidden until the next zoom change.
+    for (const sprite of sprites.values()) {
+      if (
+        sprite instanceof RepoSun ||
+        sprite instanceof FolderPlanet ||
+        sprite instanceof FilePlanet
+      ) {
+        sprite.updateLabelLOD(camera.scale);
+      }
+    }
+  }, [data, folders, layoutById, camera]);
 
   // Badge-cache becomes ready after async rasterization. Refresh every mounted
   // sprite so the badges that were skipped at mount-time now appear.

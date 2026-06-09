@@ -8,14 +8,15 @@ import {
   SparklesIcon,
   XCircleIcon,
 } from 'lucide-react';
-import type { FileNode } from '@/lib/galaxie/types';
 import type { SolutionRow } from '@/lib/solution-dal';
 import { DiffRenderer } from './diff-renderer';
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ATTEMPTS = 15; // 30s ceiling
 
-export function AISolutionPlaceholder({ file }: { file: FileNode }) {
+// Galaxie-Redesign Phase B (B.1) — keyed on a real finding.id (was a FileNode,
+// whose id used to equal the finding id). One placeholder per finding row.
+export function AISolutionPlaceholder({ findingId }: { findingId: string }) {
   const [solution, setSolution] = useState<SolutionRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,8 +24,8 @@ export function AISolutionPlaceholder({ file }: { file: FileNode }) {
   const startedForId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (startedForId.current === file.id) return;
-    startedForId.current = file.id;
+    if (startedForId.current === findingId) return;
+    startedForId.current = findingId;
     setSolution(null);
     setError(null);
     setLoading(true);
@@ -35,12 +36,12 @@ export function AISolutionPlaceholder({ file }: { file: FileNode }) {
         pollRef.current = null;
       }
     };
-  }, [file.id]);
+  }, [findingId]);
 
   async function start() {
     try {
       const { requestSolution } = await import('@/lib/solution-actions');
-      const result = await requestSolution(file.id);
+      const result = await requestSolution(findingId);
       setSolution(result);
       setLoading(false);
       if (result?.status === 'pending') startPolling();
@@ -62,7 +63,7 @@ export function AISolutionPlaceholder({ file }: { file: FileNode }) {
         return;
       }
       const { pollSolution } = await import('@/lib/solution-actions');
-      const result = await pollSolution(file.id);
+      const result = await pollSolution(findingId);
       setSolution(result);
       if (result && result.status !== 'pending') {
         if (pollRef.current !== null) window.clearInterval(pollRef.current);
@@ -91,7 +92,7 @@ export function AISolutionPlaceholder({ file }: { file: FileNode }) {
       />
     );
 
-  if (solution.status === 'unsupported') return <UnsupportedBlock file={file} />;
+  if (solution.status === 'unsupported') return <UnsupportedBlock findingId={findingId} />;
   if (solution.status === 'pending') return <LoadingBlock />;
   if (solution.status === 'failed')
     return (
@@ -116,7 +117,7 @@ function LoadingBlock() {
   );
 }
 
-function UnsupportedBlock({ file }: { file: FileNode }) {
+function UnsupportedBlock({ findingId }: { findingId: string }) {
   return (
     <div className="space-y-3">
       <div className="rounded border border-white/10 bg-white/5 px-3 py-3 text-xs">
@@ -130,7 +131,7 @@ function UnsupportedBlock({ file }: { file: FileNode }) {
         </p>
       </div>
       <p className="font-mono type-mono-sm text-white/30">
-        finding-id: {file.id}
+        finding-id: {findingId}
       </p>
     </div>
   );

@@ -328,6 +328,11 @@ export const finding = pgTable(
     deterministic: boolean("deterministic").notNull(),
     confidence: varchar("confidence", { length: 10 }),
     citations: jsonb("citations").notNull().default(sql`'[]'::jsonb`),
+    // Galaxie-Redesign Phase A — real file identity for honest folder/file
+    // rendering. file_path backfilled from citations[0]; file_kind (AgentFileKind
+    // via @vk/parser classifyPath) populates on new writes only. Both nullable.
+    filePath: text("file_path"),
+    fileKind: text("file_kind"),
     // Sprint G5 — dismiss + snooze.
     // dismissStatus ∈ 'active' | 'dismissed' | 'snoozed' (auto-expires when snoozed_until < now()).
     // dismissReason ∈ 'false-positive' | 'acceptable-risk' | 'wont-fix' (nullable).

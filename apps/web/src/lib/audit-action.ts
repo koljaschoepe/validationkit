@@ -5,7 +5,7 @@ import { existsSync, statSync } from "node:fs";
 import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { galaxieWorkspaceTag } from "./cache-tags";
-import { scanRepository } from "@vk/parser";
+import { scanRepository, classifyPath } from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import { inngest, isInngestEnabled, BACKGROUND_THRESHOLD } from "@vk/inngest";
@@ -407,6 +407,9 @@ async function runForegroundAudit(
   if (report.findings.length > 0) {
     await db.insert(schema.finding).values(
       report.findings.map((f) => {
+        // Galaxie-Redesign Phase A — persist real file identity. First citation
+        // is the finding's primary file; classifyPath derives the AgentFileKind.
+        const filePath = f.citations[0]?.path ?? null;
         const base = {
           scanId: row.id,
           category: f.category,
@@ -415,6 +418,8 @@ async function runForegroundAudit(
           detail: f.detail,
           deterministic: f.deterministic,
           citations: f.citations as unknown as Record<string, unknown>[],
+          filePath,
+          fileKind: filePath ? classifyPath(filePath) : null,
         };
         return f.confidence ? { ...base, confidence: f.confidence } : base;
       }),

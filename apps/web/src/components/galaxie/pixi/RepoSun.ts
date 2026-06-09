@@ -1,21 +1,26 @@
-import { Container, Graphics, Rectangle } from 'pixi.js';
+import { Container, Graphics, Rectangle, type Text } from 'pixi.js';
+import { GlowFilter } from 'pixi-filters';
 import { SOLAR_LAYOUT_CONSTANTS } from '@/lib/galaxie/solar-layout';
 import type { Repo, Severity, SolarLayoutNode } from '@/lib/galaxie/types';
 import { getBadgeTexture } from './edge-badge-texture';
 import { buildBadge } from './FolderPlanet';
+import { applyLabelLOD, createNodeLabel, setNodeLabelText } from './NodeLabel';
 
-// Neutral-grey approximations of the OKLCH lightness layers (master §5.1).
-// The sun body intentionally never takes a severity hue — the planets carry
-// severity, the sun aggregates spatially. Only the worst-child Kill-aggregate
-// gets a thin badge on the outer corona; everything else stays grey.
-const INNER_CORE_COLOR = 0xececec; // oklch(0.92 0 0)
-const MID_HALO_COLOR = 0x7f7f7f; // oklch(0.55 0 0)
-const OUTER_CORONA_COLOR = 0x1f1f1f; // oklch(0.20 0 0)
+// Galaxie-Redesign Phase F — the sun is a warm star, not a grey disc. Layered
+// concentric warm fills approximate a radial photosphere gradient (robust, no
+// gradient-API dependency); a GlowFilter adds the corona bloom. The body still
+// carries NO severity hue — severity lives on the planets + the Kill badge.
+const PHOTO_EDGE = 0x8a4f24; // outer photosphere
+const PHOTO_MID = 0xd99a5c; // mid
+const PHOTO_INNER = 0xffd9a0; // inner
+const PHOTO_CORE = 0xfff6e8; // bright core
+const CORONA_COLOR = 0xffb060; // glow + faint corona ring
 
 const { SUN_RADIUS } = SOLAR_LAYOUT_CONSTANTS;
 
 export class RepoSun extends Container {
   repo: Repo;
+  nodeLabel: Text;
   private graphics: Graphics;
   private mobileScale: number;
   private aggregateBadge: Container | null = null;
@@ -35,6 +40,10 @@ export class RepoSun extends Container {
     this.paint();
     this.updateAggregateBadge(repo.aggregateSeverity);
 
+    // Phase E — on-canvas label (LOD-gated, updated by GalaxieWorld's ticker).
+    this.nodeLabel = createNodeLabel(repo.label);
+    this.addChild(this.nodeLabel);
+
     const hitR = (SUN_RADIUS + 4) * mobileScale;
     this.hitArea = new Rectangle(-hitR, -hitR, hitR * 2, hitR * 2);
     this.eventMode = 'static';
@@ -48,6 +57,17 @@ export class RepoSun extends Container {
     if (aggregateChanged) {
       this.updateAggregateBadge(repo.aggregateSeverity);
     }
+    setNodeLabelText(this.nodeLabel, repo.label);
+  }
+
+  /** Phase E — update the label's LOD state for the current camera zoom. */
+  updateLabelLOD(cameraScale: number): void {
+    applyLabelLOD(
+      this.nodeLabel,
+      cameraScale,
+      'sun',
+      SUN_RADIUS * this.mobileScale,
+    );
   }
 
   refreshBadgeFromTextureCache(): void {
@@ -71,15 +91,34 @@ export class RepoSun extends Container {
     const s = this.mobileScale;
     const r = SUN_RADIUS * s;
     this.graphics.clear();
+    // Faint corona ring just outside the body (the GlowFilter blooms this).
+    this.graphics.circle(0, 0, r * 1.12).fill({ color: CORONA_COLOR, alpha: 0.1 });
+    // Photosphere — concentric warm fills, dark edge → bright core.
+    this.graphics.circle(0, 0, r).fill({ color: PHOTO_EDGE });
+    this.graphics.circle(0, 0, r * 0.82).fill({ color: PHOTO_MID });
+    this.graphics.circle(0, 0, r * 0.55).fill({ color: PHOTO_INNER });
+    this.graphics.circle(0, 0, r * 0.32).fill({ color: PHOTO_CORE });
+    // Specular hotspot (upper-left) + warm rim light.
     this.graphics
-      .circle(0, 0, r * 1.0)
-      .fill({ color: OUTER_CORONA_COLOR, alpha: 0.18 });
+      .circle(-r * 0.26, -r * 0.26, r * 0.18)
+      .fill({ color: 0xffffff, alpha: 0.5 });
     this.graphics
-      .circle(0, 0, r * 0.75)
-      .fill({ color: MID_HALO_COLOR, alpha: 0.45 });
-    this.graphics
-      .circle(0, 0, r * 0.45)
-      .fill({ color: INNER_CORE_COLOR, alpha: 1.0 });
+      .circle(0, 0, r)
+      .stroke({ width: 1, color: 0xffe6c2, alpha: 0.55 });
+
+    // Corona bloom.
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    this.filters = [
+      new GlowFilter({
+        distance: (reducedMotion ? 12 : 18) * s,
+        outerStrength: 1.5,
+        innerStrength: 0,
+        color: CORONA_COLOR,
+        quality: 0.3,
+      }),
+    ];
   }
 
   /** Only renders a badge when the worst-child severity is Kill — the rest of

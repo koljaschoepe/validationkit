@@ -77,6 +77,19 @@ export interface ParserResult {
   scannedAt: Date;
   files: ParsedAgentFile[];
   warnings: ParserWarning[];
+  /**
+   * Galaxie-Redesign Phase B (B.5) — git submodules declared in `.gitmodules`.
+   * A submodule folder (e.g. `.claude` pointing at a shared team-context repo)
+   * is rendered as its own node class. Optional for backwards-compatibility with
+   * persisted scans that predate this field.
+   */
+  submodules?: Submodule[];
+}
+
+/** One git submodule from `.gitmodules` — its repo-relative path + remote URL. */
+export interface Submodule {
+  path: string;
+  url: string;
 }
 
 /** Non-fatal parser issues. Audit-Findings should not duplicate these. */

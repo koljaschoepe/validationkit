@@ -7,21 +7,30 @@ import {
   BellIcon,
   ChevronDownIcon,
   EyeOffIcon,
+  FileTextIcon,
   LogInIcon,
   RefreshCwIcon,
+  SparklesIcon,
   XIcon,
 } from 'lucide-react';
 import gsap from 'gsap';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SeverityBadge } from '@/components/ui/severity-badge';
 import { cn } from '@/lib/utils';
 import type {
   FileNode,
+  FindingRef,
   FolderNode,
   InspectorTarget,
   Severity,
 } from '@/lib/galaxie/types';
 import { SEVERITY_BANDS } from '@/lib/galaxie/types';
+import {
+  fileDisplayName,
+  fileSubtitle,
+  fileVendor,
+  folderDisplayName,
+  folderSubtitle,
+} from '@/lib/galaxie/humanize';
 import { whyImportantFor } from './inspector-templates';
 import { AISolutionPlaceholder } from './AISolutionPlaceholder';
 
@@ -151,13 +160,82 @@ function FileInspector({
   onClose: () => void;
   readOnly: boolean;
 }) {
+  // Galaxie-Redesign Phase B (B.1) — a file groups N findings. The header
+  // identifies the file (path + aggregate severity); each finding renders as a
+  // card with its own dismiss/snooze/apply, keyed on the real finding.id.
+  const findings = file.findings;
+  return (
+    <>
+      <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <SeverityBadge severity={file.severity} />
+            <span className="truncate text-sm font-medium text-white">
+              {fileDisplayName(file)}
+            </span>
+          </div>
+          {fileSubtitle(file) ? (
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-white/45">
+              <span className="truncate">{fileSubtitle(file)}</span>
+              {fileVendor(file) ? (
+                <span className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[10px] uppercase tracking-wide text-white/55">
+                  {fileVendor(file)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <p className="mt-0.5 truncate font-mono text-[11px] text-white/35">
+            {file.path}
+          </p>
+          {findings.length > 1 ? (
+            <p className="mt-1 type-mono-sm uppercase tracking-wider text-white/40">
+              {findings.length} findings
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close inspector (Esc)"
+          className="rounded p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
+        >
+          <XIcon className="size-4" />
+        </button>
+      </header>
+
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        {findings.map((finding) => (
+          <FindingCard
+            key={finding.id}
+            finding={finding}
+            readOnly={readOnly}
+            onActioned={onClose}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// One finding within a file. Owns its own dismiss/snooze/apply transition,
+// keyed on the real finding.id. Phase B (B.1).
+function FindingCard({
+  finding,
+  readOnly,
+  onActioned,
+}: {
+  finding: FindingRef;
+  readOnly: boolean;
+  onActioned: () => void;
+}) {
   const [dismissOpen, setDismissOpen] = useState(false);
   const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
   const [pending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const isDismissed = file.dismissStatus === 'dismissed';
-  const isSnoozed = file.dismissStatus === 'snoozed';
+  const isDismissed = finding.dismissStatus === 'dismissed';
+  const isSnoozed = finding.dismissStatus === 'snoozed';
 
   function callAction(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setActionError(null);
@@ -167,7 +245,7 @@ function FileInspector({
         setActionError(result.error ?? 'Action failed.');
         return;
       }
-      onClose();
+      onActioned();
     });
   }
 
@@ -175,7 +253,7 @@ function FileInspector({
     setDismissOpen(false);
     callAction(async () => {
       const { dismissFindingAction } = await import('@/lib/apply-actions');
-      return dismissFindingAction(file.id, reason);
+      return dismissFindingAction(finding.id, reason);
     });
   }
 
@@ -183,104 +261,91 @@ function FileInspector({
     setSnoozeOpen(false);
     callAction(async () => {
       const { snoozeFindingAction } = await import('@/lib/apply-actions');
-      return snoozeFindingAction(file.id, duration);
+      return snoozeFindingAction(finding.id, duration);
     });
   }
 
   function undo() {
     callAction(async () => {
       const { undoDismissAction } = await import('@/lib/apply-actions');
-      return undoDismissAction(file.id);
+      return undoDismissAction(finding.id);
     });
   }
 
   return (
-    <>
-      <header className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <SeverityBadge severity={file.severity} />
-            <span className="truncate font-mono text-xs text-white/60">
-              {file.path}
-            </span>
+    <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.02]">
+      <div className="flex items-start justify-between gap-2 border-b border-white/10 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <SeverityBadge severity={finding.severity} />
+          <span className="truncate type-mono-sm uppercase tracking-wider text-white/50">
+            {finding.category ?? 'finding'}
+          </span>
+        </div>
+        {!readOnly ? (
+          <div className="flex shrink-0 items-center gap-1">
+            <Dropdown
+              open={dismissOpen}
+              onOpenChange={setDismissOpen}
+              trigger={
+                <span
+                  className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                  aria-disabled={pending || isDismissed}
+                >
+                  <EyeOffIcon className="size-3" />
+                  Dismiss
+                  <ChevronDownIcon className="size-2.5" />
+                </span>
+              }
+            >
+              {DISMISS_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => dismiss(o.key)}
+                  className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
+                >
+                  {o.label}
+                </button>
+              ))}
+            </Dropdown>
+            <Dropdown
+              open={snoozeOpen}
+              onOpenChange={setSnoozeOpen}
+              trigger={
+                <span
+                  className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                  aria-disabled={pending || isSnoozed}
+                >
+                  <BellIcon className="size-3" />
+                  Snooze
+                  <ChevronDownIcon className="size-2.5" />
+                </span>
+              }
+            >
+              {SNOOZE_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => snooze(o.key)}
+                  className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
+                >
+                  {o.label}
+                </button>
+              ))}
+            </Dropdown>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {!readOnly && (
-            <>
-              <Dropdown
-                open={dismissOpen}
-                onOpenChange={setDismissOpen}
-                trigger={
-                  <span
-                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
-                    aria-disabled={pending || isDismissed}
-                  >
-                    <EyeOffIcon className="size-3" />
-                    Dismiss
-                    <ChevronDownIcon className="size-2.5" />
-                  </span>
-                }
-              >
-                {DISMISS_OPTIONS.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => dismiss(o.key)}
-                    className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </Dropdown>
-              <Dropdown
-                open={snoozeOpen}
-                onOpenChange={setSnoozeOpen}
-                trigger={
-                  <span
-                    className="flex items-center gap-1 rounded px-1.5 py-1 type-mono-sm text-white/60 transition hover:bg-white/10 hover:text-white"
-                    aria-disabled={pending || isSnoozed}
-                  >
-                    <BellIcon className="size-3" />
-                    Snooze
-                    <ChevronDownIcon className="size-2.5" />
-                  </span>
-                }
-              >
-                {SNOOZE_OPTIONS.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => snooze(o.key)}
-                    className="w-full rounded px-2 py-1.5 text-left text-xs text-white/85 hover:bg-white/10"
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </Dropdown>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close inspector (Esc)"
-            className="rounded p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
-          >
-            <XIcon className="size-4" />
-          </button>
-        </div>
-      </header>
+        ) : null}
+      </div>
 
       {actionError ? (
-        <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+        <div className="border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {actionError}
         </div>
       ) : null}
-
       {isDismissed ? (
         <StateBanner
           label="Dismissed"
-          detail={file.dismissReason ? `Reason: ${file.dismissReason}` : null}
+          detail={finding.dismissReason ? `Reason: ${finding.dismissReason}` : null}
           onUndo={undo}
           pending={pending}
         />
@@ -289,8 +354,8 @@ function FileInspector({
         <StateBanner
           label="Snoozed"
           detail={
-            file.snoozedUntil
-              ? `Until ${new Date(file.snoozedUntil).toISOString().slice(0, 16).replace('T', ' ')}`
+            finding.snoozedUntil
+              ? `Until ${new Date(finding.snoozedUntil).toISOString().slice(0, 16).replace('T', ' ')}`
               : null
           }
           onUndo={undo}
@@ -298,62 +363,43 @@ function FileInspector({
         />
       ) : null}
 
-      <Tabs defaultValue="detail" className="flex-1 overflow-hidden">
-        <TabsList
-          className={`m-3 grid w-[calc(100%-1.5rem)] ${readOnly ? 'grid-cols-2' : 'grid-cols-3'} bg-white/5`}
-        >
-          <TabsTrigger value="detail" className="text-xs">
-            Detail
-          </TabsTrigger>
-          <TabsTrigger value="why" className="text-xs">
+      <div className="space-y-3 px-3 py-3 text-sm text-white/85">
+        {finding.label ? (
+          <p className="font-medium text-white">{finding.label}</p>
+        ) : null}
+        <p className="whitespace-pre-wrap leading-relaxed">{finding.snippet}</p>
+        <div className="border-t border-white/10 pt-3">
+          <h4 className="font-mono text-xs uppercase tracking-wider text-white/40">
             Why important
-          </TabsTrigger>
-          {!readOnly && (
-            <TabsTrigger value="ai" className="text-xs">
-              AI solution
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <TabsContent value="detail" className="space-y-3 text-sm text-white/85">
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wider text-white/40">
-                Finding
-              </h3>
-              <p className="mt-1 font-mono text-sm text-white">{file.path}</p>
-            </div>
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wider text-white/40">
-                Detail
-              </h3>
-              <p className="mt-1 whitespace-pre-wrap leading-relaxed">
-                {file.findingSnippet}
-              </p>
-            </div>
-            {readOnly && (
-              <Link
-                href="/login"
-                className="mt-4 inline-flex items-center gap-1.5 rounded border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/25"
-              >
-                <LogInIcon className="size-3" />
-                Sign in to apply AI solutions
-              </Link>
-            )}
-          </TabsContent>
-
-          <TabsContent value="why" className="text-sm text-white/85">
-            <p className="leading-relaxed">{whyImportantFor(inferCategory(file.path))}</p>
-          </TabsContent>
-
-          {!readOnly && (
-            <TabsContent value="ai">
-              <AISolutionPlaceholder file={file} />
-            </TabsContent>
-          )}
+          </h4>
+          <p className="mt-1 leading-relaxed text-white/70">
+            {whyImportantFor(finding.category ?? '')}
+          </p>
         </div>
-      </Tabs>
-    </>
+        {readOnly ? (
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 rounded border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/25"
+          >
+            <LogInIcon className="size-3" />
+            Sign in to apply AI solutions
+          </Link>
+        ) : showSolution ? (
+          <div className="border-t border-white/10 pt-3">
+            <AISolutionPlaceholder findingId={finding.id} />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowSolution(true)}
+            className="inline-flex items-center gap-1.5 rounded border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/25"
+          >
+            <SparklesIcon className="size-3" />
+            Generate AI solution
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -406,12 +452,18 @@ function FolderInspector({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <SeverityBadge severity={folder.aggregateSeverity} />
-            <span className="truncate font-mono text-xs text-white/60">
-              {folder.name}/
+            <span className="truncate text-sm font-medium text-white">
+              {folderDisplayName(folder)}
             </span>
           </div>
+          <p className="mt-0.5 truncate text-xs text-white/45">
+            {folderSubtitle(folder)}
+          </p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-white/35">
+            {folder.name}/
+          </p>
           <p className="mt-1 text-xs text-white/40">
-            {folder.fileCount} {folder.fileCount === 1 ? 'finding' : 'findings'}
+            {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
           </p>
         </div>
         <button
@@ -423,6 +475,45 @@ function FolderInspector({
           <XIcon className="size-4" />
         </button>
       </header>
+
+      {/* Phase B (B.5) — shared team-context submodule. */}
+      {folder.isSubmodule ? (
+        <div className="border-b border-white/10 bg-[#5eead4]/[0.07] px-4 py-2.5">
+          <p className="type-mono-sm uppercase tracking-wider text-[#5eead4]/80">
+            Shared Team Context · Submodule
+          </p>
+          {folder.submoduleUrl ? (
+            <p className="mt-0.5 truncate font-mono text-[11px] text-white/55">
+              {folder.submoduleUrl}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Phase B (B.4) — governing context-root config, if this folder has one.
+          Clicking it opens the file inspector for that context file. */}
+      {folder.nucleus ? (
+        <button
+          type="button"
+          onClick={() => {
+            const f = files.find((x) => x.id === folder.nucleus!.fileId);
+            if (f) onSelectFile?.(f);
+          }}
+          className="flex w-full items-center gap-2.5 border-b border-white/10 bg-primary/[0.06] px-4 py-2.5 text-left transition hover:bg-primary/[0.1]"
+        >
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#fff6e8] ring-1 ring-white/20">
+            <FileTextIcon className="size-3 text-black/70" />
+          </span>
+          <div className="min-w-0">
+            <p className="type-mono-sm uppercase tracking-wider text-white/40">
+              Governing context
+            </p>
+            <p className="truncate font-mono text-xs text-white/85">
+              {folder.nucleus.path.split('/').pop()}
+            </p>
+          </div>
+        </button>
+      ) : null}
 
       <div className="flex flex-wrap gap-1.5 border-b border-white/10 px-4 py-3">
         {SEVERITY_BANDS.map((sev) => {
@@ -463,8 +554,13 @@ function FolderInspector({
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-white/5"
                 >
                   <SeverityBadge severity={f.severity} />
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-white/85">
-                    {f.path}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs text-white/85">
+                      {fileDisplayName(f)}
+                    </span>
+                    <span className="block truncate font-mono text-[10px] text-white/35">
+                      {f.path}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -477,18 +573,6 @@ function FolderInspector({
 }
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
-
-function inferCategory(path: string): string {
-  const lower = path.toLowerCase();
-  if (lower.includes('ghost') || lower.includes('unused') || lower.includes('never referenced'))
-    return 'unused-agent';
-  if (lower.includes('duplicate') || lower.includes('similarity')) return 'duplicate-guidance';
-  if (lower.includes('bloat')) return 'context-bloat';
-  if (lower.includes('not found') || lower.includes('stale')) return 'stale-reference';
-  if (lower.includes('budget')) return 'token-budget';
-  if (lower.includes('conflict')) return 'conflicting-rules';
-  return 'unknown';
-}
 
 function Dropdown({
   open,

@@ -3,10 +3,13 @@ import {
   Graphics,
   Rectangle,
   Sprite,
+  type Text,
   type Texture,
 } from 'pixi.js';
 import { GlowFilter } from 'pixi-filters';
 import { SOLAR_LAYOUT_CONSTANTS } from '@/lib/galaxie/solar-layout';
+import { folderDisplayName } from '@/lib/galaxie/humanize';
+import { applyLabelLOD, createNodeLabel, setNodeLabelText } from './NodeLabel';
 import {
   SEVERITY_GLOW_RADIUS,
   SEVERITY_HEX,
@@ -29,6 +32,7 @@ const { FOLDER_PLANET_RADIUS } = SOLAR_LAYOUT_CONSTANTS;
 
 export class FolderPlanet extends Container {
   folder: FolderNode;
+  nodeLabel: Text;
   private graphics: Graphics;
   private mobileScale: number;
   private badge: Container | null = null;
@@ -47,6 +51,10 @@ export class FolderPlanet extends Container {
     this.paint(folder.aggregateSeverity);
     this.updateBadge(folder.aggregateSeverity);
 
+    // Phase E — on-canvas label (LOD-gated, updated by GalaxieWorld's ticker).
+    this.nodeLabel = createNodeLabel(folderDisplayName(folder));
+    this.addChild(this.nodeLabel);
+
     const hitR = 22 * mobileScale;
     this.hitArea = new Rectangle(-hitR, -hitR, hitR * 2, hitR * 2);
     this.eventMode = 'static';
@@ -62,6 +70,17 @@ export class FolderPlanet extends Container {
       this.paint(folder.aggregateSeverity);
       this.updateBadge(folder.aggregateSeverity);
     }
+    setNodeLabelText(this.nodeLabel, folderDisplayName(folder));
+  }
+
+  /** Phase E — update the label's LOD state for the current camera zoom. */
+  updateLabelLOD(cameraScale: number): void {
+    applyLabelLOD(
+      this.nodeLabel,
+      cameraScale,
+      'folder',
+      FOLDER_PLANET_RADIUS * this.mobileScale,
+    );
   }
 
   /** Re-render the badge from the texture cache. Idempotent; safe to call when
@@ -95,6 +114,30 @@ export class FolderPlanet extends Container {
       this.graphics
         .circle(0, 0, r)
         .stroke({ width: 1, color: hexToPixiNumber(outlineHex) });
+    }
+
+    // Galaxie-Redesign Phase B (B.4) — a folder governed by a context-root config
+    // (CLAUDE.md / AGENTS.md / gemini.md) renders a distinct warm inner core, so
+    // it reads as "this folder IS context", not just a directory.
+    if (this.folder.nucleus) {
+      const coreR = r * 0.46;
+      this.graphics.circle(0, 0, coreR).fill({ color: 0xfff6e8, alpha: 0.92 });
+      this.graphics
+        .circle(0, 0, coreR)
+        .stroke({ width: 1, color: hexToPixiNumber(SEVERITY_HEX[severity]) });
+    }
+
+    // Phase F — baked sphere shading: upper-left highlight + faint atmosphere rim.
+    this.graphics
+      .circle(-r * 0.3, -r * 0.3, r * 0.42)
+      .fill({ color: 0xffffff, alpha: 0.16 });
+    this.graphics.circle(0, 0, r).stroke({ width: 1, color: 0xffffff, alpha: 0.1 });
+
+    // Phase B (B.5) — a submodule (shared team context) gets a distinct teal
+    // double-ring, marking it as its own node class.
+    if (this.folder.isSubmodule) {
+      this.graphics.circle(0, 0, r + 2.5).stroke({ width: 1.5, color: 0x5eead4, alpha: 0.85 });
+      this.graphics.circle(0, 0, r + 5).stroke({ width: 1, color: 0x5eead4, alpha: 0.4 });
     }
 
     const glowRadius = SEVERITY_GLOW_RADIUS[severity] * s;

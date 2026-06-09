@@ -4,11 +4,16 @@ import { getDb, isDbEnabled, schema } from '@vk/db';
 import type {
   Customer,
   FileNode,
+  FindingRef,
   GalaxieData,
   Repo,
   Severity,
 } from '@/lib/galaxie/types';
-import { SEVERITY_BANDS } from '@/lib/galaxie/types';
+import { SEVERITY_BANDS, aggregateSeverities } from '@/lib/galaxie/types';
+import {
+  groupFindingRefsIntoFiles,
+  type FindingFileEntry,
+} from '@/lib/galaxie/group-findings';
 import { galaxieWorkspaceTag } from '@/lib/cache-tags';
 import { listSolutionStatusByFinding } from '@/lib/solution-dal';
 import { userIsMember } from '@/lib/authz';
@@ -87,15 +92,10 @@ export function normalizeSeverity(s: string | null | undefined): Severity {
   return 'Mid';
 }
 
-export function aggregateSeverities(items: Severity[]): Severity {
-  if (items.length === 0) return 'Exceptional';
-  if (items.some((s) => s === 'Kill')) return 'Kill';
-  if (items.some((s) => s === 'Weak')) return 'Weak';
-  if (items.every((s) => s === 'Exceptional')) return 'Exceptional';
-  const strongCount = items.filter((s) => s === 'Strong').length;
-  if (strongCount > items.length / 2) return 'Strong';
-  return 'Mid';
-}
+// Galaxie-Redesign Phase A — re-export the canonical aggregation (now in
+// `lib/galaxie/types.ts`, pure + shared with the layout). Kept here so existing
+// importers (customer-dal) keep resolving it from the DAL.
+export { aggregateSeverities };
 
 /**
  * Mirror of the `slugify` regex used in the Sprint G2 0008 migration backfill.
@@ -161,35 +161,53 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
     findingsRows.map((f) => f.id),
   );
 
-  // Build FileNode[] — one per finding.
+  // Galaxie-Redesign Phase B (B.1) — normalize each finding into a FindingRef +
+  // its file coordinates; the pure groupFindingRefsIntoFiles collapses them to
+  // one FileNode per real path (unit-tested below).
   // Sprint G5 — lazy-expire snooze: if snoozed_until < now, treat as active.
   const now = new Date();
   const reposById = new Map(reposRows.map((r) => [r.id, r]));
-  const files: FileNode[] = [];
+
+  const entries: FindingFileEntry[] = [];
   for (const f of findingsRows) {
     const repoId = scanIdToRepoId.get(f.scanId);
     if (!repoId) continue;
     const repo = reposById.get(repoId);
     if (!repo) continue;
     const sol = solutionStatusMap.get(f.id);
-    let dismissStatus = (f.dismissStatus as 'active' | 'dismissed' | 'snoozed') ?? 'active';
+    let dismissStatus = (f.dismissStatus as FindingRef['dismissStatus']) ?? 'active';
     if (dismissStatus === 'snoozed' && f.snoozedUntil && f.snoozedUntil < now) {
       dismissStatus = 'active';
     }
-    files.push({
+    // Real path is the source of truth for folder derivation + the grouping key;
+    // citations[0].path is the pre-migration fallback; the prose title is only
+    // used for legacy uncited rows.
+    const citations = Array.isArray(f.citations)
+      ? (f.citations as { path?: string }[])
+      : [];
+    const realPath = f.filePath ?? citations[0]?.path ?? f.title;
+    const ref: FindingRef = {
       id: f.id,
-      repoId,
-      customerId: repo.customerId ?? '',
-      path: f.title || f.category,
       severity: normalizeSeverity(f.severity),
-      findingSnippet: f.detail.slice(0, 240),
+      category: f.category as FindingRef['category'],
+      label: f.title || f.category,
+      snippet: f.detail.slice(0, 240),
       solutionStatus: sol?.status ?? 'none',
       ...(sol?.confidence ? { solutionConfidence: sol.confidence } : {}),
       dismissStatus,
       ...(f.dismissReason ? { dismissReason: f.dismissReason } : {}),
       ...(f.snoozedUntil ? { snoozedUntil: f.snoozedUntil } : {}),
+    };
+    entries.push({
+      repoId,
+      customerId: repo.customerId ?? '',
+      path: realPath,
+      ...(f.fileKind ? { kind: f.fileKind as FileNode['kind'] } : {}),
+      ref,
     });
   }
+
+  const files = groupFindingRefsIntoFiles(entries);
 
   // Aggregate per repo — Sprint G5 excludes dismissed.
   const sevByRepo = new Map<string, Severity[]>();
@@ -199,13 +217,23 @@ async function loadWorkspaceData(workspaceId: string): Promise<GalaxieData> {
     arr.push(f.severity);
     sevByRepo.set(f.repoId, arr);
   }
-  const repos: Repo[] = reposRows.map((r) => ({
-    id: r.id,
-    customerId: r.customerId ?? '',
-    slug: r.id.slice(0, 8),
-    label: r.label,
-    aggregateSeverity: aggregateSeverities(sevByRepo.get(r.id) ?? []),
-  }));
+  const repos: Repo[] = reposRows.map((r) => {
+    // Phase B (B.5) — submodules ride along in the latest scan's persisted
+    // ParserResult (scan.rawScan), so no extra migration is needed.
+    const scan = latestScanPerRepo.get(r.id);
+    const rawScan = scan?.rawScan as { submodules?: { path: string; url: string }[] } | null;
+    const submodules = Array.isArray(rawScan?.submodules)
+      ? rawScan.submodules
+      : [];
+    return {
+      id: r.id,
+      customerId: r.customerId ?? '',
+      slug: r.id.slice(0, 8),
+      label: r.label,
+      aggregateSeverity: aggregateSeverities(sevByRepo.get(r.id) ?? []),
+      ...(submodules.length > 0 ? { submodules } : {}),
+    };
+  });
 
   // Aggregate per customer (from repo-aggregates).
   const sevByCustomer = new Map<string, Severity[]>();

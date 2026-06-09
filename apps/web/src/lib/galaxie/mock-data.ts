@@ -84,6 +84,23 @@ const FILE_PATHS = [
   'aider.conf.yml',
 ];
 
+// Phase B (B.4) — hard-coded kinds for the demo (classifyPath lives in @vk/parser
+// which pulls node:fs, so we don't import it into this client-side mock). Drives
+// the folder nucleus: `.claude/CLAUDE.md` → claude-md makes `.claude` a context
+// folder with a visible inner core.
+const FILE_KIND_BY_PATH: Record<string, NonNullable<FileNode['kind']>> = {
+  '.claude/CLAUDE.md': 'claude-md',
+  '.claude/agents/researcher.md': 'claude-agent',
+  '.claude/agents/reviewer.md': 'claude-agent',
+  '.claude/commands/audit.md': 'claude-command',
+  '.cursor/rules/typescript.mdc': 'cursor-rule-mdc',
+  '.cursor/rules/style.mdc': 'cursor-rule-mdc',
+  '.windsurf/rules.md': 'windsurf-rule',
+  '.clinerules': 'cline-rule',
+  'AGENTS.md': 'agents-md',
+  'aider.conf.yml': 'aider-conf',
+};
+
 const FINDING_SNIPPETS: Record<Severity, string[]> = {
   Kill: [
     'Conflicting directives: "always use X" vs "never use X" in same scope.',
@@ -138,6 +155,10 @@ export function generateMockGalaxieData(
           path,
           severity: sev,
           findingSnippet: snippet,
+          ...(FILE_KIND_BY_PATH[path] ? { kind: FILE_KIND_BY_PATH[path] } : {}),
+          // Phase B (B.1) — mock files carry a single synthetic finding so the
+          // demo inspector renders the same finding-list shape as real data.
+          findings: [{ id: `${repoId}::${path}::finding`, severity: sev, snippet }],
         });
         repoSeverities.push(sev);
       }
@@ -149,6 +170,11 @@ export function generateMockGalaxieData(
         slug: repoSlug,
         label: repoSlug,
         aggregateSeverity: repoAgg,
+        // Phase B (B.5) — demo the shared-team-context submodule pattern
+        // (`.claude` mounted from a separate repo, like code-apps-template).
+        submodules: [
+          { path: '.claude', url: 'git@github.com:unit-ix/code-apps-context.git' },
+        ],
       });
       customerSeverities.push(repoAgg);
     }

@@ -1,11 +1,14 @@
 import path from "node:path";
+import { readFile } from "node:fs/promises";
 import fg from "fast-glob";
 import type {
   ParsedAgentFile,
   ParserResult,
   ParserWarning,
+  Submodule,
 } from "@vk/core";
 import { parseFile } from "./parse-file.js";
+import { parseGitmodules } from "./gitmodules.js";
 
 const GLOBS = [
   "CLAUDE.md",
@@ -90,10 +93,56 @@ export async function scanRepository(
 
   files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
+  const submodules = await scanSubmodules(absRoot, ignore);
+
   return {
     rootPath: absRoot,
     scannedAt: new Date(),
     files,
     warnings,
+    submodules,
   };
+}
+
+/**
+ * Phase B (B.5) — read every `.gitmodules` (root + nested) and resolve each
+ * submodule path relative to the repo root. Errors are swallowed (a missing or
+ * unreadable `.gitmodules` simply yields no submodules).
+ */
+async function scanSubmodules(
+  absRoot: string,
+  ignore: string[],
+): Promise<Submodule[]> {
+  const moduleFiles = await fg([".gitmodules", "**/.gitmodules"], {
+    cwd: absRoot,
+    ignore,
+    dot: true,
+    onlyFiles: true,
+    unique: true,
+    absolute: true,
+    suppressErrors: true,
+  });
+
+  const out: Submodule[] = [];
+  const seen = new Set<string>();
+  for (const abs of moduleFiles) {
+    let content: string;
+    try {
+      content = await readFile(abs, "utf8");
+    } catch {
+      continue;
+    }
+    // Submodule paths are relative to the .gitmodules dir; normalise to repo-root.
+    const dir = path.relative(absRoot, path.dirname(abs));
+    for (const sub of parseGitmodules(content)) {
+      const rel = path
+        .join(dir, sub.path)
+        .split(path.sep)
+        .join("/");
+      if (seen.has(rel)) continue;
+      seen.add(rel);
+      out.push({ path: rel, url: sub.url });
+    }
+  }
+  return out;
 }

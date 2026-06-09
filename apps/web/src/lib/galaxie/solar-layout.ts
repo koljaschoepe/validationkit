@@ -1,3 +1,4 @@
+import type { AgentFileKind } from '@vk/core';
 import type {
   FolderNode,
   GalaxieData,
@@ -5,24 +6,62 @@ import type {
   SolarLayout,
   SolarLayoutNode,
 } from './types';
+import { aggregateSeverities } from './types';
+
+// Galaxie-Redesign Phase B (B.4) — a folder's nucleus is the context-root config
+// file that governs it. Lower number = higher priority when a folder has more
+// than one candidate (CLAUDE.md wins over AGENTS.md wins over gemini.md).
+const NUCLEUS_KIND_PRIORITY: Partial<Record<AgentFileKind, number>> = {
+  'claude-md': 0,
+  'agents-md': 1,
+  'gemini-md': 2,
+};
 
 export const SOLAR_LAYOUT_CONSTANTS = {
   // Bundle I: 600→750. Clusters were close enough to crowd each other once the
   // sun orbit widened; scaled up to keep clusters cleanly separated.
   CUSTOMER_CLUSTER_RADIUS: 750,
-  // Bundle I: 220→300 resolves the accepted Phase-1 sun-overlap risk — at 220
-  // the 5-sun tangential gap (~259px) was below a sun's file-orbit reach
-  // (~260px), so neighbouring repos' file planets overlapped. 300 → ~353px gap.
+  // Phase D — count-aware sun placement. `SUN_ORBIT_IN_CLUSTER` is the base/min
+  // orbit; it grows when a customer has many repos so neighbouring suns keep a
+  // tangential gap of ~`SUN_TANGENTIAL_GAP`. (Bundle I had pushed this to a flat
+  // 300 to fix 5-sun overlap; D makes it scale instead of staying flat.)
   SUN_ORBIT_IN_CLUSTER: 300,
-  FOLDER_ORBITS: [60, 95] as const,
-  FILE_ORBIT: 130,
+  SUN_TANGENTIAL_GAP: 380,
+  // Phase D — count-aware orbit radii. Folders sit on ONE ring whose radius grows
+  // with folder count so the per-planet arc stays ≥ the gap target (no more fixed
+  // 2-orbit/6-cap crowding); root files sit on an outer ring kept ≥ INTER_RING_GAP
+  // beyond the folder ring. Min radii give sparse repos a calm, stable layout.
+  FOLDER_ORBIT_MIN: 70,
+  FILE_ORBIT_MIN: 150,
+  FOLDER_ARC_GAP: 48,
+  FILE_ARC_GAP: 30,
+  INTER_RING_GAP: 44,
   SUN_RADIUS: 28,
-  FOLDER_PLANET_RADIUS: 8,
-  FILE_PLANET_RADIUS: 4,
+  // Phase E — modest radius bump for legibility + the file-vs-folder distinction.
+  FOLDER_PLANET_RADIUS: 9,
+  FILE_PLANET_RADIUS: 5,
 } as const;
 
-const { CUSTOMER_CLUSTER_RADIUS, SUN_ORBIT_IN_CLUSTER, FOLDER_ORBITS, FILE_ORBIT } =
-  SOLAR_LAYOUT_CONSTANTS;
+const {
+  CUSTOMER_CLUSTER_RADIUS,
+  SUN_ORBIT_IN_CLUSTER,
+  SUN_TANGENTIAL_GAP,
+  FOLDER_ORBIT_MIN,
+  FILE_ORBIT_MIN,
+  FOLDER_ARC_GAP,
+  FILE_ARC_GAP,
+  INTER_RING_GAP,
+} = SOLAR_LAYOUT_CONSTANTS;
+
+/**
+ * Phase D — radius of a ring carrying `count` evenly-spaced planets, such that
+ * the per-planet arc length is at least `arcGap`. Clamped to `min` so sparse
+ * rings stay at a calm baseline. `R = max(min, count·arcGap / 2π)`.
+ */
+function ringRadius(min: number, count: number, arcGap: number): number {
+  if (count <= 0) return min;
+  return Math.max(min, (count * arcGap) / (2 * Math.PI));
+}
 
 function hashString(s: string): number {
   let h = 0;
@@ -32,23 +71,21 @@ function hashString(s: string): number {
   return h >>> 0;
 }
 
-/** Extract the top-level folder name from a file path, or `null` for root files. */
-export function extractTopFolder(path: string): string | null {
+/**
+ * The owning (immediate-parent) folder of a file path — i.e. `dirname`.
+ * Returns `null` for repo-root files (no folder segment).
+ *
+ * Galaxie-Redesign Phase B (B.2): replaces the old top-segment-only
+ * `extractTopFolder`. A file at `.claude/agents/x.md` is now owned by
+ * `.claude/agents` (its real parent), not lumped under the top segment `.claude`.
+ * Folders form a flat set keyed by the full parent path (unique within a repo);
+ * the human display label (last segment, humanized) lands in Phase C.
+ */
+export function extractOwningFolder(path: string): string | null {
   if (!path) return null;
-  const slash = path.indexOf('/');
+  const slash = path.lastIndexOf('/');
   if (slash <= 0) return null;
   return path.slice(0, slash);
-}
-
-function aggregateSeverity(severities: readonly Severity[]): Severity {
-  if (severities.some((s) => s === 'Kill')) return 'Kill';
-  if (severities.some((s) => s === 'Weak')) return 'Weak';
-  if (severities.length > 0 && severities.every((s) => s === 'Exceptional')) {
-    return 'Exceptional';
-  }
-  const strongCount = severities.filter((s) => s === 'Strong').length;
-  if (strongCount > severities.length / 2) return 'Strong';
-  return 'Mid';
 }
 
 export interface ClusterCenter {
@@ -110,10 +147,14 @@ export function computeSolarLayout(data: GalaxieData): SolarLayout {
       (a, b) => hashString(a.slug) - hashString(b.slug),
     );
     const n = sorted.length;
+    // Phase D — sun orbit grows with repo count so neighbouring suns keep a
+    // tangential gap (single sun stays centred at the base orbit).
+    const sunOrbit =
+      n <= 1 ? 0 : ringRadius(SUN_ORBIT_IN_CLUSTER, n, SUN_TANGENTIAL_GAP);
     sorted.forEach((repo, i) => {
       const angle = n === 1 ? 0 : (i / n) * Math.PI * 2;
-      const x = center.x + Math.cos(angle) * SUN_ORBIT_IN_CLUSTER;
-      const y = center.y + Math.sin(angle) * SUN_ORBIT_IN_CLUSTER;
+      const x = center.x + Math.cos(angle) * sunOrbit;
+      const y = center.y + Math.sin(angle) * sunOrbit;
       sunPositionById.set(repo.id, { x, y });
       nodes.push({
         id: repo.id,
@@ -132,6 +173,7 @@ export function computeSolarLayout(data: GalaxieData): SolarLayout {
     name: string;
     fileIds: string[];
     severities: Severity[];
+    nucleus?: { fileId: string; kind: AgentFileKind; path: string; priority: number };
   };
 
   const filesByRepo = new Map<string, typeof data.files>();
@@ -152,77 +194,125 @@ export function computeSolarLayout(data: GalaxieData): SolarLayout {
     const rootFiles: typeof data.files = [];
 
     for (const file of files) {
-      const top = extractTopFolder(file.path);
-      if (top === null) {
+      const owner = extractOwningFolder(file.path);
+      if (owner === null) {
         rootFiles.push(file);
         continue;
       }
-      const group = foldersInRepo.get(top) ?? {
-        name: top,
+      const group = foldersInRepo.get(owner) ?? {
+        name: owner,
         fileIds: [],
         severities: [],
       };
       group.fileIds.push(file.id);
-      group.severities.push(file.severity);
-      foldersInRepo.set(top, group);
+      // Galaxie-Redesign Phase A — exclude dismissed findings from the folder
+      // severity aggregate, mirroring the repo/customer rollups in the DAL. The
+      // file still renders as a node; only its severity is omitted from the roll-up.
+      if (file.dismissStatus !== 'dismissed') group.severities.push(file.severity);
+      // Phase B (B.4) — track the folder's governing context-root config. Highest
+      // priority (lowest number) wins; ties keep the first encountered (data.files
+      // order is deterministic), so the result is stable.
+      if (file.kind !== undefined) {
+        const priority = NUCLEUS_KIND_PRIORITY[file.kind];
+        if (
+          priority !== undefined &&
+          (group.nucleus === undefined || priority < group.nucleus.priority)
+        ) {
+          group.nucleus = {
+            fileId: file.id,
+            kind: file.kind,
+            path: file.path,
+            priority,
+          };
+        }
+      }
+      foldersInRepo.set(owner, group);
     }
 
-    // Folder planets, distributed across FOLDER_ORBITS. First 6 folders go on
-    // orbit[0], remainder on orbit[1]. Within an orbit, sorted by hash for
-    // stable angular position.
+    // Phase D — folders sit on ONE ring whose radius grows with folder count so
+    // the per-planet arc stays ≥ FOLDER_ARC_GAP (no more fixed 2-orbit/6-cap
+    // crowding). A per-repo angular offset keeps sibling suns' rings from
+    // aligning identically. Sorted by name-hash for a stable angular position.
     const folderEntries = [...foldersInRepo.values()].sort(
       (a, b) => hashString(a.name) - hashString(b.name),
     );
-    const orbit0 = folderEntries.slice(0, 6);
-    const orbit1 = folderEntries.slice(6);
-
-    const placeFolderOnOrbit = (
-      group: FolderGroup,
-      orbitRadius: number,
-      idx: number,
-      total: number,
-    ) => {
-      const angle = total === 1 ? 0 : (idx / total) * Math.PI * 2;
+    const folderRingR = ringRadius(
+      FOLDER_ORBIT_MIN,
+      folderEntries.length,
+      FOLDER_ARC_GAP,
+    );
+    // Phase B (B.5) — folders whose path matches a declared submodule are
+    // rendered as their own node class.
+    const submoduleByPath = new Map(
+      (repo.submodules ?? []).map((s) => [s.path, s.url]),
+    );
+    const folderAngleOffset = ((hashString(repoId) % 360) * Math.PI) / 180;
+    const folderTotal = folderEntries.length;
+    folderEntries.forEach((group, idx) => {
+      const angle =
+        folderAngleOffset +
+        (folderTotal === 1 ? 0 : (idx / folderTotal) * Math.PI * 2);
       const folderId = `${repoId}::folder::${group.name}`;
-      const aggregate = aggregateSeverity(group.severities);
+      const aggregate = aggregateSeverities(group.severities);
       folders.push({
         id: folderId,
         repoId,
         customerId: repo.customerId,
         name: group.name,
         fileCount: group.fileIds.length,
+        fileIds: group.fileIds,
         aggregateSeverity: aggregate,
+        ...(group.nucleus
+          ? {
+              nucleus: {
+                fileId: group.nucleus.fileId,
+                kind: group.nucleus.kind,
+                path: group.nucleus.path,
+              },
+            }
+          : {}),
+        ...(submoduleByPath.has(group.name)
+          ? {
+              isSubmodule: true,
+              submoduleUrl: submoduleByPath.get(group.name)!,
+            }
+          : {}),
       });
       nodes.push({
         id: folderId,
         kind: 'folder',
         repoId,
         customerId: repo.customerId,
-        x: sunPos.x + Math.cos(angle) * orbitRadius,
-        y: sunPos.y + Math.sin(angle) * orbitRadius,
-        orbitRadius,
+        x: sunPos.x + Math.cos(angle) * folderRingR,
+        y: sunPos.y + Math.sin(angle) * folderRingR,
+        orbitRadius: folderRingR,
         parentSunId: repoId,
       });
-    };
+    });
 
-    orbit0.forEach((g, i) => placeFolderOnOrbit(g, FOLDER_ORBITS[0], i, orbit0.length));
-    orbit1.forEach((g, i) => placeFolderOnOrbit(g, FOLDER_ORBITS[1], i, orbit1.length));
-
-    // Root files on FILE_ORBIT, sorted by file id hash for stable position.
+    // Phase D — root files on an outer ring, kept ≥ INTER_RING_GAP beyond the
+    // folder ring and itself count-aware. A distinct angular offset separates it
+    // from the folder ring. Sorted by file-id hash for a stable position.
     const sortedRootFiles = [...rootFiles].sort(
       (a, b) => hashString(a.id) - hashString(b.id),
     );
     const m = sortedRootFiles.length;
+    const fileRingR = Math.max(
+      ringRadius(FILE_ORBIT_MIN, m, FILE_ARC_GAP),
+      folderRingR + INTER_RING_GAP,
+    );
+    const fileAngleOffset = (((hashString(repoId) + 137) % 360) * Math.PI) / 180;
     sortedRootFiles.forEach((file, i) => {
-      const angle = m === 1 ? 0 : (i / m) * Math.PI * 2;
+      const angle =
+        fileAngleOffset + (m === 1 ? 0 : (i / m) * Math.PI * 2);
       nodes.push({
         id: file.id,
         kind: 'file',
         repoId,
         customerId: repo.customerId,
-        x: sunPos.x + Math.cos(angle) * FILE_ORBIT,
-        y: sunPos.y + Math.sin(angle) * FILE_ORBIT,
-        orbitRadius: FILE_ORBIT,
+        x: sunPos.x + Math.cos(angle) * fileRingR,
+        y: sunPos.y + Math.sin(angle) * fileRingR,
+        orbitRadius: fileRingR,
         parentSunId: repoId,
       });
     });

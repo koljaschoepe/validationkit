@@ -1,5 +1,5 @@
 import { eq, sum } from "drizzle-orm";
-import { scanRepository } from "@vk/parser";
+import { scanRepository, classifyPath } from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import {
   consumeCredits,
@@ -123,6 +123,10 @@ export const auditRequested: any = inngest.createFunction(
         if (report.findings.length > 0) {
           await db.insert(schema.finding).values(
             report.findings.map((f: AuditFinding) => {
+              // Galaxie-Redesign Phase A — persist real file identity. First
+              // citation is the finding's primary file; classifyPath derives the
+              // AgentFileKind.
+              const filePath = f.citations[0]?.path ?? null;
               const base = {
                 scanId,
                 category: f.category,
@@ -131,6 +135,8 @@ export const auditRequested: any = inngest.createFunction(
                 detail: f.detail,
                 deterministic: f.deterministic,
                 citations: f.citations as unknown as Record<string, unknown>[],
+                filePath,
+                fileKind: filePath ? classifyPath(filePath) : null,
               };
               return f.confidence
                 ? { ...base, confidence: f.confidence }
