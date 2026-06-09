@@ -27,7 +27,7 @@ function InviteForm({ workspaceId }: { workspaceId: string }) {
       } else {
         toast.success(`Invited ${cleaned}`, {
           description:
-            "If they don't have an account yet, the invite resolves on their first magic-link sign-in.",
+            "We emailed them an invite. New users are added automatically on their first sign-in.",
         });
       }
       setEmail("");

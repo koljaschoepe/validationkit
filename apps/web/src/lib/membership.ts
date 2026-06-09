@@ -1,7 +1,9 @@
 "use server";
 
+import * as React from "react";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
+import { sendTransactionalEmail, MemberInviteEmail } from "@vk/auth";
 import { getSessionUser } from "./session";
 import { getUserRole, type Role } from "./authz";
 
@@ -135,12 +137,43 @@ export async function inviteAdmin(
     });
   }
 
-  // Removed 2026-05-21 (customer-route-rename Phase D.2): this revalidatePath
-  // never matched a real route — `workspaceId` is not a customer-id, and the
-  // route /customers/<workspaceId>/access doesn't exist. Membership-changes
-  // can rely on the next navigation to refresh; if cache-eager-revalidate is
-  // needed, target `workspaceTag(workspaceId)` via revalidateTag instead.
+  // K-EM1: notify the invitee. Before this the membership row was created
+  // silently — the invitee never learned they'd been added and the whole flow
+  // relied on them coincidentally signing in. Soft-fail (sendTransactionalEmail
+  // never throws), so a mail problem doesn't fail the already-committed invite.
+  await sendInviteEmail(workspaceId, cleanEmail, inviter.email, !!existingUserId);
+
   return { ok: true };
+}
+
+async function sendInviteEmail(
+  workspaceId: string,
+  inviteeEmail: string,
+  inviterEmail: string,
+  alreadyHadAccount: boolean,
+): Promise<void> {
+  const db = getDb();
+  const rows = await db
+    .select({ name: schema.workspace.name, slug: schema.workspace.slug })
+    .from(schema.workspace)
+    .where(eq(schema.workspace.id, workspaceId))
+    .limit(1);
+  const ws = rows[0];
+  if (!ws) return;
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.AUTH_BASE_URL ??
+    "http://localhost:3000";
+  await sendTransactionalEmail({
+    to: inviteeEmail,
+    subject: `You've been invited to ${ws.name} on ValidationKit`,
+    react: React.createElement(MemberInviteEmail, {
+      workspaceName: ws.name,
+      inviterName: inviterEmail,
+      acceptUrl: `${base}/${ws.slug}`,
+      alreadyHadAccount,
+    }),
+  });
 }
 
 /**

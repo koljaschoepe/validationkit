@@ -18,3 +18,7 @@ export {
   PlanChangeConfirmation,
   type PlanChangeConfirmationProps,
 } from "./emails/PlanChangeConfirmation.js";
+export {
+  MemberInviteEmail,
+  type MemberInviteEmailProps,
+} from "./emails/MemberInviteEmail.js";
