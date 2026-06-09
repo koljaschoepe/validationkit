@@ -33,6 +33,22 @@ export default function Home() {
                 </Link>
               </li>
               <li>
+                <Link
+                  href={"/legal/impressum" as never}
+                  className="hover:text-foreground"
+                >
+                  Impressum
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={"/legal/datenschutz" as never}
+                  className="hover:text-foreground"
+                >
+                  Datenschutz
+                </Link>
+              </li>
+              <li>
                 <Link href="/status" className="hover:text-foreground">
                   Status ●
                 </Link>

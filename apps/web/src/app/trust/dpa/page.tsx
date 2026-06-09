@@ -108,7 +108,7 @@ export default async function DpaPage() {
                 <p className="text-muted-foreground">
                   Clicking accept writes a one-row audit-log entry. You can
                   request deletion any time by emailing{" "}
-                  <code className="font-mono">kol.schoepe@gmail.com</code>{" "}
+                  <code className="font-mono">datenschutz@validationkit.app</code>{" "}
                   referencing your account email.
                 </p>
                 <form action={acceptForm}>
