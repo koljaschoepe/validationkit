@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { CheckCircle2, FileWarning, ShieldCheck } from "lucide-react";
 import { isAuthEnabled } from "@vk/auth";
 import { SiteNav } from "@/components/SiteNav";
@@ -18,24 +16,12 @@ import { CURRENT_DPA_VERSION } from "@/lib/dpa-constants";
 
 export const dynamic = "force-dynamic";
 
-async function loadDpaMarkdown(): Promise<string> {
-  // Repo-rooted lookup. process.cwd() is apps/web in dev + Vercel build.
-  const root = process.cwd().replace(/\/apps\/web$/, "");
-  const candidate = path.join(root, "docs/legal/dpa-template.md");
-  try {
-    return await readFile(candidate, "utf8");
-  } catch {
-    return "# DPA\n\n*DPA template not bundled into this deployment. See repo: docs/legal/dpa-template.md.*";
-  }
-}
-
 async function acceptForm(): Promise<void> {
   "use server";
   await acceptDpaAction();
 }
 
 export default async function DpaPage() {
-  const dpaText = await loadDpaMarkdown();
   const authOn = isAuthEnabled();
   const user = authOn ? await getSessionUser() : null;
   const acceptance = authOn
@@ -138,10 +124,15 @@ export default async function DpaPage() {
           <CardHeader>
             <CardTitle className="text-base">DPA text</CardTitle>
           </CardHeader>
-          <CardContent>
-            <article className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground/90 font-mono text-[0.75rem] leading-relaxed">
-              {dpaText}
-            </article>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              The full Article-28 Data Processing Agreement — definitions, scope,
+              sub-processors, security measures, deletion and audit rights — is
+              maintained as a versioned page:
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href={"/legal/dpa" as never}>Read the full DPA →</Link>
+            </Button>
           </CardContent>
         </Card>
 

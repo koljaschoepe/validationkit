@@ -281,49 +281,39 @@ export default function TrustPage() {
           <CardContent className="space-y-2 text-sm">
             <ul className="space-y-1 text-muted-foreground">
               <li>
-                <a
-                  href="https://github.com/validationkit-ai"
-                  rel="noreferrer"
-                  className="text-primary hover:underline underline-offset-4"
-                >
-                  Source on GitHub
-                </a>{" "}
-                — once the org is reserved (Phase-0-Day-1)
+                Imprint —{" "}
+                <Link href={"/legal/impressum" as never} className="text-primary hover:underline underline-offset-4">/legal/impressum</Link>
               </li>
               <li>
-                DPA — <Link href="/trust/dpa" className="text-primary hover:underline underline-offset-4">/trust/dpa</Link>{" "}
-                (acceptance audit-log) · source{" "}
-                <code className="font-mono text-xs">docs/legal/dpa-template.md</code>
+                Privacy policy —{" "}
+                <Link href={"/legal/datenschutz" as never} className="text-primary hover:underline underline-offset-4">/legal/datenschutz</Link>
               </li>
               <li>
-                Sub-Processors —{" "}
-                <a href="/trust/sub-processors.json" className="text-primary hover:underline underline-offset-4">JSON feed</a>
+                Terms —{" "}
+                <Link href={"/legal/agb" as never} className="text-primary hover:underline underline-offset-4">/legal/agb</Link>
+              </li>
+              <li>
+                DPA (Art. 28 GDPR) —{" "}
+                <Link href={"/legal/dpa" as never} className="text-primary hover:underline underline-offset-4">/legal/dpa</Link>{" "}
+                · accept (audit-log) at{" "}
+                <Link href="/trust/dpa" className="text-primary hover:underline underline-offset-4">/trust/dpa</Link>
+              </li>
+              <li>
+                Sub-processors —{" "}
+                <Link href={"/legal/subprocessors" as never} className="text-primary hover:underline underline-offset-4">/legal/subprocessors</Link>
+                {" · "}
+                <a href="/trust/sub-processors.json" className="text-primary hover:underline underline-offset-4">JSON</a>
                 {" · "}
                 <a href="/trust/sub-processors.xml" className="text-primary hover:underline underline-offset-4">RSS</a>
-                {" · "}
-                <code className="font-mono text-xs">docs/legal/sub-processors.md</code>
               </li>
               <li>
                 LLM-eval history —{" "}
-                <Link
-                  href="/trust/eval"
-                  className="text-primary hover:underline underline-offset-4"
-                >
-                  /trust/eval
-                </Link>{" "}
-                (per-band FPR over time, Constraint #14 audit)
+                <Link href="/trust/eval" className="text-primary hover:underline underline-offset-4">/trust/eval</Link>{" "}
+                (per-band FPR over time)
               </li>
               <li>
-                Scope policy — <code className="font-mono text-xs">docs/legal/scope-policy.md</code>
-              </li>
-              <li>
-                Sub-Processors — <code className="font-mono text-xs">docs/legal/sub-processors.md</code>
-              </li>
-              <li>
-                TOMs Register — <code className="font-mono text-xs">docs/legal/toms-register.md</code>
-              </li>
-              <li>
-                Incident-Response — <code className="font-mono text-xs">docs/legal/incident-response.md</code>
+                TOMs register, incident-response &amp; scope policy — available on
+                request: datenschutz@validationkit.app
               </li>
             </ul>
           </CardContent>
