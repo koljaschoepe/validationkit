@@ -1,13 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/components/ui-vk";
 
+// Bundle D: use the shared PageSkeleton (list variant) instead of an ad-hoc
+// skeleton, matching [workspace]/loading.tsx.
 export default function ScansLoading() {
-  return (
-    <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96" />
-      </div>
-      <Skeleton className="h-64 w-full" />
-    </main>
-  );
+  return <PageSkeleton variant="list" />;
 }

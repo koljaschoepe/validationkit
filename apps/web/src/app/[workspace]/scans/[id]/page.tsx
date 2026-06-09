@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { isAuthEnabled } from "@vk/auth";
@@ -8,6 +9,18 @@ import { ReportView } from "@/components/ReportView";
 import { ScanStatusBanner } from "@/components/ScanStatusBanner";
 import { getSessionUser } from "@/lib/session";
 import { resolveWorkspaceFromSlug } from "@/lib/workspace-context";
+import { SiteNav } from "@/components/SiteNav";
+import { PageShell, PageHeader } from "@/components/ui-vk";
+
+function formatScanDate(d: Date): string {
+  return d.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default async function ScanDetailPage({
   params,
@@ -51,29 +64,44 @@ export default async function ScanDetailPage({
     row.rawReport !== null;
 
   return (
-    <main id="main-content">
-      <header>
-        <h1>Scan detail</h1>
-        <p>
-          <code>{row.rootPath}</code> · {row.createdAt.toISOString()}
-        </p>
-      </header>
-
-      <ScanStatusBanner scanId={id} initialStatus={status} />
-
-      {ready ? (
-        <ReportView
-          scan={revivePersistedScan(row.rawScan as ParserResult)}
-          report={revivePersistedReport(row.rawReport as AuditReport)}
-          scanId={id}
+    <>
+      <SiteNav />
+      <PageShell as="main" id="main-content" className="space-y-8">
+        <PageHeader
+          title="Scan detail"
+          subtitle={`${row.rootPath} · ${formatScanDate(row.createdAt)}`}
+          breadcrumb={
+            <Link
+              href={`/${ws.slug}/scans`}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              All scans
+            </Link>
+          }
         />
-      ) : null}
 
-      <footer>
-        <Link href={`/${ws.slug}/scans`}>← All scans</Link> ·{" "}
-        <Link href="/">Run a new audit</Link>
-      </footer>
-    </main>
+        <ScanStatusBanner scanId={id} initialStatus={status} />
+
+        {ready ? (
+          <ReportView
+            scan={revivePersistedScan(row.rawScan as ParserResult)}
+            report={revivePersistedReport(row.rawReport as AuditReport)}
+            scanId={id}
+          />
+        ) : null}
+
+        <footer className="border-t border-border pt-6 text-xs text-muted-foreground">
+          <Link href={`/${ws.slug}/scans`} className="hover:text-foreground">
+            ← All scans
+          </Link>{" "}
+          ·{" "}
+          <Link href="/" className="hover:text-foreground">
+            Run a new audit
+          </Link>
+        </footer>
+      </PageShell>
+    </>
   );
 }
 
