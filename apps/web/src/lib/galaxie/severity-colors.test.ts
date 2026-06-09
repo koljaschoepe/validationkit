@@ -27,13 +27,13 @@ describe('severity-colors', () => {
     expect(hexToPixiNumber('c64a3a')).toBe(0xc64a3a);
   });
 
-  it('Kill is the only loud band — Asymm-Salienz (OKLCH-Hex)', () => {
-    expect(severityHex('Kill')).toBe('#c64a3a');
+  it('Kill is the loudest band — Bundle I legibility palette', () => {
+    expect(severityHex('Kill')).toBe('#f4604e'); // CR ~7 vs #0a0a0a (was #c64a3a)
     expect(severityHex('Weak')).toBe('#cf8a4f');
-    expect(severityHex('Mid')).toBe('#9aa3b3');
+    expect(severityHex('Mid')).toBe('#b88a52'); // out of grey (was #9aa3b3)
     expect(severityHex('Strong')).toBe('#7eb8a4');
-    expect(severityHex('Exceptional')).toBe('#acacac');
-    expect(severityPixiColor('Kill')).toBe(0xc64a3a);
+    expect(severityHex('Exceptional')).toBe('#8a82e0'); // indigo (was #acacac)
+    expect(severityPixiColor('Kill')).toBe(0xf4604e);
   });
 
   it('Exceptional is the only band with an outline', () => {
@@ -42,8 +42,8 @@ describe('severity-colors', () => {
     expect(SEVERITY_OUTLINE_HEX.Mid).toBeUndefined();
   });
 
-  it('Dismissed fill + alpha match master-plan §5.3.3', () => {
-    expect(DISMISSED_FILL_HEX).toBe('#4d4d4d');
+  it('Dismissed fill + alpha (Bundle I: lifted for findability)', () => {
+    expect(DISMISSED_FILL_HEX).toBe('#6b6b6b'); // CR ~3.9 (was #4d4d4d / 2.34)
     expect(DISMISSED_ALPHA).toBe(0.35);
   });
 
@@ -55,8 +55,8 @@ describe('severity-colors', () => {
     expect(SEVERITY_PULSE_RATE.Exceptional).toBe(0);
   });
 
-  it('Only Kill glows (6 px); all other bands have glow-radius 0', () => {
-    expect(SEVERITY_GLOW_RADIUS.Kill).toBe(6);
+  it('Only Kill glows (8 px); all other bands have glow-radius 0', () => {
+    expect(SEVERITY_GLOW_RADIUS.Kill).toBe(8);
     expect(SEVERITY_GLOW_RADIUS.Weak).toBe(0);
     expect(SEVERITY_GLOW_RADIUS.Mid).toBe(0);
     expect(SEVERITY_GLOW_RADIUS.Strong).toBe(0);
