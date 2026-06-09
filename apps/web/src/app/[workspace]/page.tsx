@@ -44,7 +44,7 @@ export default async function WorkspaceGalaxiePage({
   });
 
   return (
-    <div className="h-screen w-screen">
+    <main id="main-content" tabIndex={-1} className="h-screen w-screen">
       <Suspense fallback={<GalaxieSkeleton />}>
         <GalaxieRoot
           initialData={result.data}
@@ -65,6 +65,6 @@ export default async function WorkspaceGalaxiePage({
           }}
         />
       </Suspense>
-    </div>
+    </main>
   );
 }

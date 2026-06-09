@@ -1,6 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useState, type ReactNode } from 'react';
+import { LayoutGrid, List } from 'lucide-react';
 import type { GalaxieData } from '@/lib/galaxie/types';
 import type { MockWorkspace } from '@/lib/galaxie/mock-workspaces';
 import type { OnboardingState } from './OnboardingBanner';
@@ -86,5 +88,77 @@ export default function GalaxieRoot(props: GalaxieRootProps) {
       />
     );
   }
-  return <GalaxieScene {...props} />;
+  // Landing (static-demo) keeps the bare canvas — no app chrome, no toggle.
+  if (props.mode === 'static-demo') {
+    return <GalaxieScene {...props} />;
+  }
+  // Desktop interactive: the PixiJS canvas is mouse-only (WCAG 2.1.1). Offer a
+  // keyboard-reachable List-view toggle that swaps in the fully-accessible
+  // SolarListView (focusable rows → same Inspector). K-A11Y1.
+  return <InteractiveGalaxie {...props} />;
+}
+
+function InteractiveGalaxie(props: GalaxieRootProps) {
+  const [view, setView] = useState<'galaxy' | 'list'>('galaxy');
+  return (
+    <div className="relative h-full w-full">
+      <div
+        role="group"
+        aria-label="Galaxie view"
+        className="absolute right-3 top-3 z-50 flex items-center gap-0.5 rounded-md border border-white/10 bg-black/70 p-0.5 backdrop-blur"
+      >
+        <ViewButton
+          active={view === 'galaxy'}
+          onClick={() => setView('galaxy')}
+          icon={<LayoutGrid className="size-3.5" aria-hidden />}
+          label="Galaxy view"
+        />
+        <ViewButton
+          active={view === 'list'}
+          onClick={() => setView('list')}
+          icon={<List className="size-3.5" aria-hidden />}
+          label="List view (keyboard accessible)"
+        />
+      </div>
+      {view === 'list' ? (
+        <SolarListView
+          initialData={props.initialData}
+          readOnly={props.readOnly}
+          workspaceSlug={props.initialWorkspaceSlug}
+        />
+      ) : (
+        <GalaxieScene {...props} />
+      )}
+    </div>
+  );
+}
+
+function ViewButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      title={label}
+      className={
+        'flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors ' +
+        (active
+          ? 'bg-white/15 text-white'
+          : 'text-white/60 hover:text-white hover:bg-white/5')
+      }
+    >
+      {icon}
+      <span className="sr-only">{label}</span>
+    </button>
+  );
 }
