@@ -11,6 +11,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { EmailFooter } from "./EmailFooter.js";
 
 /**
  * MagicLinkEmail — Phase Nova-2 React-Email template.
@@ -157,6 +158,8 @@ export function MagicLinkEmail({
             If you didn&apos;t request this email, you can safely ignore it. No
             account is created until you click the link.
           </Text>
+
+          <EmailFooter />
         </Container>
       </Body>
     </Html>

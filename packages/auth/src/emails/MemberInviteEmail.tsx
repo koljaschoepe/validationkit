@@ -11,6 +11,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { EmailFooter } from "./EmailFooter.js";
 
 /**
  * MemberInviteEmail — Bundle G (K-EM1). Sent when an owner/admin invites someone
@@ -141,6 +142,8 @@ export function MemberInviteEmail({
             If you weren&apos;t expecting this invite, you can safely ignore this
             email — no account is created until you sign in yourself.
           </Text>
+
+          <EmailFooter />
         </Container>
       </Body>
     </Html>

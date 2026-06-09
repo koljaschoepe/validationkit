@@ -11,6 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import { STYLES, FONT_SANS, FONT_MONO } from "./styles.js";
+import { EmailFooter } from "./EmailFooter.js";
 
 /**
  * Sub-Plan-C V2 — sent on `invoice.payment_failed` webhook. The Stripe
@@ -143,6 +144,8 @@ export function SubscriptionPastDue({
             permanently fails the charge — usually 21 days from the first
             attempt.
           </Text>
+
+          <EmailFooter />
         </Container>
       </Body>
     </Html>

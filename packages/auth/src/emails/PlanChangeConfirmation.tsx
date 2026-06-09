@@ -11,6 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import { STYLES, FONT_SANS, FONT_MONO } from "./styles.js";
+import { EmailFooter } from "./EmailFooter.js";
 
 /**
  * Sub-Plan-C V2 — sent on `customer.subscription.updated` webhook when the
@@ -168,6 +169,8 @@ export function PlanChangeConfirmation({
               ? "Change your mind? Reactivate the subscription in the Stripe portal anytime before the cancellation takes effect."
               : "Your next invoice reflects the new plan immediately. Pre-paid credit packs you bought earlier remain valid until their original expiry."}
           </Text>
+
+          <EmailFooter />
         </Container>
       </Body>
     </Html>

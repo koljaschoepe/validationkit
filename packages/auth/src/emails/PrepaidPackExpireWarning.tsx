@@ -11,6 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import { STYLES, FONT_SANS, FONT_MONO } from "./styles.js";
+import { EmailFooter } from "./EmailFooter.js";
 
 /**
  * Sub-Plan-C V2 — pre-paid credit pack expiry reminder.
@@ -143,6 +144,8 @@ export function PrepaidPackExpireWarning({
             credits, so this only matters if you stashed packs for a rainy
             day. Reply to this email if you have questions.
           </Text>
+
+          <EmailFooter />
         </Container>
       </Body>
     </Html>
