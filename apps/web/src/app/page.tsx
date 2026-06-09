@@ -2,6 +2,13 @@ import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { HeroSection } from "@/components/landing/HeroSection";
 
+// J1: the landing audit form invokes auditAction (scan + LLM) as a server
+// action on this route. The foreground GitHub-URL path can exceed the 60s
+// serverless default on a real repo — give it room. (The full fix is to push
+// large GitHub audits to the Inngest background worker, which needs the worker
+// to fetch the repo itself; tracked as K16 / Bundle B follow-up.)
+export const maxDuration = 300;
+
 export default function Home() {
   return (
     <>

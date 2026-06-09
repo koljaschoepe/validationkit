@@ -1,10 +1,26 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { getAuth } from "@vk/auth";
 import { getSessionUser } from "./session";
+
+/**
+ * J2: sign the current device out and return to /login. Routed through
+ * Better-Auth's signOut (clears the session row + cookie). Best-effort — if the
+ * session is already gone we still redirect, so the button never dead-ends.
+ */
+export async function signOutAction(): Promise<void> {
+  try {
+    const auth = getAuth();
+    await auth.api.signOut({ headers: await headers() });
+  } catch {
+    /* already signed out — fall through to the redirect */
+  }
+  redirect("/login");
+}
 
 export interface ActiveSession {
   id: string;

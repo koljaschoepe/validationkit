@@ -2,8 +2,13 @@ import { redirect } from "next/navigation";
 import { isAuthEnabled } from "@vk/auth";
 import { getSessionUser } from "@/lib/session";
 import { listUserWorkspaces } from "@/lib/dal/galaxie";
+import { ensureDefaultWorkspace } from "@/lib/workspaces";
 import { auditAction } from "@/lib/audit-action";
 import { claimPendingMemberships } from "@/lib/membership";
+
+// J1: the audit-intent path runs auditAction (scan + LLM) inline, which can
+// exceed the 60s serverless default on a real repo. Give it room.
+export const maxDuration = 300;
 
 /**
  * Post-Homepage-Relaunch (May 2026): /dashboard collapsed into a redirect stub.
@@ -64,7 +69,14 @@ export default async function DashboardRedirect({
 
   const workspaces = await listUserWorkspaces(user.id);
   const first = workspaces[0];
-  if (!first) redirect("/login");
+  if (!first) {
+    // J3: the user has no workspace (e.g. they just deleted their last one).
+    // Do NOT redirect to /login — they're authenticated, so the login page
+    // bounces them straight back here (infinite loop). Materialise a fresh
+    // default workspace and land them on it.
+    const { slug } = await ensureDefaultWorkspace(user.id);
+    redirect(`/${slug}`);
+  }
 
   redirect(`/${first.slug}`);
 }

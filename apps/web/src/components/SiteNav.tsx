@@ -3,6 +3,7 @@ import { isAuthEnabled } from "@vk/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getSessionUser } from "@/lib/session";
+import { signOutAction } from "@/lib/session-actions";
 import { SiteNavLinks } from "./SiteNavLinks";
 
 /**
@@ -40,6 +41,12 @@ export async function SiteNav() {
               <span className="hidden text-xs text-muted-foreground sm:inline">
                 {user.email}
               </span>
+              {/* J2: the app had no reachable sign-out anywhere. */}
+              <form action={signOutAction}>
+                <Button type="submit" variant="ghost" size="sm">
+                  Sign out
+                </Button>
+              </form>
             </>
           ) : authOn ? (
             <Button asChild variant="default" size="sm">

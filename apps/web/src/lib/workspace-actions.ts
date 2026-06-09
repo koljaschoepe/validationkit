@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
@@ -76,5 +77,14 @@ export async function deleteWorkspace(
   await cancelWorkspaceStripeSubscription(workspaceId);
 
   await db.delete(schema.workspace).where(eq(schema.workspace.id, workspaceId));
+
+  // J3: if the default-workspace cookie pointed at the workspace we just
+  // deleted, clear it — otherwise the proxy keeps rewriting /dashboard to a now
+  // 404 slug and the user can't get back to a valid surface.
+  const cookieStore = await cookies();
+  if (cookieStore.get("vk_default_workspace_slug")?.value === ws.slug) {
+    cookieStore.delete("vk_default_workspace_slug");
+  }
+
   return { ok: true };
 }
