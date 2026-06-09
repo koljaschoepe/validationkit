@@ -39,7 +39,9 @@ Siehe Master §2. Track-2-relevant:
 
 ## 6. Schritte (Phasen H–K)
 
-### Phase H — Hero-Restructure (~1.5 dd)
+### Phase H — Hero-Restructure (~1.5 dd) — ✅ Done 2026-06-09
+
+> **Abgeschlossen 2026-06-09 (`/execute`) — visuell verifiziert (Landing public).** Neue `components/landing/HeroText.tsx` (sichtbare H1 „Jedes Kunden-Repo auditiert, bevor Drift live geht" [Platzhalter] + Eyebrow + Subhead + Primary-CTA `/login` „Kostenlos starten" + Secondary ghost „Live-Demo ansehen" → `#demo` + Friction-Line; LazyMotion+MotionConfig reducedMotion="user", staggerChildren 0.08, ease [0.22,1,0.36,1], mount-animate). `page.tsx`: HeroText über HeroSection. HeroSection: sr-only-h1 entfernt (HeroText owns h1), `id="demo"`+`scroll-mt-16`+Eyebrow/h2/Explainer, full-svh-Fold-Claim gelöst (Galaxie ~72vh unter dem Fold). Screenshot bestätigt: First-Paint = Headline+CTA, Demo eine Scroll-Tiefe darunter. typecheck/lint sauber, 0 Console-Errors. **Copy = Platzhalter (User liefert final, §11).**
 
 1. **Text-Hero über die Galaxie** (`HeroSection.tsx:227,255-411`): sichtbare H1 (Outcome-led, ≤8 Wörter — Platzhalter `Audit every customer repo before drift ships`), Subhead, **Primary-Button** (Produkt-Verb, `Repo auditieren`/`Kostenlos starten`) + **Secondary** (ghost `Live-Demo ansehen` → `#demo`-Anchor), Friction-Microline (`Keine Kreditkarte`).
 2. **Galaxie demoten** — raus aus dem Above-the-Fold, in eigene Sektion (Phase I). `skip-the-galaxie`/`aria-label: Demo Repository-Galaxie`-Framing entfernen.
@@ -56,7 +58,9 @@ Siehe Master §2. Track-2-relevant:
 
 **Acceptance:** Scrollen zoomt sauber Portfolio→Repo ohne Jank; reduced-motion + Mobile fallback statisch; Lighthouse okay.
 
-### Phase J — Narrative-Sections (~2 dd)
+### Phase J — Narrative-Sections (~2 dd) — ✅ Done 2026-06-09
+
+> **Abgeschlossen 2026-06-09 (`/execute`) — visuell verifiziert (Screenshots).** Eine `components/landing/LandingNarrative.tsx` (client, eine LazyMotion+MotionConfig reducedMotion="user", shared `Reveal` whileInView-once margin -80px) mit allen 5 Sektionen, in `page.tsx` nach HeroSection: **LogoStrip** (6 Platzhalter-Logos + harte Usage-Stat), **4 nummerierte Chess-Feature-Blocks** (1.0 Intake/2.0 Audit/3.0 Galaxie/4.0 Fix, alternierend, Screenshot-Slot-Placeholder), **3 Testimonials** (Quote+Avatar-Initialen+Name+Rolle), **Pricing-Teaser** (Free/Pro/Team-Cards, Pro featured, je CTA → /pricing + „Alle Pläne"-Link), **Full-Width Final-CTA** (Headline + /login-Button). ~96px Gaps (gap-24), keine Deko-Divider. typecheck/lint sauber, 0 Console-Errors, Feature-Blocks + Pricing per Screenshot bestätigt. **Copy/Logos/Testimonials = Platzhalter (User liefert final, §11).**
 
 1. **Logo-Strip + harte Usage-Stat** direkt unter Demo.
 2. **4–6 Chess/Alternating-Feature-Blocks** (nummeriert wie Linear: 1.0 Intake, 2.0 Plan, …), problem-orientierte Headlines, je EIN Screenshot, benefit-led. Platzhalter-Copy + Screenshot-Slots.

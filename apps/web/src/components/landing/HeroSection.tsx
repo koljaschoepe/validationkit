@@ -220,13 +220,27 @@ export function HeroSection() {
       <MotionConfig reducedMotion={reducedMotionForLib}>
         <TooltipProvider>
           <section
-            aria-label="Demo: Repository-Galaxie"
-            className="relative w-full"
+            id="demo"
+            aria-labelledby="demo-heading"
+            className="relative w-full scroll-mt-16"
           >
-            {/* SR-only landing H1 so SEO + screen-readers still see one. */}
-            <h1 className="sr-only">
-              ValidationKit — AGENTS.md Audits für Multi-Customer Repos
-            </h1>
+            {/* Landing-Redesign Phase H — the galaxie is demoted below the text
+                hero (which now owns the page h1); this is the live-demo section. */}
+            <div className="mx-auto w-full max-w-7xl px-4 pb-2 pt-6 text-center sm:px-6">
+              <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground">
+                Live-Demo · keine Anmeldung
+              </p>
+              <h2
+                id="demo-heading"
+                className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+              >
+                Sieh deine Repo-Galaxie — sofort
+              </h2>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Wirf eine Repo-URL rein oder erkunde die Demo: jede Sonne ein
+                Repo, jeder Planet ein Finding, Severity auf einen Blick.
+              </p>
+            </div>
 
             {/* Skip-link — first focusable element on the page. */}
             <a
@@ -252,10 +266,7 @@ export function HeroSection() {
                 onResetToDemo={handleResetToDemo}
               />
             ) : (
-              <div
-                className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-4 pt-4 sm:px-6"
-                style={{ minHeight: "calc(100svh - 3.5rem)" }}
-              >
+              <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
                 {/* Nova-3a Phase 2: prominent hero-row with label + URL pill.
                     Moves the audit-input out of the small toolbar so it is
                     visually the primary CTA. */}
