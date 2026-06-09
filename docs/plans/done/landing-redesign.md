@@ -1,5 +1,6 @@
 # Plan — Landing Redesign (Track 2)
 
+> Status: ✅ Done — 2026-06-09 (Confidence-At-Start: High · Phasen H/I/J/K alle ✅ + Playwright-verifiziert · Deferrals: finale Brand-Copy + echte Logos/Testimonials [User, §11 Out-of-Scope] · formale Prod-Lighthouse-Zahl-vs-Baseline [Deploy-Zeit] · optionale Tune-Forks Kill-Dichte/Waypoint-Scales [User-Geschmack]). Commits: H/J `4dcb552` · I.1/I.2/K `452df09` · I.3 `5365d59`.
 > Slug: `landing-redesign` · Confidence: **High** · Erstellt 2026-06-09
 > Master: [`galaxie-landing-redesign.md`](./galaxie-landing-redesign.md) · Synthese: `docs/audits/2026-06-frontend-challenge/_synthesis.md`
 > Startet nach Galaxie-Phase-F (genug premium Render-Substanz für eine ehrliche Demo).
@@ -30,12 +31,12 @@ Siehe Master §2. Track-2-relevant:
 
 ## 5. Endzustand (Acceptance)
 
-- [ ] Sichtbarer Text-Hero: gestylte H1 (sr-only promotet) + Outcome-Subhead + Primary-CTA (Produkt-Verb) + Secondary (ghost → Demo-Anchor) + Friction-Microline.
-- [ ] Galaxie-Demo ~1 Scroll tiefer, in App-Chrome-Card gerahmt, ~60–72vh (nicht full-bleed), mit Eyebrow + Headline + Explainer.
-- [ ] Demo nutzt Pixi-Solar-Renderer, öffnet auf Portfolio, scrollt in ein Repo (Sticky-Scrollytelling), reduced-motion + Mobile-Pin-Disable gegated.
-- [ ] Sektionen: Logo-Strip+Stat, 4–6 nummerierte Chess-Features, 2–3 Testimonials, Pricing-Teaser (3 Cards → /pricing), Full-Width Final-CTA. ~96px Gaps.
-- [ ] Lighthouse: FCP/LCP nicht schlechter als heute trotz Pixi-Demo (lazy/in-view-mount).
-- [ ] typecheck + lint + `pnpm test` grün.
+- [x] Sichtbarer Text-Hero: gestylte H1 (sr-only promotet) + Outcome-Subhead + Primary-CTA (Produkt-Verb) + Secondary (ghost → Demo-Anchor) + Friction-Microline. *(Phase H)*
+- [x] Galaxie-Demo ~1 Scroll tiefer, in App-Chrome-Card gerahmt, ~60–72vh (nicht full-bleed), mit Eyebrow + Headline + Explainer. *(Phase I.2)*
+- [x] Demo nutzt Pixi-Solar-Renderer, öffnet auf Portfolio, scrollt in ein Repo (Sticky-Scrollytelling), reduced-motion + Mobile-Pin-Disable gegated. *(Phase I.1/I.3/I.4 — Pixi-verifiziert)*
+- [x] Sektionen: Logo-Strip+Stat, 4–6 nummerierte Chess-Features, 2–3 Testimonials, Pricing-Teaser (3 Cards → /pricing), Full-Width Final-CTA. ~96px Gaps. *(Phase J)*
+- [~] Lighthouse: FCP/LCP nicht schlechter als heute trotz Pixi-Demo. **Architektonisch erfüllt + verifiziert:** Pixi ist `dynamic(ssr:false)` (kein Canvas im First-Paint-HTML) + In-View-Mount; LCP-API bestätigt `lcpIsCanvas: false` (Text-Hero ist LCP). **Deferred:** formale Prod-Lighthouse-Zahl-vs-Baseline = Deploy-Zeit (Vercel Speed-Insights; Dev-Mode-Messung unrepräsentativ).
+- [x] typecheck + lint + `pnpm test` grün.
 
 ## 6. Schritte (Phasen H–K)
 
