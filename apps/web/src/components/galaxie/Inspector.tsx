@@ -13,7 +13,6 @@ import {
   SparklesIcon,
   XIcon,
 } from 'lucide-react';
-import gsap from 'gsap';
 import { SeverityBadge } from '@/components/ui/severity-badge';
 import { cn } from '@/lib/utils';
 import type {
@@ -74,22 +73,24 @@ export function Inspector({
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // Slide-in tween — desktop from the right, mobile from below. Gsap context
-  // is scoped to the ref so the tween dies cleanly if we unmount mid-slide.
+  // Slide-in tween — desktop from the right, mobile from below. Uses the
+  // dependency-free Web Animations API (gsap was retired with the galaxie);
+  // `anim.cancel()` reverts cleanly if we unmount mid-slide. `power3.out` maps
+  // to the cubic-bezier below.
   useEffect(() => {
-    if (!panelRef.current) return;
+    const el = panelRef.current;
+    if (!el) return;
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    const ctx = gsap.context(() => {
-      if (!panelRef.current) return;
-      gsap.fromTo(
-        panelRef.current,
+    const anim = el.animate(
+      [
         isMobile
-          ? { y: '100%', opacity: 0 }
-          : { x: PANEL_WIDTH, opacity: 0 },
-        { x: 0, y: 0, opacity: 1, duration: 0.3, ease: 'power3.out' },
-      );
-    }, panelRef);
-    return () => ctx.revert();
+          ? { transform: 'translateY(100%)', opacity: 0 }
+          : { transform: `translateX(${PANEL_WIDTH}px)`, opacity: 0 },
+        { transform: 'translate(0, 0)', opacity: 1 },
+      ],
+      { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' },
+    );
+    return () => anim.cancel();
   }, []);
 
   // ESC closes the panel (any focus). Pivot is owned by the parent, which

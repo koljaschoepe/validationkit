@@ -72,13 +72,14 @@ Die PixiJS-Galaxie wird **vollständig aus Code, Deps und Produkt entfernt**; di
 
 ### Bundle 1 — Galaxie-Stack + Deps + Routes löschen
 
-- [ ] **1.1** `apps/web/src/app/[workspace]/page.tsx` umschreiben: `GalaxieRoot` durch direktes Mounten der Konsole ersetzen. Variante je nach `GalaxieRoot`-Internals: entweder `SolarListView` direkt rendern (mit denselben Props `initialData`/`workspaceSlug`/`onboarding`) **oder** `InteractiveGalaxie` zu einer Map-Tab-freien `WorkspaceConsole`-Komponente eindampfen. Mobile-/reduced-motion-Pfad: bleibt Konsole (war vorher Fallback, wird jetzt Default).
-- [ ] **1.2** `apps/web/src/components/landing/PortfolioShowcase.tsx` löschen + Import/Usage in `apps/web/src/app/page.tsx` entfernen.
-- [ ] **1.3** Pixi-Render-Files löschen: `apps/web/src/components/galaxie/pixi/**`, `GalaxieScene.tsx`, `GalaxieRoot.tsx` (nach 1.1), `StaticGalaxieSVG.tsx`, `MiniMap.tsx`, `ZoomIndicator.tsx`, `GalaxieSkeleton.tsx`, sowie deren Pixi-only-Tests (`pixi/Camera.test.ts`, `pixi/quadtree.test.ts`, `pixi/node-label-lod.test.ts`, ggf. `diff-renderer.test.ts`, `inspector-templates.test.ts` — **nur wenn** sie Pixi-Render testen, nicht geteilte Logik).
-- [ ] **1.4** `apps/web/src/lib/galaxie/`: nur Pixi-Layout-Files löschen (`solar-layout.ts` + `.test.ts`). **Methodik statt Raterei:** zuerst die Render-Files löschen, dann `pnpm typecheck` laufen lassen — jedes Modul, das danach noch von lebendem Code (SolarListView/Inspector/Landing) importiert wird, **bleibt**. `tree.ts` bleibt (SolarListView nutzt `buildGalaxieTree`), `severity-colors`/`humanize`/`console-grouping`/`group-findings`/`types`/`device` bleiben.
-- [ ] **1.5** `apps/web/src/app/[workspace]/settings/galaxie/page.tsx` löschen; Settings-Nav-Eintrag dahin entfernen (grep nach `settings/galaxie`).
-- [ ] **1.6** Heavy-Deps aus `apps/web/package.json` entfernen: `pixi.js`, `@pixi/react`, `pixi-filters`, `gsap`. `pnpm install` neu auflösen.
-- [ ] **1.7** `pnpm typecheck` + `pnpm test` grün ziehen; Orphan-Imports bereinigen.
+- [x] **1.1** `apps/web/src/app/[workspace]/page.tsx` umschreiben: `GalaxieRoot` durch direktes Mounten der Konsole ersetzen. `GalaxieRoot` zu einer schlanken, Map-Tab-freien `WorkspaceConsole`-Komponente eindampfen (oder löschen + `SolarListView` direkt). Mobile-/reduced-motion-Pfad: bleibt Konsole (war vorher Fallback, wird jetzt Default).
+- [x] **1.1a** (Block-Resolution 2026-06-10) `WorkspaceSwitcher` + `ActivationChecklist` in das Konsolen-Surface portieren — beide leben aktuell NUR in `GalaxieScene`/`StaticGalaxieSVG` und würden sonst ersatzlos verschwinden (In-App-Workspace-Wechsel + Onboarding). `WorkspaceConsole`/`SolarListView`-Wrapper nimmt jetzt `workspaces` + `onboarding` entgegen und rendert Switcher (Header) + ActivationChecklist (Right-Rail/Banner). `OnboardingState`-Type von `OnboardingBanner.tsx` nach einem neutralen Ort verschieben (z. B. `lib/galaxie/types.ts`), damit er die Pixi-Löschung überlebt.
+- [x] **1.2** `apps/web/src/components/landing/PortfolioShowcase.tsx` löschen + Import/Usage in `apps/web/src/app/page.tsx` entfernen.
+- [x] **1.3** Pixi-Render-Files löschen: `apps/web/src/components/galaxie/pixi/**`, `GalaxieScene.tsx`, `GalaxieRoot.tsx` (nach 1.1), `StaticGalaxieSVG.tsx`, `MiniMap.tsx`, `ZoomIndicator.tsx`, `GalaxieSkeleton.tsx`, sowie deren Pixi-only-Tests (`pixi/Camera.test.ts`, `pixi/quadtree.test.ts`, `pixi/node-label-lod.test.ts`, ggf. `diff-renderer.test.ts`, `inspector-templates.test.ts` — **nur wenn** sie Pixi-Render testen, nicht geteilte Logik).
+- [x] **1.4** `apps/web/src/lib/galaxie/`: nur Pixi-Layout-Files löschen (`solar-layout.ts` + `.test.ts`). **Methodik statt Raterei:** zuerst die Render-Files löschen, dann `pnpm typecheck` laufen lassen — jedes Modul, das danach noch von lebendem Code (SolarListView/Inspector/Landing) importiert wird, **bleibt**. `tree.ts` bleibt (SolarListView nutzt `buildGalaxieTree`), `severity-colors`/`humanize`/`console-grouping`/`group-findings`/`types`/`device` bleiben.
+- [x] **1.5** `apps/web/src/app/[workspace]/settings/galaxie/page.tsx` löschen; Settings-Nav-Eintrag dahin entfernen (grep nach `settings/galaxie`).
+- [x] **1.6** Heavy-Deps aus `apps/web/package.json` entfernen: `pixi.js`, `@pixi/react`, `pixi-filters`, `gsap`. `pnpm install` neu auflösen.
+- [x] **1.7** `pnpm typecheck` + `pnpm test` grün ziehen; Orphan-Imports bereinigen.
 
 ### Bundle 2 — Durchgehendes Konsolen-Surface auf der Landing
 
@@ -110,10 +111,13 @@ Die PixiJS-Galaxie wird **vollständig aus Code, Deps und Produkt entfernt**; di
 | `apps/web/src/components/galaxie/GalaxieRoot.tsx` | DELETE/REWRITE | Map-Tab-Wrapper entfällt (oder → schlanke `WorkspaceConsole`) |
 | `apps/web/src/components/galaxie/GalaxieScene.tsx` | DELETE | Pixi-Canvas |
 | `apps/web/src/components/galaxie/pixi/**` | DELETE | Alle Pixi-Render-Primitives + Pixi-Tests |
-| `apps/web/src/components/galaxie/{MiniMap,ZoomIndicator,StaticGalaxieSVG,GalaxieSkeleton}.tsx` | DELETE | Pixi-only-Begleiter |
-| `apps/web/src/lib/galaxie/solar-layout.ts(+.test)` | DELETE | Orbit-Layout (Pixi-only) |
-| `apps/web/src/lib/galaxie/{tree,console-grouping,group-findings,humanize,severity-colors,severity-icons,types,device,mock-data}.ts` | KEEP | Konsole/Landing nutzen diese |
-| `apps/web/src/components/galaxie/{SolarListView,Inspector,UniversalSearch,OnboardingBanner,ActivationChecklist,EmptyGalaxie}.tsx` | KEEP (SolarListView: minor EDIT für `onRepoActivate`) | Konsole-Stack |
+| `apps/web/src/components/galaxie/{MiniMap,ZoomIndicator,StaticGalaxieSVG}.tsx` | DELETE ✅ | Pixi-only-Begleiter (`GalaxieSkeleton` BLEIBT — reines CSS, Suspense-Fallback) |
+| `apps/web/src/components/galaxie/{GalaxieRoot,GalaxieScene,OnboardingBanner}.tsx` + `pixi/**` | DELETE ✅ | Pixi-Stack; `OnboardingState`-Type nach `lib/galaxie/types.ts` verschoben |
+| `apps/web/src/lib/galaxie/solar-layout.ts(+.test)` | **KEEP** ✅ | NICHT Pixi-only — `tree.ts`/Konsole brauchen `computeSolarLayout`+`extractOwningFolder` (Typecheck-Befund 1.4) |
+| `apps/web/src/lib/galaxie/{tree,console-grouping,group-findings,humanize,severity-colors,severity-icons,types,device,mock-data,space-bg,layout}.ts` | KEEP | Konsole/Landing nutzen diese |
+| `apps/web/src/components/galaxie/{SolarListView,Inspector,UniversalSearch,EmptyGalaxie}.tsx` | KEEP (Inspector: gsap → WAAPI-Port ✅) | Konsole-Stack |
+| `apps/web/src/components/galaxie/{WorkspaceSwitcher,ActivationChecklist}.tsx` | KEEP + REWIRE ✅ | Aus Pixi-Chrome in `WorkspaceConsole` portiert (Block-Resolution 1.1a) |
+| `apps/web/src/components/galaxie/WorkspaceConsole.tsx` | NEW ✅ | SolarListView + Switcher + Checklist; ersetzt `GalaxieRoot` im Workspace |
 | `apps/web/src/app/[workspace]/settings/galaxie/page.tsx` | DELETE | Galaxie-only-Settings |
 | `apps/web/src/components/landing/PortfolioShowcase.tsx` | DELETE | Galaxie-Showcase auf Landing |
 | `apps/web/src/components/landing/ConsoleSurface.tsx` | NEW | Durchgehendes Surface (portfolio⇄repo) |

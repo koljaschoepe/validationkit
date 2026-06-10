@@ -22,7 +22,7 @@ export function WorkspaceSwitcher({
   const active = list.find((w) => w.slug === current) ?? list[0]!;
 
   return (
-    <div className="pointer-events-auto absolute left-2 top-2 z-20">
+    <div className="relative inline-block">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

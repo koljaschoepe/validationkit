@@ -217,3 +217,21 @@ export interface SolarLayout {
 export type InspectorTarget =
   | { kind: 'file'; file: FileNode }
   | { kind: 'folder'; folder: FolderNode; files: FileNode[] };
+
+/**
+ * Onboarding-State shape consumed by the workspace console's ActivationChecklist.
+ * Lived in `components/galaxie/OnboardingBanner.tsx` until the Pixi-galaxie
+ * retirement (2026-06-10); moved here so it survives the component deletion as a
+ * neutral, server-importable type (the workspace page builds it from DB counts).
+ */
+export interface OnboardingState {
+  workspaceId: string;
+  customerCount: number;
+  repoCount: number;
+  scanCount: number;
+  /** Phase Nova-2 P4 — added for ActivationChecklist. Defaults to 0 if unset. */
+  applyCount?: number;
+  /** Phase Nova-2 P4 — added for ActivationChecklist. Defaults to 0 if unset. */
+  memberCount?: number;
+  gitHubAppConfigured: boolean;
+}

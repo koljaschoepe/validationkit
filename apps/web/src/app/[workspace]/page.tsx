@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 import { isAuthEnabled } from '@vk/auth';
-import GalaxieRoot from '@/components/galaxie/GalaxieRoot';
+import WorkspaceConsole from '@/components/galaxie/WorkspaceConsole';
 import { GalaxieSkeleton } from '@/components/galaxie/GalaxieSkeleton';
 import { getSessionUser } from '@/lib/session';
 import {
@@ -46,7 +46,7 @@ export default async function WorkspaceGalaxiePage({
   return (
     <main id="main-content" tabIndex={-1} className="h-screen w-screen">
       <Suspense fallback={<GalaxieSkeleton />}>
-        <GalaxieRoot
+        <WorkspaceConsole
           initialData={result.data}
           initialWorkspaceSlug={result.workspace.slug}
           workspaces={workspaces.map((w) => ({
