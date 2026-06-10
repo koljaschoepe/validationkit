@@ -14,8 +14,13 @@ Nach Bundle A ist die Galaxie ein Map-Tab. Damit sie nicht **verwaist** (Critic 
 
 ## 3. Vorgeschlagene Richtung
 
-- State-Lift in `GalaxieRoot.InteractiveGalaxie`: `selectedRepoId` + `setView`. Sun-Klick-Callback aus `GalaxieScene` (neuer optionaler Prop, **kein** Innereien-Umbau — nur ein `onSunActivate(repoId)` durchreichen) → `setView('console')` + Filter-Vorwahl.
-- Konsole nimmt einen optionalen `focusRepoId`-Prop (scroll-to + highlight).
+**Plumbing verifiziert (2026-06-10):** `GalaxieScene` hat den Sun-Klick-Pfad bereits — `handleSunClick` (`GalaxieScene.tsx:493`) → `onSunClick(repoId)` (Prop `:788`, Call `:1000`). Heute macht der Klick nur einen Kamera-Tween.
+
+- Optionalen Prop `onSunActivate?(repoId)` an `GalaxieScene`-Props ergänzen, im bestehenden `handleSunClick` zusätzlich aufrufen (**kein** Innereien-Umbau, optional → kein Verhalten ohne Prop).
+- State-Lift in `GalaxieRoot.InteractiveGalaxie`: `focusRepoId` + `setView('console')`.
+- Konsole nimmt optionalen `focusRepoId`-Prop (scroll-to + highlight).
+
+**Warum heute deferred:** Der Mehrwert (Filter/Scroll/Highlight-Gefühl) ist nur visuell auf der auth-gated Workspace-Map verifizierbar — blind geshippt riskiert es ein janky Halb-Feature. Supervised umsetzen.
 
 ## 4. Risiken
 
