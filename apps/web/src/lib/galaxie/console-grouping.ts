@@ -1,31 +1,32 @@
 import type { FindingCategory } from '@vk/core';
-import type { Customer, FileNode, FolderNode, GalaxieData, Severity } from './types';
+import type { Customer, FileNode, GalaxieData, Severity } from './types';
 import { SEVERITY_BANDS } from './types';
 import type { RepoTreeNode } from './tree';
 
 /**
- * SaaS-Premium-Overhaul Bundle A (Mission Control) — pure grouping/sort/heat
- * helpers for the triage console (`SolarListView`). Extracted so the risky
- * re-pivot logic (group-by Severity/Rule/Customer/Folder, triage-sort, heat-bar)
- * is unit-testable without a DOM, auth, or a browser. The console is now the
- * DEFAULT workspace surface; the Pixi galaxie moves to an on-demand Map tab.
+ * Pure grouping/sort helpers for the triage console (`SolarListView`).
+ * Extracted so the re-pivot logic (group-by Repo/Customer, triage-sort) is
+ * unit-testable without a DOM, auth, or a browser. The console is the DEFAULT
+ * (and now only) workspace surface.
+ *
+ * Visual-overhaul (Jun 2026): grouping collapsed to the two axes that map to how
+ * an agency actually thinks — Repo and Customer (organisation). Severity and Rule
+ * survive as FILTERS (chips + a "Regel" disclosure), Folder as nesting inside a
+ * repo, not as standalone group-by axes.
  *
  * Triage doctrine: "what's burning, fix it first" is a sortable ranking, not a
- * spatial search — so repos/customers/rules sort by (Kill-count, then Weak,
- * then total findings), most urgent on top. Only Kill screams (asymm-severity).
+ * spatial search — so repos/customers sort by (Kill-count, then Weak, then total
+ * findings), most urgent on top. Only Kill screams (asymm-severity).
  */
 
-export type GroupBy = 'repo' | 'severity' | 'rule' | 'customer' | 'folder';
+export type GroupBy = 'repo' | 'customer';
 
 export const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'repo', label: 'Repo' },
-  { value: 'severity', label: 'Severity' },
-  { value: 'rule', label: 'Regel' },
   { value: 'customer', label: 'Kunde' },
-  { value: 'folder', label: 'Ordner' },
 ];
 
-/** Human labels for the 6 audit-rule categories (the "Rule" group-by axis).
+/** Human labels for the 6 audit-rule categories (the "Regel" filter axis).
  *  German — project UI language. */
 export const CATEGORY_LABEL: Record<FindingCategory, string> = {
   'unused-agent': 'Ungenutzter Agent',
@@ -64,25 +65,14 @@ function mergeCounts(list: readonly SeverityCounts[]): SeverityCounts {
   return c;
 }
 
-export interface HeatSegment {
-  severity: Severity;
-  count: number;
-  /** Width percentage (0–100) of this band within the row's total. */
-  pct: number;
-}
-
 /**
- * Stacked severity distribution for a row's heat-bar — the "in 3 seconds"
- * glyph. Ordered worst → best (Kill leftmost), zero-count bands omitted.
+ * The single worst severity band present in a row — the calm "how bad" glyph
+ * (a dot) that replaced the 5-color heat-bar (visual-overhaul, Jun 2026).
+ * SEVERITY_BANDS is ordered worst → best, so the first present band wins.
+ * Returns `null` for an empty row.
  */
-export function heatSegments(counts: SeverityCounts): HeatSegment[] {
-  const t = total(counts);
-  if (t === 0) return [];
-  return SEVERITY_BANDS.filter((s) => counts[s] > 0).map((s) => ({
-    severity: s,
-    count: counts[s],
-    pct: (counts[s] / t) * 100,
-  }));
+export function worstSeverity(counts: SeverityCounts): Severity | null {
+  return SEVERITY_BANDS.find((s) => counts[s] > 0) ?? null;
 }
 
 /**
@@ -181,22 +171,7 @@ export function sectionsByCustomer(
     );
 }
 
-// ── Severity ─────────────────────────────────────────────────────────────────
-
-export interface SeveritySection {
-  severity: Severity;
-  files: FileNode[];
-}
-
-/** Flat files bucketed into the 5 bands, Kill first; empty bands omitted. */
-export function sectionsBySeverity(files: readonly FileNode[]): SeveritySection[] {
-  return SEVERITY_BANDS.map((severity) => ({
-    severity,
-    files: files.filter((f) => f.severity === severity).sort(fileSort),
-  })).filter((sec) => sec.files.length > 0);
-}
-
-// ── Rule (audit category) ────────────────────────────────────────────────────
+// ── Rule (audit category) — drives the "Regel" filter disclosure ─────────────
 
 export interface RuleSection {
   key: string;
@@ -234,36 +209,3 @@ export function sectionsByRule(files: readonly FileNode[]): RuleSection[] {
     );
 }
 
-// ── Folder ───────────────────────────────────────────────────────────────────
-
-export interface FolderSection {
-  folder: FolderNode;
-  files: FileNode[];
-  counts: SeverityCounts;
-  repoLabel: string;
-}
-
-/**
- * All folders across the workspace, flattened and triage-sorted. `files` is the
- * already-filtered folder file list from the tree; folders that filter empty are
- * dropped by the caller's tree filter before this runs.
- */
-export function sectionsByFolder(tree: readonly RepoTreeNode[]): FolderSection[] {
-  const out: FolderSection[] = [];
-  for (const t of tree) {
-    for (const fn of t.folders) {
-      out.push({
-        folder: fn.folder,
-        files: fn.files,
-        counts: severityCounts(fn.files),
-        repoLabel: t.repo.label,
-      });
-    }
-  }
-  return out.sort(
-    (a, b) =>
-      triageComparator(a.counts, b.counts) ||
-      a.repoLabel.localeCompare(b.repoLabel) ||
-      a.folder.name.localeCompare(b.folder.name),
-  );
-}

@@ -317,49 +317,51 @@ Zwischen-User-QA (R3-Entscheidung). **Finale** visuelle QA vor Acceptance. Kein 
 - [ ] Konsole: nur Repo+Kunde-Gruppierung, Severity+Regel-Filter, Worst-Dot
 - [ ] Severity-Badges = Hairline-Pills (nur Kill gefüllt)
 - [ ] Unterer CTA löst echtes Anon-Audit aus
-- [ ] Keine erfundenen Testimonials/Logos/Stats mehr
-- [ ] 4 neue Screenshots zeigen 3-Farben-System
+- [x] Keine erfundenen Testimonials/Logos/Stats mehr
+- [ ] ⚠️ DEFERRED: 4 Feature-Screenshots neu (Playwright-Backend tot in dieser Env) — zeigen noch alte Palette
 - [ ] Finale visuelle QA durch User
+
+**Deferred Items (User-Entscheidung bei Abnahme):**
+- **4.3 Screenshot-Regen** (`public/landing/{intake-pill,audit-finding,konsole,fix-pr}.png`): Der Playwright-MCP-Browser läuft in dieser Umgebung bei jedem Call (navigate/resize/snapshot) in einen 30–60s-Timeout, obwohl der Dev-Server die Route per curl in 0.1s liefert → reines Tooling-Problem. Die 4 Feature-Block-Bilder zeigen daher noch die alte 5-Farben-Palette (sichtbare Inkonsistenz zu den neuen Badges). Der Live-Hero (`ConsoleSurface`) rendert bereits das neue 3-Farben-System korrekt. Optionen: (a) Screenshots manuell vom User aufnehmen, (b) Playwright später erneut versuchen, (c) Feature-Blöcke auf Live-Mini-Komponenten umstellen.
 
 ---
 
 ## §13 — Execution-Checkliste (Schritt-für-Schritt)
 
-**Bundle 1 — Token/Severity-Core:**
-- [ ] 1.1 globals.css `--sev-*` finalisieren (gedämpftes Orange) + `--sev-on-kill` ergänzen
-- [ ] 1.2 `--radius` 0.5→0.375rem
-- [ ] 1.3 severity-colors.ts: SEVERITY_HEX angleichen + toten Pixi-Code typecheck-getrieben entfernen
-- [ ] 1.4 severity-badge.tsx cva → Hairline-Pills (nur Kill gefüllt)
-- [ ] 1.5 planColor neutralisieren · Nebula-Gradienten raus · Inline-Hex weg
-- [ ] Verify 1 (typecheck+lint)
+**Bundle 1 — Token/Severity-Core:** ✅
+- [x] 1.1 globals.css `--sev-*` finalisieren (gedämpftes Orange) + `--sev-on-kill` ergänzen
+- [x] 1.2 `--radius` 0.5→0.375rem
+- [x] 1.3 severity-colors.ts → reiner Var-Mapper (`severityColorVar`/`SEVERITY_COLOR`), toter Pixi-Code raus (nur Test war Consumer), Test neu
+- [x] 1.4 severity-badge.tsx cva → Hairline-Pills (nur Kill gefüllt), kein dashed/italic/border-ladder
+- [x] 1.5 planColor → Graustufen · space-bg.ts gelöscht (0 Consumer) · Inline-Hex → bg-background
+- [x] Verify 1 (typecheck+lint+severity-test grün)
 
-**Bundle 2 — Konsole:**
-- [ ] 2.1 GroupBy → repo|customer · sectionsByRule→Filter · Folder bleibt nested
-- [ ] 2.2 SolarListView Render-Switch reduzieren
-- [ ] 2.3 Filter-Leiste (Severity-Chips + Regel-Filter)
-- [ ] 2.4 HeatBar → SeverityIndicator (Worst-Dot + Kill-Zahl, a11y)
-- [ ] 2.5 Sub-Komponenten-Konsistenz
-- [ ] Verify 2
+**Bundle 2 — Konsole:** ✅
+- [x] 2.1 GroupBy → repo|customer · sectionsByRule→Filter · Folder bleibt nested · sectionsBySeverity/ByFolder/heatSegments entfernt + worstSeverity hinzu
+- [x] 2.2 SolarListView Render-Switch auf Repo+Kunde reduziert
+- [x] 2.3 Filter-Leiste: Severity-Chips restyled (Dot, kein line-through) + Regel-`<details>`-Disclosure
+- [x] 2.4 HeatBar → SeverityDot (Worst-Severity-Farbe + Kill-Zahl + Total, aria-label)
+- [x] 2.5 Sub-Komponenten: amber/teal-Fremd-Hues neutralisiert, bg-[#06080c]→bg-background
+- [x] Verify 2 (typecheck + 16 Tests + lint grün)
 
-**Bundle 3 — Hero/Landing:**
-- [ ] 3.1 Hero 100dvh side-by-side/stacked (dvh, Nav-Höhe)
-- [ ] 3.2 Demo-Visual-Politur (Radius/Schatten/Hex)
-- [ ] 3.3 Unterer CTA → RepoUrlPill (Anon-Audit)
-- [ ] 3.4 Feature-Bilder Hover-Zoom (reduced-motion safe)
-- [ ] Verify 3
+**Bundle 3 — Hero/Landing:** ✅
+- [x] 3.1 Hero `min-h-[calc(100dvh-3.5rem)]` side-by-side (lg) / gestapelt mobil (order-1 Demo oben), vertikal zentriert
+- [x] 3.2 Demo-Frame füllt Spalte (flex h-full), Schatten dezenter, Inline-Hex raus
+- [x] 3.3 Unterer CTA → RepoUrlPill + Event-Bridge (`vk:audit-repo`) → ConsoleSurface remountet RepoConsole(initialUrl) → echtes Anon-Audit
+- [x] 3.4 Feature-Bilder group-hover:scale + Shadow-Lift, motion-reduce-safe
+- [x] Verify 3 (typecheck + lint grün)
 
-**Bundle 4 — Trust/Proof/Screenshots:**
-- [ ] 4.1 Fakes raus (Logos/Stat/Testimonials) → ehrliches Framing
-- [ ] 4.2 Trust-Seite visuell + Wording-Glättung
-- [ ] 4.3 Playwright: 4 frische Screenshots + Alt-Texte
-- [ ] Verify 4
+**Bundle 4 — Trust/Proof/Screenshots:** ⚠️ (4.3 deferred)
+- [x] 4.1 LogoStrip→ehrliche Proof-Punkte (Fake-Logos+Stat raus) · Testimonials→`Principles`+Founder-Note (erfundene Zitate raus)
+- [x] 4.2 Trust-Seite: grep-geprüft token-sauber (keine Fremd-Hues/Inline-Hex), erbt neue Palette automatisch
+- [ ] 4.3 ⚠️ DEFERRED — Playwright-Backend in dieser Umgebung tot (jeder navigate/snapshot-Call Timeout; Route antwortet per curl in 0.1s). Siehe §12.
+- [x] Verify 4 (typecheck + lint grün)
 
-**Bundle 5 — App-Sweep:**
-- [ ] 5.1 Seiten-Checkliste durchgehen
-- [ ] 5.2 grep-Sweep + Einzel-Bereinigung
-- [ ] Verify 5 (typecheck+lint+build+grep)
+**Bundle 5 — App-Sweep:** ✅
+- [x] 5.1/5.2 grep-Sweep app-weit: emerald (billing)→sev-strong · amber (delete)→sev-mid · teal+cream Inline-Hex (Inspector)→neutral · bg-[#07080a] (WorkspaceConsole)→bg-background · AISolutionPlaceholder dashed+italic→Hairline. Legit Empty-State-`Card`-dashed bewusst behalten.
+- [x] Verify 5: typecheck ✓ · lint ✓ · **Prod-Build grün** ✓ · grep B+C clean · 183 Tests grün (4 pre-existing server-only-DAL-Failures, unrelated)
 
 **Abschluss:**
-- [ ] Finale visuelle QA durch User
-- [ ] Doku: changelog.md + CLAUDE.md (Severity-Mapping/Radius) + linear-aesthetic.md (Radius-Decision aufgelöst)
-- [ ] Plan → `docs/plans/done/`
+- [ ] Finale visuelle QA durch User (Dev-Server :3000)
+- [x] Doku: changelog.md + CLAUDE.md (Severity-Mapping/Radius) + linear-aesthetic.md (§3.2 + Radius-Decision aufgelöst)
+- [ ] Plan → `docs/plans/done/` (nach Acceptance)

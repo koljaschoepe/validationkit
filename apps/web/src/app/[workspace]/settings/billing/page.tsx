@@ -373,13 +373,13 @@ function StatusBanner({
       className={cn(
         "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
         kind === "success"
-          ? "border-emerald-500/40 bg-emerald-500/5"
+          ? "border-[var(--color-sev-strong)]/40 bg-[var(--color-sev-strong)]/5 text-[var(--color-sev-strong)]"
           : "border-destructive/40 bg-destructive/5 text-destructive",
       )}
       role="status"
     >
       {kind === "success" ? (
-        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <CheckCircle2 className="h-4 w-4 text-[var(--color-sev-strong)]" />
       ) : (
         <Sparkles className="h-4 w-4" />
       )}

@@ -10,6 +10,7 @@ import {
   m,
 } from "motion/react";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
+import { RepoUrlPill } from "./RepoUrlPill";
 
 // Landing-Redesign Phase J — narrative sections below the demo. Screenshots are
 // real captures of the running app (public demo screens). Section gaps ~96px,
@@ -59,7 +60,7 @@ export function LandingSocialProof() {
     <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
         <div className="flex flex-col gap-24 py-24 sm:gap-28">
-          <Testimonials />
+          <Principles />
           <PricingTeaser />
           <FinalCTA />
         </div>
@@ -68,27 +69,37 @@ export function LandingSocialProof() {
   );
 }
 
-// ── Logo strip + hard usage stat ────────────────────────────────────────────
-const LOGOS = ["Acme", "Globex", "Initech", "Umbrella", "Hooli", "Soylent"];
+// ── Honest proof strip ───────────────────────────────────────────────────────
+// Pre-launch with zero customers: no fabricated logos or usage stats (legal +
+// credibility risk). We lead with what's actually verifiable about the product.
+const PROOF_POINTS = [
+  "5 von 6 Audit-Regeln deterministisch",
+  "Jedes Finding mit file:line-Beleg",
+  "Severity-Bänder statt Fake-Scores",
+  "Anonymes Audit ohne Account",
+];
 
 function LogoStrip() {
   return (
     <section
-      aria-label="Genutzt von"
+      aria-label="Was ValidationKit ausmacht"
       className="mx-auto w-full max-w-5xl px-4 sm:px-6"
     >
       <Reveal className="flex flex-col items-center gap-6 text-center">
         <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground">
-          {/* Placeholder stat */}
-          2.400+ Kunden-Repos auditiert · 18.000+ Findings gefixt
+          Early Access · für DACH-B2B-Consultancies
         </p>
-        <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-          {LOGOS.map((name) => (
+        <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {PROOF_POINTS.map((p) => (
             <li
-              key={name}
-              className="font-mono text-sm font-medium text-muted-foreground/50"
+              key={p}
+              className="flex items-center gap-2 font-mono type-mono-sm text-muted-foreground"
             >
-              {name}
+              <CheckIcon
+                className="size-3.5 text-[var(--color-sev-strong)]"
+                aria-hidden="true"
+              />
+              {p}
             </li>
           ))}
         </ul>
@@ -171,7 +182,9 @@ function FeatureBlocks() {
                 </div>
                 {/* Real app capture, framed like an app window. */}
                 <div className={imageLeft ? "md:order-1" : undefined}>
-                  <div className="overflow-hidden rounded-xl border border-border bg-[#07080a] shadow-xl shadow-black/30">
+                  {/* Hover-zoom: the frame clips, the capture scales in slightly.
+                      Neutralised under prefers-reduced-motion. */}
+                  <div className="group overflow-hidden rounded-xl border border-border bg-background shadow-xl shadow-black/30 transition-shadow duration-300 hover:shadow-2xl hover:shadow-black/40">
                     {f.contain ? (
                       <div className="flex aspect-[16/10] items-center justify-center px-6 sm:px-10">
                         <Image
@@ -180,7 +193,7 @@ function FeatureBlocks() {
                           width={1154}
                           height={90}
                           sizes="(max-width: 768px) 100vw, 560px"
-                          className="h-auto w-full"
+                          className="h-auto w-full transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transform-none"
                         />
                       </div>
                     ) : (
@@ -190,7 +203,7 @@ function FeatureBlocks() {
                           alt={f.alt}
                           fill
                           sizes="(max-width: 768px) 100vw, 560px"
-                          className="object-cover object-top"
+                          className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transform-none"
                         />
                       </div>
                     )}
@@ -206,60 +219,57 @@ function FeatureBlocks() {
 }
 
 // ── Testimonials ────────────────────────────────────────────────────────────
-const TESTIMONIALS = [
+// Pre-launch: principles we can stand behind, not fabricated customer quotes.
+const PRINCIPLES = [
   {
-    quote:
-      "Wir managen 40+ Kunden-Repos. ValidationKit fängt Konflikte ab, bevor sie in Produktion landen. Das hat uns einen ganzen Incident erspart.",
-    name: "Lena M.",
-    role: "Founder, AI-Consultancy",
+    title: "Belegbar statt Bauchgefühl",
+    body: "Fünf der sechs Regeln sind deterministisch. Jedes Finding zeigt Datei und Zeile — keine erfundenen Scores, keine Blackbox.",
   },
   {
-    quote:
-      "Die Triage-Konsole zeigt mir in Sekunden, welches Kunden-Repo brennt und warum. Onboarding neuer Kunden dauert jetzt Minuten statt Tage.",
-    name: "Tomasz K.",
-    role: "Principal Engineer",
+    title: "Nur Kill schreit",
+    body: "Severity-Bänder statt Prozentzahlen. Was wirklich brennt, steht oben und ist rot. Der Rest bleibt ruhig, damit du den Wald siehst.",
   },
   {
-    quote:
-      "Endlich ein Audit-Tool, das AGENTS.md ernst nimmt. Die Severity-Bänder sind ehrlich, die Fixes anwendbar.",
-    name: "Priya R.",
-    role: "Head of Platform",
+    title: "Read-only by default",
+    body: "ValidationKit liest, bevor es schreibt. PRs und Fixes nur auf deinen Klick — über alle Kunden-Repos hinweg, alles auditierbar.",
   },
 ] as const;
 
-function Testimonials() {
+function Principles() {
   return (
     <section
-      aria-label="Was Kunden sagen"
+      aria-label="Prinzipien"
       className="mx-auto w-full max-w-6xl px-4 sm:px-6"
     >
+      <Reveal className="mb-10 text-center">
+        <p className="font-mono type-mono-sm uppercase tracking-wider text-primary">
+          Warum ValidationKit
+        </p>
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          Ehrliche Audits, keine Vibe-Scores
+        </h2>
+      </Reveal>
       <div className="grid gap-6 md:grid-cols-3">
-        {TESTIMONIALS.map((t, i) => (
-          <Reveal key={t.name} delay={i * 0.05}>
-            <figure className="flex h-full flex-col gap-4 rounded-xl border border-border bg-card/40 p-6">
-              <blockquote className="flex-1 text-sm leading-relaxed text-foreground/90">
-                „{t.quote}"
-              </blockquote>
-              <figcaption className="flex items-center gap-3">
-                <span
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs text-muted-foreground"
-                  aria-hidden="true"
-                >
-                  {t.name.slice(0, 2)}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {t.name}
-                  </span>
-                  <span className="block truncate type-mono-sm text-muted-foreground">
-                    {t.role}
-                  </span>
-                </span>
-              </figcaption>
-            </figure>
+        {PRINCIPLES.map((p, i) => (
+          <Reveal key={p.title} delay={i * 0.05}>
+            <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card/40 p-6">
+              <h3 className="text-base font-semibold text-foreground">
+                {p.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {p.body}
+              </p>
+            </div>
           </Reveal>
         ))}
       </div>
+      <Reveal className="mx-auto mt-10 max-w-2xl text-center">
+        <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
+          ValidationKit ist im Early Access — gebaut von einem Solo-Founder für
+          AI-Consultancies, die mehrere Kunden-Repos sauber halten müssen. Kein
+          Fake-Social-Proof: starte das anonyme Audit und urteil selbst.
+        </p>
+      </Reveal>
     </section>
   );
 }
@@ -370,20 +380,35 @@ function PricingTeaser() {
 }
 
 // ── Final CTA ───────────────────────────────────────────────────────────────
+// The repo-URL pill IS the CTA: paste a link → the hero console runs a real
+// anonymous audit (decoupled via the `vk:audit-repo` event ConsoleSurface
+// listens for, then scroll up to the live result).
 function FinalCTA() {
+  function startAudit(path: string) {
+    window.dispatchEvent(new CustomEvent("vk:audit-repo", { detail: path }));
+    document
+      .getElementById("demo")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   return (
     <section aria-label="Jetzt starten" className="w-full px-4 sm:px-6">
-      <Reveal className="mx-auto w-full max-w-5xl">
-        <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-card/40 px-6 py-16 text-center">
+      <Reveal className="mx-auto w-full max-w-3xl">
+        <div className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-card/40 px-6 py-16 text-center">
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             Audit dein erstes Repo in unter einer Minute
           </h2>
+          <p className="-mt-1 max-w-md text-pretty text-base text-muted-foreground">
+            Repo-Link einfügen — wir scannen AGENTS.md &amp; Co. live, nach
+            Severity sortiert. Keine Kreditkarte, kein Setup.
+          </p>
+          <div className="w-full max-w-md">
+            <RepoUrlPill pending={false} onSubmit={startAudit} size="hero" />
+          </div>
           <Link
             href="/login"
-            className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+            className="font-mono type-mono-sm text-muted-foreground transition hover:text-foreground"
           >
-            Kostenlos starten
-            <ArrowRightIcon className="size-4" aria-hidden="true" />
+            oder kostenlos einen Account anlegen →
           </Link>
         </div>
       </Reveal>

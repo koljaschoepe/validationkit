@@ -1,17 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import type { Customer, FileNode, FolderNode, GalaxieData, Repo, Severity } from './types';
+import type { Customer, FileNode, GalaxieData, Repo, Severity } from './types';
 import type { RepoTreeNode } from './tree';
 import {
   CATEGORY_LABEL,
   UNCATEGORIZED_LABEL,
-  heatSegments,
   sectionsByCustomer,
-  sectionsByFolder,
   sectionsByRepo,
   sectionsByRule,
-  sectionsBySeverity,
   severityCounts,
   triageComparator,
+  worstSeverity,
 } from './console-grouping';
 import type { FindingCategory } from '@vk/core';
 
@@ -72,22 +70,17 @@ describe('severityCounts', () => {
   });
 });
 
-// ── heatSegments ─────────────────────────────────────────────────────────────
+// ── worstSeverity ────────────────────────────────────────────────────────────
 
-describe('heatSegments', () => {
-  it('orders worst → best and omits zero bands', () => {
-    const segs = heatSegments(counts({ Kill: 1, Strong: 3 }));
-    expect(segs.map((s) => s.severity)).toEqual(['Kill', 'Strong']);
+describe('worstSeverity', () => {
+  it('returns the worst band present (worst → best order)', () => {
+    expect(worstSeverity(counts({ Kill: 1, Strong: 3 }))).toBe('Kill');
+    expect(worstSeverity(counts({ Mid: 2, Strong: 5 }))).toBe('Mid');
+    expect(worstSeverity(counts({ Exceptional: 4 }))).toBe('Exceptional');
   });
 
-  it('computes width percentages summing to 100', () => {
-    const segs = heatSegments(counts({ Kill: 1, Strong: 3 }));
-    expect(segs.find((s) => s.severity === 'Kill')!.pct).toBeCloseTo(25);
-    expect(segs.reduce((n, s) => n + s.pct, 0)).toBeCloseTo(100);
-  });
-
-  it('is empty for an all-zero distribution', () => {
-    expect(heatSegments(counts({}))).toEqual([]);
+  it('returns null for an all-zero distribution', () => {
+    expect(worstSeverity(counts({}))).toBeNull();
   });
 });
 
@@ -144,21 +137,6 @@ describe('sectionsByRepo', () => {
   });
 });
 
-// ── sectionsBySeverity ───────────────────────────────────────────────────────
-
-describe('sectionsBySeverity', () => {
-  it('buckets into bands, Kill first, omitting empty bands', () => {
-    const files = [
-      file('r1', 'c1', 'Strong'),
-      file('r1', 'c1', 'Kill'),
-      file('r1', 'c1', 'Kill'),
-    ];
-    const sections = sectionsBySeverity(files);
-    expect(sections.map((s) => s.severity)).toEqual(['Kill', 'Strong']);
-    expect(sections[0]!.files).toHaveLength(2);
-  });
-});
-
 // ── sectionsByRule ───────────────────────────────────────────────────────────
 
 describe('sectionsByRule', () => {
@@ -212,36 +190,5 @@ describe('sectionsByCustomer', () => {
       file('r1', 'c1', 'Mid'),
     ]);
     expect(sections.map((s) => s.customer.label)).toEqual(['Has']);
-  });
-});
-
-// ── sectionsByFolder ─────────────────────────────────────────────────────────
-
-describe('sectionsByFolder', () => {
-  const folder = (id: string, name: string): FolderNode => ({
-    id,
-    repoId: 'r1',
-    customerId: 'c1',
-    name,
-    fileCount: 0,
-    fileIds: [],
-    aggregateSeverity: 'Mid',
-  });
-
-  it('flattens folders across repos and triage-sorts', () => {
-    const r = repo('r1', 'c1', 'R1');
-    const tree: RepoTreeNode[] = [
-      {
-        repo: r,
-        folders: [
-          { folder: folder('f1', '.calm'), files: [file('r1', 'c1', 'Strong')] },
-          { folder: folder('f2', '.fire'), files: [file('r1', 'c1', 'Kill')] },
-        ],
-        rootFiles: [],
-      },
-    ];
-    const sections = sectionsByFolder(tree);
-    expect(sections.map((s) => s.folder.name)).toEqual(['.fire', '.calm']);
-    expect(sections[0]!.repoLabel).toBe('R1');
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -17,19 +17,18 @@ import type {
   Severity,
 } from '@/lib/galaxie/types';
 import { SEVERITY_BANDS } from '@/lib/galaxie/types';
-import { SEVERITY_HEX } from '@/lib/galaxie/severity-colors';
+import { severityColorVar } from '@/lib/galaxie/severity-colors';
 import { generateMockGalaxieData } from '@/lib/galaxie/mock-data';
 import { buildGalaxieTree, type RepoTreeNode } from '@/lib/galaxie/tree';
 import { fileDisplayName, folderDisplayName } from '@/lib/galaxie/humanize';
 import {
   GROUP_BY_OPTIONS,
-  heatSegments,
   sectionsByCustomer,
-  sectionsByFolder,
   sectionsByRepo,
   sectionsByRule,
-  sectionsBySeverity,
   severityCounts,
+  worstSeverity,
+  UNCATEGORIZED_KEY,
   type GroupBy,
   type RepoSection,
 } from '@/lib/galaxie/console-grouping';
@@ -40,20 +39,20 @@ const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
 const FOCUS_RING_INSET =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/50';
-const KILL_TEXT = 'text-[var(--color-sev-kill,#f4604e)]';
+const KILL_TEXT = 'text-[var(--color-sev-kill)]';
 
 /**
- * Mission-Control triage console — SaaS-Premium-Overhaul Bundle A.
+ * Mission-Control triage console — the workspace surface.
  *
- * The DEFAULT workspace surface (the Pixi galaxie is now an on-demand "Map"
- * tab). Persona Lena's job is triage across 5–30 repos ("what's burning, fix it
+ * Persona Lena's job is triage across 5–30 repos ("what's burning, fix it
  * first") — a sortable ranking she READS, not a spatial search. So this console
- * triage-sorts every grouping (Kill-count, then Weak, then total) with a
- * severity heat-bar per row as the "in 3 seconds" glyph, and pivots across five
- * axes (Repo · Severity · Rule · Customer · Folder). Built from the SAME
- * `buildGalaxieTree` derivation as the canvas, so the views stay in parity.
- * Fully keyboard-/screenreader-native; clicking any file/folder opens the same
- * Inspector (Datadog-pivot) as every other renderer.
+ * triage-sorts each grouping (Kill-count, then Weak, then total) and shows a calm
+ * worst-severity dot + Kill-count per row as the "in 3 seconds" glyph.
+ *
+ * Visual-overhaul (Jun 2026): grouping is just two axes — Repo and Customer
+ * (organisation). Severity (chips) and Rule (a "Regel" disclosure) are FILTERS;
+ * folders nest inside a repo. Built from `buildGalaxieTree`; fully keyboard-/
+ * screenreader-native; clicking a file opens the same Inspector as every renderer.
  */
 export function SolarListView({
   initialData,
@@ -80,27 +79,38 @@ export function SolarListView({
   const isEmptyRealWorkspace =
     initialData !== undefined && initialData.customers.length === 0;
 
+  // Audit-rule categories present in the data → the "Regel" filter options.
+  const ruleSections = useMemo(
+    () => sectionsByRule(data.files),
+    [data.files],
+  );
+
   const [groupBy, setGroupBy] = useState<GroupBy>('repo');
   const [active, setActive] = useState<Set<Severity>>(
     () => new Set(SEVERITY_BANDS),
   );
+  // Rule filter: all present categories on by default (empty filter = show all).
+  const [activeCats, setActiveCats] = useState<Set<string>>(
+    () => new Set(ruleSections.map((r) => r.key)),
+  );
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [target, setTarget] = useState<InspectorTarget | null>(null);
 
+  // A file is visible when its severity chip is on AND its rule category is on.
+  const passesFilter = useCallback(
+    (f: FileNode) =>
+      active.has(f.severity) && activeCats.has(f.category ?? UNCATEGORIZED_KEY),
+    [active, activeCats],
+  );
+
   const fullTree = useMemo(() => buildGalaxieTree(data), [data]);
 
-  const repoLabelById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const r of data.repos) m.set(r.id, r.label);
-    return m;
-  }, [data.repos]);
-
-  // Files + tree restricted to the active severity-filter chips. The chips
-  // control which expanded ROWS show; per-row counts/heat/sort stay
-  // filter-independent (fed `data.files`) so the triage ranking is stable.
+  // Files + tree restricted to the active filters. The chips control which
+  // expanded ROWS show; per-row counts/sort stay filter-independent (fed
+  // `data.files`) so the triage ranking is stable.
   const visibleFiles = useMemo(
-    () => data.files.filter((f) => active.has(f.severity)),
-    [data.files, active],
+    () => data.files.filter(passesFilter),
+    [data.files, passesFilter],
   );
 
   const filteredTree = useMemo<RepoTreeNode[]>(() => {
@@ -110,13 +120,13 @@ export function SolarListView({
         folders: repo.folders
           .map((fn) => ({
             folder: fn.folder,
-            files: fn.files.filter((f) => active.has(f.severity)),
+            files: fn.files.filter(passesFilter),
           }))
           .filter((fn) => fn.files.length > 0),
-        rootFiles: repo.rootFiles.filter((f) => active.has(f.severity)),
+        rootFiles: repo.rootFiles.filter(passesFilter),
       }))
       .filter((r) => r.folders.length > 0 || r.rootFiles.length > 0);
-  }, [fullTree, active]);
+  }, [fullTree, passesFilter]);
 
   const counts = useMemo(() => severityCounts(data.files), [data.files]);
   const workspaceCounts = useMemo(
@@ -133,6 +143,20 @@ export function SolarListView({
     });
   }
 
+  function toggleCategory(key: string) {
+    setActiveCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function resetFilters() {
+    setActive(new Set(SEVERITY_BANDS));
+    setActiveCats(new Set(ruleSections.map((r) => r.key)));
+  }
+
   function toggleCollapse(id: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -143,8 +167,6 @@ export function SolarListView({
   }
 
   const openFile = (file: FileNode) => setTarget({ kind: 'file', file });
-  const openFolder = (folder: FolderNode, files: FileNode[]) =>
-    setTarget({ kind: 'folder', folder, files });
 
   if (isEmptyRealWorkspace) {
     return <EmptyGalaxie workspaceSlug={workspaceSlug ?? 'default'} />;
@@ -166,10 +188,8 @@ export function SolarListView({
     setCollapsed(allCollapsed ? new Set() : new Set(collapsibleIds));
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#06080c]">
-      {/* Toolbar — triage summary + group-by axes + severity filter chips.
-          Row 1 keeps the desktop top-right corner clear (sm:pr-28) for the
-          Console/Map view-toggle GalaxieRoot floats there in interactive mode. */}
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-background">
+      {/* Toolbar — triage summary + group-by (Repo/Kunde) + severity & rule filters. */}
       <div className="shrink-0 border-b border-white/10">
         <p
           role="status"
@@ -215,6 +235,7 @@ export function SolarListView({
             ))}
           </div>
 
+          {/* Severity filter chips — colored dot + band + count, dimmed when off. */}
           <div className="flex flex-wrap gap-1.5">
             {SEVERITY_BANDS.map((sev) => {
               const count = counts[sev];
@@ -227,18 +248,69 @@ export function SolarListView({
                   onClick={() => toggleSeverity(sev)}
                   aria-pressed={on}
                   className={cn(
-                    'rounded px-2 py-1 type-mono-sm',
+                    'flex items-center gap-1.5 rounded px-2 py-1 type-mono-sm transition-opacity',
                     FOCUS_RING,
                     on
                       ? 'bg-white/10 text-white'
-                      : 'bg-white/5 text-white/40 line-through',
+                      : 'bg-white/[0.03] text-white/40 opacity-60',
                   )}
                 >
-                  {count} {sev}
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ background: severityColorVar(sev) }}
+                    aria-hidden
+                  />
+                  {sev}
+                  <span className="text-white/40">{count}</span>
                 </button>
               );
             })}
           </div>
+
+          {/* Rule filter — native <details> disclosure (a11y-free, no extra deps). */}
+          {ruleSections.length > 1 ? (
+            <details className="group relative">
+              <summary
+                className={cn(
+                  'flex cursor-pointer list-none items-center gap-1 rounded px-2 py-1 type-mono-sm text-white/55 transition-colors hover:text-white [&::-webkit-details-marker]:hidden',
+                  FOCUS_RING,
+                )}
+              >
+                Regel
+                {activeCats.size < ruleSections.length ? (
+                  <span className="text-white/80">
+                    {activeCats.size}/{ruleSections.length}
+                  </span>
+                ) : null}
+                <ChevronDownIcon
+                  className="size-3 transition-transform group-open:rotate-180"
+                  aria-hidden
+                />
+              </summary>
+              <div className="absolute left-0 z-20 mt-1 w-60 rounded-md border border-white/10 bg-popover p-1 shadow-xl shadow-black/40">
+                {ruleSections.map((r) => {
+                  const on = activeCats.has(r.key);
+                  return (
+                    <label
+                      key={r.key}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-white/80 hover:bg-white/5"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleCategory(r.key)}
+                        className="size-3.5 accent-white"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{r.label}</span>
+                      <span className="shrink-0 type-mono-sm text-white/35">
+                        {r.files.length}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </details>
+          ) : null}
 
           {supportsCollapse && hasAny ? (
             <button
@@ -263,7 +335,7 @@ export function SolarListView({
           </p>
           <button
             type="button"
-            onClick={() => setActive(new Set(SEVERITY_BANDS))}
+            onClick={resetFilters}
             className={cn(
               'rounded-md border border-white/15 px-3 py-1.5 type-mono-sm text-white/80 transition-colors hover:bg-white/5',
               FOCUS_RING,
@@ -301,91 +373,6 @@ export function SolarListView({
                   indent
                 />
               </section>
-            ))}
-
-          {groupBy === 'severity' &&
-            sectionsBySeverity(visibleFiles).map((sec) => (
-              <section key={sec.severity}>
-                <SectionHeader
-                  label={`${sec.severity}`}
-                  sublabel={`${sec.files.length} Findings`}
-                  badge={sec.severity}
-                />
-                {sec.files.map((file) => (
-                  <FileRow
-                    key={file.id}
-                    file={file}
-                    indent={2}
-                    context={repoLabelById.get(file.repoId)}
-                    onSelect={() => openFile(file)}
-                  />
-                ))}
-              </section>
-            ))}
-
-          {groupBy === 'rule' &&
-            sectionsByRule(visibleFiles).map((sec) => (
-              <section key={sec.key}>
-                <SectionHeader
-                  label={sec.label}
-                  sublabel={`${sec.files.length} Findings`}
-                  counts={sec.counts}
-                />
-                {sec.files.map((file) => (
-                  <FileRow
-                    key={file.id}
-                    file={file}
-                    indent={2}
-                    context={repoLabelById.get(file.repoId)}
-                    onSelect={() => openFile(file)}
-                  />
-                ))}
-              </section>
-            ))}
-
-          {groupBy === 'folder' &&
-            sectionsByFolder(filteredTree).map((sec) => (
-              <button
-                key={sec.folder.id}
-                type="button"
-                onClick={() => openFolder(sec.folder, sec.files)}
-                className={cn(
-                  'flex w-full items-center gap-2.5 border-b border-white/[0.06] px-3 py-2.5 text-left transition hover:bg-white/[0.03] active:bg-white/5',
-                  FOCUS_RING_INSET,
-                )}
-                style={{ minHeight: 44 }}
-              >
-                <SeverityBadge severity={sec.folder.aggregateSeverity} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate text-xs text-white/90">
-                      {folderDisplayName(sec.folder)}
-                    </span>
-                    {sec.folder.nucleus ? (
-                      <FileTextIcon
-                        className="size-3 shrink-0 text-amber-200/70"
-                        aria-label="Hat eine governing Context-Datei"
-                      />
-                    ) : null}
-                  </span>
-                  <span className="block truncate font-mono text-[10px] text-white/35">
-                    {sec.repoLabel} · {sec.folder.name}/
-                  </span>
-                </span>
-                {sec.counts.Kill > 0 ? (
-                  <span className={cn('shrink-0 type-mono-sm font-semibold', KILL_TEXT)}>
-                    {sec.counts.Kill} Kill
-                  </span>
-                ) : null}
-                <HeatBar counts={sec.counts} className="hidden w-24 sm:flex" />
-                <span className="shrink-0 type-mono-sm text-white/35">
-                  {sec.files.length}
-                </span>
-                <ChevronRightIcon
-                  className="size-4 shrink-0 text-white/30"
-                  aria-hidden
-                />
-              </button>
             ))}
         </div>
       )}
@@ -451,7 +438,7 @@ function RepoGroup({
               ) : (
                 <Chevron open={!repoCollapsed} />
               )}
-              <SeverityBadge severity={section.repo.aggregateSeverity} />
+              <SeverityDot counts={section.counts} />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                 {section.repo.label}
               </span>
@@ -460,9 +447,8 @@ function RepoGroup({
                   {section.counts.Kill} Kill
                 </span>
               ) : null}
-              <HeatBar counts={section.counts} className="hidden w-28 sm:flex" />
               <span className="shrink-0 type-mono-sm text-white/35">
-                {section.fileCount}
+                {section.fileCount} Findings
               </span>
               {drillMode ? (
                 <ChevronRightIcon
@@ -505,16 +491,14 @@ function SectionHeader({
   label,
   sublabel,
   counts,
-  badge,
 }: {
   label: string;
   sublabel?: string;
   counts?: Record<Severity, number>;
-  badge?: Severity;
 }) {
   return (
     <div className="flex items-center gap-2.5 border-b border-white/10 bg-white/[0.05] px-3 py-2">
-      {badge ? <SeverityBadge severity={badge} /> : null}
+      {counts ? <SeverityDot counts={counts} /> : null}
       <span className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-white/70">
         {label}
       </span>
@@ -523,7 +507,6 @@ function SectionHeader({
           {counts.Kill} Kill
         </span>
       ) : null}
-      {counts ? <HeatBar counts={counts} className="hidden w-24 sm:flex" /> : null}
       {sublabel ? (
         <span className="shrink-0 type-mono-sm text-white/35">{sublabel}</span>
       ) : null}
@@ -531,38 +514,24 @@ function SectionHeader({
   );
 }
 
-function HeatBar({
-  counts,
-  className,
-}: {
-  counts: Record<Severity, number>;
-  className?: string;
-}) {
-  const segs = heatSegments(counts);
-  if (segs.length === 0) return null;
-  const label = segs.map((s) => `${s.count} ${s.severity}`).join(', ');
+/**
+ * Calm "how bad" glyph: a single dot in the row's WORST severity color. Replaces
+ * the old 5-color heat-bar. Color is paired with the row's Kill-count + total, so
+ * it never carries severity by hue alone (color-blind safe). `aria-label` names
+ * the worst band for screen readers.
+ */
+function SeverityDot({ counts }: { counts: Record<Severity, number> }) {
+  const worst = worstSeverity(counts);
+  if (!worst) {
+    return <span className="size-2 shrink-0" aria-hidden />;
+  }
   return (
     <span
       role="img"
-      aria-label={`Severity-Verteilung: ${label}`}
-      className={cn(
-        'h-1.5 shrink-0 overflow-hidden rounded-full bg-white/5',
-        className,
-      )}
-    >
-      {segs.map((s) => (
-        <span
-          key={s.severity}
-          className="h-full first:rounded-l-full last:rounded-r-full"
-          style={{
-            flexBasis: `${s.pct}%`,
-            flexGrow: 0,
-            flexShrink: 0,
-            backgroundColor: SEVERITY_HEX[s.severity],
-          }}
-        />
-      ))}
-    </span>
+      aria-label={`Schlimmste Severity: ${worst}`}
+      className="size-2 shrink-0 rounded-full"
+      style={{ background: severityColorVar(worst) }}
+    />
   );
 }
 
@@ -600,13 +569,13 @@ function FolderBranch({
             </span>
             {folder.nucleus ? (
               <FileTextIcon
-                className="size-3 shrink-0 text-amber-200/70"
+                className="size-3 shrink-0 text-white/40"
                 aria-label="Hat eine governing Context-Datei"
               />
             ) : null}
             {folder.isSubmodule ? (
               <span
-                className="shrink-0 rounded bg-[#5eead4]/15 px-1 py-0.5 text-[9px] uppercase tracking-wide text-[#5eead4]/80"
+                className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[9px] uppercase tracking-wide text-white/55"
                 aria-label="Git-Submodul (geteilter Team-Context)"
               >
                 Submodul

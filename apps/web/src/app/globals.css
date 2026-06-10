@@ -45,6 +45,7 @@
   --color-sev-mid: var(--sev-mid);
   --color-sev-strong: var(--sev-strong);
   --color-sev-exceptional: var(--sev-exceptional);
+  --color-sev-on-kill: var(--sev-on-kill); /* dark text on the filled Kill chip */
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -107,18 +108,20 @@
   --sidebar-accent-foreground: oklch(0.94 0.005 270);
   --sidebar-border: oklch(0.255 0.005 270);
   --sidebar-ring: oklch(0.94 0.005 270 / 0.6);
-  --radius: 0.5rem;
+  --radius: 0.375rem; /* 6px — Linear-hardness (visual-overhaul, Jun 2026; was 0.5rem/8px) */
 
-  /* Severity scale (Frontend-Relaunch v2): three-tier traffic-light.
-     Kill+Weak = red (Weak slightly dimmer), Mid = orange, Strong+Exceptional
-     = green (Exceptional slightly brighter). Differentiation within red/green
-     comes from border weight + icon + font-weight (see SeverityBadge), so
-     screen readers and color-blind users stay covered. */
-  --sev-kill: oklch(0.62 0.24 25);           /* saturated red */
-  --sev-weak: oklch(0.58 0.18 30);           /* dimmer red */
-  --sev-mid: oklch(0.66 0.18 60);            /* warm orange */
-  --sev-strong: oklch(0.60 0.18 145);        /* dim green */
-  --sev-exceptional: oklch(0.72 0.18 145);   /* brighter green */
+  /* Severity scale (visual-overhaul, Jun 2026): strict three-color traffic-light.
+     Exactly three accent hues app-wide — red = negative (Kill loud + filled,
+     Weak dimmer red), orange = neutral (Mid, one single non-garish tone),
+     green = positive (Strong, Exceptional brighter green). Disambiguation within
+     red/green comes from the badge text label + fill-vs-outline (see SeverityBadge),
+     never hue alone — so screen-reader and color-blind users stay covered. */
+  --sev-kill: oklch(0.62 0.24 25);           /* full saturated red — the only loud band */
+  --sev-weak: oklch(0.55 0.15 28);           /* dimmer red (darker + less chroma than Kill) */
+  --sev-mid: oklch(0.68 0.13 65);            /* one muted orange, intentionally not garish */
+  --sev-strong: oklch(0.62 0.15 150);        /* green */
+  --sev-exceptional: oklch(0.74 0.16 150);   /* brighter green (same hue, higher L = "special") */
+  --sev-on-kill: oklch(0.14 0 0);            /* near-black text on the filled Kill chip */
   --destructive: var(--sev-kill);            /* semantically identical to Kill */
   --destructive-foreground: oklch(0.98 0 0);
 

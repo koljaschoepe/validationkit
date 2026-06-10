@@ -59,9 +59,16 @@ function pickInitialActiveNodeId(data: RepoGalaxieData): string {
 export function RepoConsole({
   onBack,
   repoLabel,
+  initialUrl,
 }: {
   onBack?: () => void;
   repoLabel?: string;
+  /**
+   * When set, the repo URL is audited immediately on mount — the footer CTA
+   * deep-links into a live audit this way. ConsoleSurface remounts RepoConsole
+   * (via `key`) for each new URL, so this only ever fires once per audit.
+   */
+  initialUrl?: string;
 }) {
   const [actionState, action, isPending] = useActionState(
     auditAction,
@@ -139,6 +146,13 @@ export function RepoConsole({
     fd.set("path", rawPath);
     action(fd);
   }
+
+  // Footer-CTA deep-link: audit the supplied URL once on mount. Remount-keyed by
+  // ConsoleSurface (via `key`), so this fires exactly once per incoming URL.
+  useEffect(() => {
+    const url = initialUrl?.trim();
+    if (url) handleAuditSubmit(url);
+  }, []);
 
   function handleResetToDemo() {
     setViewState("demo");

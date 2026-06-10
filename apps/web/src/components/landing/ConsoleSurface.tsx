@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LazyMotion,
   MotionConfig,
@@ -28,6 +28,9 @@ export function ConsoleSurface() {
   const [activeRepoLabel, setActiveRepoLabel] = useState<string | undefined>(
     undefined,
   );
+  // Set by the footer-CTA deep-link (a `vk:audit-repo` event). When present it
+  // remount-keys RepoConsole so it auto-audits this URL on mount.
+  const [auditUrl, setAuditUrl] = useState<string | null>(null);
 
   const repoLabelById = useMemo(() => {
     const m = new Map<string, string>();
@@ -35,10 +38,24 @@ export function ConsoleSurface() {
     return m;
   }, []);
 
+  // Bridge from the page-footer audit CTA — decoupled via a window event so no
+  // routing/Suspense is involved and it works same-page.
+  useEffect(() => {
+    function onAuditRepo(e: Event) {
+      const url = (e as CustomEvent<string>).detail?.trim();
+      if (!url) return;
+      setAuditUrl(url);
+      setActiveRepoLabel(url.replace(/^https?:\/\//, ""));
+      setView("repo");
+    }
+    window.addEventListener("vk:audit-repo", onAuditRepo);
+    return () => window.removeEventListener("vk:audit-repo", onAuditRepo);
+  }, []);
+
   return (
     <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
-        <div className="relative h-full w-full overflow-hidden bg-[#06080c] text-left">
+        <div className="relative h-full w-full overflow-hidden bg-background text-left">
           <AnimatePresence mode="wait" initial={false}>
             {view === "portfolio" ? (
               <m.div
@@ -53,6 +70,7 @@ export function ConsoleSurface() {
                   readOnly
                   initialData={LANDING_MAP}
                   onRepoActivate={(repoId) => {
+                    setAuditUrl(null);
                     setActiveRepoLabel(repoLabelById.get(repoId));
                     setView("repo");
                   }}
@@ -68,7 +86,12 @@ export function ConsoleSurface() {
                 className="absolute inset-0 h-full w-full"
               >
                 <RepoConsole
-                  onBack={() => setView("portfolio")}
+                  key={auditUrl ?? "demo"}
+                  initialUrl={auditUrl ?? undefined}
+                  onBack={() => {
+                    setAuditUrl(null);
+                    setView("portfolio");
+                  }}
                   repoLabel={activeRepoLabel}
                 />
               </m.div>

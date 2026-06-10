@@ -60,19 +60,19 @@ Aktuelles Token-Set ist **Linear-nah** und wird behalten. Im Vergleich:
 
 **Pitch-Black-Hero:** Für den R3F-Background (außerhalb der DOM-Hierarchie) wird `oklch(0.05 0.004 270)` als drei.js-Scene-Background gesetzt — das ist tiefer als `--background` und schafft Tiefe im Übergang Galaxie ↔ Side-Routes.
 
-### 3.2 Severity-Skala (load-bearing, **nicht ändern**)
+### 3.2 Severity-Skala (load-bearing — striktes 3-Farben-System)
 
-Bestand aus `lib/galaxie/severity-colors.ts` + globals.css. Referenziert via `--color-sev-*`:
+**SSOT = `globals.css` `--sev-*`** (Tailwind: `--color-sev-*`). `lib/galaxie/severity-colors.ts` ist nur noch ein Var-Mapper (`severityColorVar` → `var(--color-sev-*)`) — kein Hex-Duplikat. Genau **3 Akzent-Hues** app-weit: Rot=negativ, Orange=neutral, Grün=positiv (visual-overhaul, 2026-06-10):
 
-| Severity      | OKLCH                       | Hex (R3F)  | Halo-Radius |
-|---------------|-----------------------------|------------|-------------|
-| **Kill**      | `oklch(0.62 0.24 25)`      | `#dc2f2f`  | 24          |
-| **Weak**      | `oklch(0.58 0.18 30)`      | `#b65d52`  | 16          |
-| **Mid**       | `oklch(0.66 0.18 60)`      | `#d49545`  | 8           |
-| **Strong**    | `oklch(0.60 0.18 145)`     | `#4f9466`  | 0           |
-| **Exceptional** | `oklch(0.72 0.18 145)`   | `#6fb685`  | 12          |
+| Severity        | OKLCH                     | Achse / Rolle                         |
+|-----------------|---------------------------|---------------------------------------|
+| **Kill**        | `oklch(0.62 0.24 25)`     | Rot, voll — die einzige laute Band    |
+| **Weak**        | `oklch(0.55 0.15 28)`     | Rot, gedämpft (dunkler, weniger Chroma)|
+| **Mid**         | `oklch(0.68 0.13 65)`     | EIN gedämpftes Orange (nicht grell)   |
+| **Strong**      | `oklch(0.62 0.15 150)`    | Grün                                  |
+| **Exceptional** | `oklch(0.74 0.16 150)`    | Grün, heller (= „special")            |
 
-Severity ist die **einzige Farbquelle** in der App. Pills, Borders, Asteroid-Materials — alles severity-konditioniert. CTAs, Links, Active-States nutzen Grauskala (`--primary` = `oklch(0.92 0 0)`, near-white).
+Severity ist die **einzige Farbquelle** in der App. CTAs, Links, Active-States nutzen Grauskala (`--primary` = near-white). **Badge-Konvention** (`SeverityBadge`): einheitliche 1px-Hairline-Pills, nur **Kill** gefüllt (`--sev-on-kill` Text) — kein border-2/3px, kein dashed, kein italic. Disambiguierung innerhalb Rot/Grün trägt das **Textlabel + Fill-vs-Outline**, nie der Hue allein → color-blind-safe trotz Rot-Grün-Achse.
 
 ### 3.3 Gradient-Mesh (NEU für Phase Nova)
 
@@ -114,7 +114,7 @@ Anwendung: Hero-Section-Background, Empty-Galaxie-Layer, Onboarding-Card-Backdro
 | `--radius-xl` | `0.7rem`  | Hero-Container                      |
 | `--radius-2xl`| `0.9rem`  | Selten, Special-Cases               |
 
-**Linear-Konvention:** Linear nutzt `4px` (sm) und `6px` (md) durchgängig. Aktuelles `0.5rem` = `8px` ist leicht runder. **Decision in Nova-8:** entweder runter auf `0.375rem` (6px) für mehr Linear-Härte, oder bei `0.5rem` bleiben für etwas weicheren Touch. Empfehlung: **0.375rem** (6px).
+**Linear-Konvention:** Linear nutzt `4px` (sm) und `6px` (md) durchgängig. **RESOLVED 2026-06-10 (app-visual-overhaul):** `--radius` auf `0.375rem` (6px) gesenkt — alle `--radius-*` skalieren via `calc()` mit. Linear-Härte umgesetzt.
 
 ---
 
@@ -353,7 +353,7 @@ R3F-Scene-Background: `oklch(0.05 0.004 270)` (tiefer als `--background`). Vor d
 | `--background`                 | `oklch(0.155 0.004 270)`      | behalten                 |
 | `--card` ... `--ring`          | oklch-grayscale Hue 270        | behalten 1:1             |
 | `--sev-*` (5 Bänder)           | siehe §3.2                     | behalten 1:1             |
-| `--radius`                     | `0.5rem` (8px)                 | **Nova-8 Decision:** auf `0.375rem` (6px) für mehr Linear-Härte |
+| `--radius`                     | `0.375rem` (6px)               | ✅ RESOLVED 2026-06-10: von 8px auf 6px (Linear-Härte) |
 | Type-Scale `type-*`            | display→mono-sm                | behalten                 |
 | `--ease-*` Easings             | **fehlt**                      | **Nova-1 NEU**           |
 | Gradient-Mesh Background-Pattern | **fehlt**                    | **Nova-1 NEU**           |
@@ -376,5 +376,5 @@ R3F-Scene-Background: `oklch(0.05 0.004 270)` (tiefer als `--background`). Vor d
 Diese 3 Sub-Decisions hingen ursprünglich an Nova-1/Nova-8, die beide verworfen wurden (R3F-Pivot). Sie sind kein Sprint-Block — wenn die Anmutung in der täglichen Arbeit als unrund wahrgenommen wird, kann ein einzelner Mini-Plan jeden Punkt anfassen.
 
 1. **Geist Mono behalten oder zu JetBrains Mono wechseln?** (§2) — Empfehlung: behalten.
-2. **Radius runter auf 6px (Linear-Härte) oder bei 8px bleiben?** (§4.2) — Empfehlung: 6px.
+2. ✅ **RESOLVED 2026-06-10:** Radius auf 6px gesenkt (`--radius: 0.375rem`, app-visual-overhaul).
 3. **Border-Token leicht dunkler (`oklch(0.25 0.004 270)`) für hairlinere Anmutung?** (§3.1) — Empfehlung: erst nach Side-by-Side-Test entscheiden.

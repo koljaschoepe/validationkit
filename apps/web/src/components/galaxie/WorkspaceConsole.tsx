@@ -34,7 +34,7 @@ export default function WorkspaceConsole({
   const router = useRouter();
 
   return (
-    <div className="relative flex h-full w-full flex-col bg-[#07080a]">
+    <div className="relative flex h-full w-full flex-col bg-background">
       {initialWorkspaceSlug ? (
         <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
           <WorkspaceSwitcher

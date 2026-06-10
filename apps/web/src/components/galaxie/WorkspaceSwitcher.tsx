@@ -71,13 +71,15 @@ export function WorkspaceSwitcher({
   );
 }
 
+// Plan marker uses neutral grayscale lightness steps, never the severity palette —
+// severity color is reserved for findings only (visual-overhaul, Jun 2026).
 function planColor(plan: MockWorkspace['plan']): string {
   switch (plan) {
     case 'solo':
-      return 'var(--sev-exceptional)';
+      return 'var(--vk-ink-6)';
     case 'team':
-      return 'var(--sev-strong)';
+      return 'var(--vk-ink-8)';
     case 'agency':
-      return 'var(--sev-mid)';
+      return 'var(--vk-ink-10)';
   }
 }

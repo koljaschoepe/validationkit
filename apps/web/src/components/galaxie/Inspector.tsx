@@ -496,8 +496,8 @@ function FolderInspector({
 
       {/* Phase B (B.5) — shared team-context submodule. */}
       {folder.isSubmodule ? (
-        <div className="border-b border-white/10 bg-[#5eead4]/[0.07] px-4 py-2.5">
-          <p className="type-mono-sm uppercase tracking-wider text-[#5eead4]/80">
+        <div className="border-b border-white/10 bg-white/[0.04] px-4 py-2.5">
+          <p className="type-mono-sm uppercase tracking-wider text-white/70">
             Shared Team Context · Submodule
           </p>
           {folder.submoduleUrl ? (
@@ -519,7 +519,7 @@ function FolderInspector({
           }}
           className="flex w-full items-center gap-2.5 border-b border-white/10 bg-primary/[0.06] px-4 py-2.5 text-left transition hover:bg-primary/[0.1]"
         >
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#fff6e8] ring-1 ring-white/20">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white/85 ring-1 ring-white/20">
             <FileTextIcon className="size-3 text-black/70" />
           </span>
           <div className="min-w-0">

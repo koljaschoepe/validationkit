@@ -4,7 +4,7 @@ import { Command } from 'cmdk';
 import { useEffect, useMemo, useState } from 'react';
 import { SearchIcon } from 'lucide-react';
 import type { Customer, FileNode, GalaxieData } from '@/lib/galaxie/types';
-import { severityHex } from '@/lib/galaxie/severity-colors';
+import { severityColorVar } from '@/lib/galaxie/severity-colors';
 
 export interface SearchResult {
   kind: 'customer' | 'file';
@@ -97,7 +97,7 @@ export function UniversalSearch({
                 >
                   <span
                     className="inline-block size-2 rounded-full"
-                    style={{ background: severityHex(c.aggregateSeverity) }}
+                    style={{ background: severityColorVar(c.aggregateSeverity) }}
                   />
                   {c.label}
                   <span className="ml-auto type-mono-sm text-white/40">
@@ -145,7 +145,7 @@ function renderSearchHits(
             >
               <span
                 className="inline-block size-2 rounded-full"
-                style={{ background: severityHex(c.aggregateSeverity) }}
+                style={{ background: severityColorVar(c.aggregateSeverity) }}
               />
               {c.label}
               <span className="ml-auto type-mono-sm text-white/40">
@@ -171,7 +171,7 @@ function renderSearchHits(
               >
                 <span
                   className="inline-block size-1.5 rounded-full"
-                  style={{ background: severityHex(f.severity) }}
+                  style={{ background: severityColorVar(f.severity) }}
                 />
                 <span className="truncate">{f.path}</span>
                 <span className="ml-auto type-mono-sm text-white/40">

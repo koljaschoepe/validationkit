@@ -29,11 +29,11 @@ export default async function DeleteAccountSettingsPage() {
       </header>
 
       {blockers.length > 0 ? (
-        <Card className="border-amber-500/30">
+        <Card className="border-[var(--color-sev-mid)]/30">
           <CardContent className="space-y-4 py-6">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="size-5 text-amber-500" aria-hidden />
-              <p className="font-mono type-mono-sm uppercase tracking-wider text-amber-600 dark:text-amber-500">
+              <AlertTriangle className="size-5 text-[var(--color-sev-mid)]" aria-hidden />
+              <p className="font-mono type-mono-sm uppercase tracking-wider text-[var(--color-sev-mid)]">
                 Resolve {blockers.length} workspace
                 {blockers.length === 1 ? '' : 's'} first
               </p>

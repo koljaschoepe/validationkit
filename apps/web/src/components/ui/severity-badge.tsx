@@ -13,10 +13,13 @@ import type { SeverityBand } from "@vk/core";
 /**
  * Canonical severity-band badge — PRD §2 Constraint #5.
  *
- * Monochrome encoding (post Homepage-Relaunch, May 2026): severity is
- * carried by icon + border weight/style + font weight, not hue. The 5
- * bands {Kill, Weak, Mid, Strong, Exceptional} stay the only allowed
- * severity language; numeric scores are an anti-pattern.
+ * Calm encoding (visual-overhaul, Jun 2026): every band is a uniform 1px-solid
+ * hairline pill — only Kill is filled so it stays the single loud signal. No more
+ * border-weight ladder, dashed borders or italics ("too much in your face").
+ * Severity is disambiguated by the always-present icon + text label, so the
+ * three-color (red/orange/green) scheme stays color-blind safe — hue is never the
+ * sole carrier. The 5 bands {Kill, Weak, Mid, Strong, Exceptional} remain the only
+ * allowed severity language; numeric scores are an anti-pattern.
  */
 const SEVERITY_ICON: Record<SeverityBand, LucideIcon> = {
   Kill: OctagonAlertIcon,
@@ -27,16 +30,16 @@ const SEVERITY_ICON: Record<SeverityBand, LucideIcon> = {
 };
 
 const severityBadgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 type-mono-sm tracking-wide uppercase font-mono bg-transparent",
+  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 type-mono-sm tracking-wide uppercase font-mono",
   {
     variants: {
       severity: {
-        Kill: "border-[3px] border-solid border-[var(--color-sev-kill)] text-[var(--color-sev-kill)] font-bold",
-        Weak: "border-2 border-solid border-[var(--color-sev-weak)] text-[var(--color-sev-weak)] font-semibold",
-        Mid: "border border-solid border-[var(--color-sev-mid)] text-[var(--color-sev-mid)] font-medium",
-        Strong: "border border-dashed border-[var(--color-sev-strong)] text-[var(--color-sev-strong)] font-normal",
+        Kill: "border-[var(--color-sev-kill)] bg-[var(--color-sev-kill)] text-[var(--color-sev-on-kill)] font-semibold",
+        Weak: "border-[var(--color-sev-weak)] text-[var(--color-sev-weak)]",
+        Mid: "border-[var(--color-sev-mid)] text-[var(--color-sev-mid)]",
+        Strong: "border-[var(--color-sev-strong)] text-[var(--color-sev-strong)]",
         Exceptional:
-          "border border-dashed border-[var(--color-sev-exceptional)] text-[var(--color-sev-exceptional)] font-normal italic",
+          "border-[var(--color-sev-exceptional)] text-[var(--color-sev-exceptional)]",
       },
     },
     defaultVariants: {

@@ -14,7 +14,7 @@ import type {
   NodeKind,
   RepoGalaxieData,
 } from '@/lib/repo-galaxie/types';
-import { severityHex } from '@/lib/galaxie/severity-colors';
+import { severityColorVar } from '@/lib/galaxie/severity-colors';
 import { SEVERITY_LUCIDE } from '@/lib/galaxie/severity-icons';
 import { cn } from '@/lib/utils';
 
@@ -112,7 +112,7 @@ function TreeNode({
   const isFile = node.kind === 'file';
   const isActive = node.id === activeNodeId;
   const Icon = KIND_ICON[node.kind];
-  const severityColor = node.severity ? severityHex(node.severity) : null;
+  const severityColor = node.severity ? severityColorVar(node.severity) : null;
 
   function handleActivate() {
     if (isFile) {

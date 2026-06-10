@@ -293,12 +293,12 @@ function ConfidencePill({
   confidence: 'low' | 'mid' | 'high';
   deterministic: boolean;
 }) {
-  // Monochrome encoding: solid primary for high, neutral solid for mid,
-  // dashed muted for low. Mirrors the SeverityBadge convention.
+  // Calm encoding (visual-overhaul): uniform 1px-solid hairlines, distinction by
+  // opacity/weight — no dashed/italic. Mirrors the new SeverityBadge convention.
   const styleMap = {
-    high: 'border-solid border-primary/40 bg-primary/15 text-primary font-semibold',
-    mid: 'border-solid border-white/25 bg-white/5 text-white/80 font-medium',
-    low: 'border-dashed border-white/20 bg-transparent text-white/55 font-normal italic',
+    high: 'border-primary/40 bg-primary/15 text-primary font-semibold',
+    mid: 'border-white/25 bg-white/5 text-white/80',
+    low: 'border-white/15 bg-transparent text-white/50',
   } as const;
   return (
     <span

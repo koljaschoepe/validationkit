@@ -4,6 +4,16 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## App-Visual-Overhaul: 3-Farben-System + Hero-Viewport (✅ 2026-06-10)
+
+App-weiter Visual-Pass: striktes 3-Farben-System (Rot/Orange/Grün), ruhigeres Severity-Styling, 100dvh-Hero, aufgeräumte Konsole, ehrliche Trust-Bausteine. Basiert auf 11 User-Entscheidungen (3 Discovery-Runden) + Code-Audit über 4 Subagenten. Plan: `docs/plans/done/app-visual-overhaul-3color.md`.
+
+- **Bundle 1 — Token/Severity-Core**: `severity-colors.ts` zur reinen Var-Mapper-SSOT (`severityColorVar`/`SEVERITY_COLOR` → `var(--color-sev-*)`), toter Pixi-Code (Glow/Pulse/PixiColor/Outline) entfernt — die `globals.css`-Tokens sind jetzt die einzige Severity-Farbquelle (Ampel −/0/+: Kill voll-rot, Weak gedämpft-rot, Mid ein gedämpftes Orange, Strong/Exceptional grün). `SeverityBadge` cva → einheitliche 1px-Hairline-Pills, nur Kill gefüllt (kein border-2/3px/dashed/italic mehr). `--radius` 8→6px. Plan-Farben → Graustufe, `space-bg.ts` (0 Consumer) gelöscht, Inline-Hex → Tokens.
+- **Bundle 2 — Konsole**: Gruppierung auf Repo+Kunde reduziert (Severity- + neuer Regel-`<details>`-Filter, Ordner bleibt nested); 5-Farb-`HeatBar` → ruhiger `SeverityDot` (Worst-Severity + Kill-Zahl + Total, aria-label); `sectionsBySeverity`/`ByFolder`/`heatSegments` entfernt, `worstSeverity` hinzu.
+- **Bundle 3 — Hero/Landing**: Hero füllt exakt `100dvh−nav` — side-by-side ab `lg` (Text links / Live-Konsole rechts), gestapelt mobil (Demo oben). Unterer CTA → `RepoUrlPill` mit echtem Anon-Audit via entkoppelter `vk:audit-repo`-Event-Bridge (ConsoleSurface remountet RepoConsole mit `initialUrl`). Feature-Bilder Hover-Zoom (motion-reduce-safe).
+- **Bundle 4 — Trust/Proof**: Fake-Logo-Wall + Placeholder-Stat („2.400+/18.000+") + erfundene Testimonials (Lena/Tomasz/Priya) entfernt → ehrliche Proof-Punkte + `Principles`-Sektion + Founder-Note (Pre-Launch-Glaubwürdigkeit). Trust-Seite token-sauber. ⚠️ **Deferred**: 4 Feature-Screenshots-Regen (Playwright-Backend in der Env nicht funktionsfähig) — zeigen noch alte Palette.
+- **Bundle 5 — App-Sweep**: emerald (billing)→sev-strong, amber (delete)→sev-mid, teal+cream Inline-Hex (Inspector)→neutral, AISolutionPlaceholder dashed+italic→Hairline. Verifikation: typecheck ✓, lint ✓, **Prod-Build grün**, 183 Tests grün (4 vorbestehende `server-only`-DAL-Failures unverändert).
+
 ## Galaxie-Retirement + Konsolen-Surface (✅ 2026-06-10)
 
 Die PixiJS-Galaxie komplett aus Code, Deps und Produkt entfernt; die Landing auf **ein durchgehendes Konsolen-Surface** umgebaut. Basiert auf 8 User-Entscheidungen (2 Discovery-Runden) + Code-Audit von ~15 Files über 5 Subagenten. Plan: `docs/plans/galaxie-retire-console-landing.md`.
