@@ -26,7 +26,7 @@ Der Completeness-Critic hat ein **Ist-Stand-Blindheits-Problem** der Roh-Synthes
 
 | Bundle | Severity | Theme | Effort | Status |
 |--------|----------|-------|--------|--------|
-| **A** | Kill | Mission Control — Konsole=Default, Galaxie=Map-Tab | M–L | 🟡 **In Arbeit** (`overnight/saas-premium-overhaul`) |
+| **A** | Kill | Mission Control — Konsole=Default, Galaxie=Map-Tab | M–L | ✅ **Gebaut + 3-Agent-reviewed** (PR #1, `next build` grün; visuelle QA offen) |
 | B | Strong | Severity-Sprache-Konsistenz (Rest-Audit) | S | ⏸ Defer → legibility-rework |
 | C | Strong | State-Polish (Empty/Loading/Error) | M | ⏸ Defer → frontend-pre-ga-polish |
 | D | Mid | Mobile-Dichte & Responsive-Triage | S–M | ⏸ Defer → frontend-pre-ga-polish |
@@ -36,6 +36,12 @@ Der Completeness-Critic hat ein **Ist-Stand-Blindheits-Problem** der Roh-Synthes
 | **H** | Strong | **Billing/Credits als Premium-Surface** (Critic #3 — Scope-Lücke!) | M | 🔵 **NEU** |
 
 Sub-Pläne: `docs/plans/saas-premium-overhaul/`. Sequenz: **A → (B-Audit) → E → F → H → C/D via frontend-pre-ga-polish → G**.
+
+## 3b. 🔴 Nebenbefund (während Execution entdeckt) — Prod-Build war kaputt
+
+Die Overnight-Prod-Build-Verifikation (`next build`, Turbopack) deckte einen **vorbestehenden Launch-Blocker auf `main`** auf: `/[workspace]`, `/dashboard`, `/[workspace]/settings/members` brachen mit *„The export Role was not found in module lib/membership.ts"*. Ursache: `membership.ts` ist `"use server"` und machte `export type { Role }` — Turbopack fädelt **jeden** Export eines use-server-Moduls als Server-Action-Binding, ein Typ-Re-Export bricht den RSC-Build. **Latent**, weil das Pre-Commit-Gate typecheck/lint/test fährt, aber **nie `next build`**. Fix: toten Re-Export entfernt (kein Importer nutzte ihn; Single-Source = `@/lib/authz`) → `next build` grün. Eigener Commit auf dem Branch.
+
+**Lehre für die Ladder:** Das Pre-Commit-/CI-Gate sollte einen `next build`-Schritt bekommen (sonst bleiben Build-Only-Brüche unsichtbar bis zum Deploy). → Kandidat für `production-launch-readiness` / Bundle G.
 
 ## 4. Galaxie-Entscheidung (Design-Panel + Judge)
 
