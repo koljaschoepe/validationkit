@@ -1,7 +1,7 @@
 # Plan — Galaxie-Retirement + durchgehendes Konsolen-Surface auf der Landing
 
 > Erstellt: 2026-06-10
-> Status: 🟡 In Review
+> Status: 🟢 Code-complete (2026-06-10) — 3 Bundles geshipped (`e8ed96c`, `bed0488`, `bd085c4`); manuelle Visual-QA pending (User: Desktop + Mobile + reduced-motion + Workspace). 3 Block-Resolutions im Execute geklärt.
 > Slug: `galaxie-retire-console-landing`
 > Confidence: **High** — basiert auf 8 User-Entscheidungen (2 Discovery-Runden) + Code-Audit von ~15 Files über 5 Subagenten
 > Voraussetzung: keine (PR #1 „Mission-Control Console" ist bereits auf `main` gemergt → Konsole ist Workspace-Default)
