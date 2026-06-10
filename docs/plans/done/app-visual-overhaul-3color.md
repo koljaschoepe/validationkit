@@ -1,6 +1,6 @@
 # Plan — App-Visual-Overhaul: 3-Farben-System · Hero-Viewport · Konsole-Ruhe · Trust-Ehrlichkeit
 
-> **Status:** 📝 Ready für `/execute` · **Confidence: High** · **Slug:** `app-visual-overhaul-3color`
+> **Status:** ✅ Done — 2026-06-10 (Confidence-At-Start: High · 5/5 Bundles · 1 deferred: 4.3 Screenshot-Regen · vom User visuell abgenommen) · **Slug:** `app-visual-overhaul-3color`
 > **Erstellt:** 2026-06-10 · **Autor:** Kolja + Claude (Opus 4.8 1M)
 > **Scope:** App-weiter Visual-Sweep (Landing + Konsole + alle App-Seiten) in einem Durchlauf.
 
@@ -362,6 +362,6 @@ Zwischen-User-QA (R3-Entscheidung). **Finale** visuelle QA vor Acceptance. Kein 
 - [x] Verify 5: typecheck ✓ · lint ✓ · **Prod-Build grün** ✓ · grep B+C clean · 183 Tests grün (4 pre-existing server-only-DAL-Failures, unrelated)
 
 **Abschluss:**
-- [ ] Finale visuelle QA durch User (Dev-Server :3000)
+- [x] Finale visuelle QA durch User (Dev-Server :3000) — abgenommen 2026-06-10
 - [x] Doku: changelog.md + CLAUDE.md (Severity-Mapping/Radius) + linear-aesthetic.md (§3.2 + Radius-Decision aufgelöst)
-- [ ] Plan → `docs/plans/done/` (nach Acceptance)
+- [x] Plan → `docs/plans/done/`
