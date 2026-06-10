@@ -93,13 +93,13 @@ Die PixiJS-Galaxie wird **vollständig aus Code, Deps und Produkt entfernt**; di
 
 ### Bundle 3 — Copy, Cleanup, Verify
 
-- [ ] **3.1** `LandingNarrative.tsx`: Feature-Block 3 von „Portfolio-Map"/Galaxie auf Konsole umschreiben (Eyebrow/Title/Body), Bild `portfolio-map.png` → neuer Konsole-Screenshot oder Entfall zugunsten Live-Surface-Verweis.
-- [ ] **3.2** `LandingNarrative.tsx:218` Tomasz-K.-Testimonial neu (Q7): Konsole-Lob, z. B. „Die Triage-Konsole zeigt mir in Sekunden, welches Kunden-Repo brennt — Onboarding neuer Kunden dauert jetzt Minuten."
-- [ ] **3.3** Dangling-Copy bereinigen: `app/[workspace]/customers/page.tsx`-Subtitle (Galaxie-Satz), `app/[workspace]/scans/page.tsx`-Nav-Link-Text „Galaxie" → „Konsole"/„Dashboard", `HeroSection`-Anchor `#galaxie-findings-list` umbenennen.
-- [ ] **3.4** Asset-Cleanup in `public/landing/`: nicht mehr genutzte `portfolio-map.png`/`konsole.png` entfernen (falls Live-Surface sie ersetzt). Datei-Rename beachten wegen next/image-In-Memory-Cache.
-- [ ] **3.5** Grep-Sweep „Galaxie"/„Galaxy"/„Sonnensystem"/„Planet"/„Map-Tab" über `apps/web/src` — verbleibende Texte/Alt-Texte/Kommentare prüfen.
-- [ ] **3.6** Doku: `docs/changelog.md` + ggf. ein ADR-Stub „Galaxie retired" (nur falls User will — sonst Changelog-Zeile). CLAUDE.md-Tech-Stack-Zeile „Galaxie" aktualisieren.
-- [ ] **3.7** Full-Verify: `pnpm typecheck`, `pnpm test`, `pnpm build` (Prod-Build wegen früherer „use server"-Blocker), Dev-Server-Visual-QA Desktop + Mobile.
+- [x] **3.1** `LandingNarrative.tsx`: Feature-Block 3 von „Portfolio-Map"/Galaxie auf Konsole umschreiben (Eyebrow/Title/Body), Bild `portfolio-map.png` → neuer Konsole-Screenshot oder Entfall zugunsten Live-Surface-Verweis.
+- [x] **3.2** `LandingNarrative.tsx:218` Tomasz-K.-Testimonial neu (Q7): Konsole-Lob, z. B. „Die Triage-Konsole zeigt mir in Sekunden, welches Kunden-Repo brennt — Onboarding neuer Kunden dauert jetzt Minuten."
+- [x] **3.3** Dangling-Copy bereinigen: `app/[workspace]/customers/page.tsx`-Subtitle (Galaxie-Satz), `app/[workspace]/scans/page.tsx`-Nav-Link-Text „Galaxie" → „Konsole"/„Dashboard", `HeroSection`-Anchor `#galaxie-findings-list` umbenennen.
+- [x] **3.4** Asset-Cleanup in `public/landing/`: nicht mehr genutzte `portfolio-map.png`/`konsole.png` entfernen (falls Live-Surface sie ersetzt). Datei-Rename beachten wegen next/image-In-Memory-Cache.
+- [x] **3.5** Grep-Sweep „Galaxie"/„Galaxy"/„Sonnensystem"/„Planet"/„Map-Tab" über `apps/web/src` — verbleibende Texte/Alt-Texte/Kommentare prüfen.
+- [x] **3.6** Doku: `docs/changelog.md` + ggf. ein ADR-Stub „Galaxie retired" (nur falls User will — sonst Changelog-Zeile). CLAUDE.md-Tech-Stack-Zeile „Galaxie" aktualisieren.
+- [x] **3.7** Full-Verify: `pnpm typecheck`, `pnpm test`, `pnpm build` (Prod-Build wegen früherer „use server"-Blocker), Dev-Server-Visual-QA Desktop + Mobile.
 
 ---
 

@@ -10,10 +10,10 @@ export function EmptyGalaxie({ workspaceSlug }: { workspaceSlug: string }) {
         <SparklesIcon className="size-12 text-white/70" />
         <span className="absolute -inset-3 -z-10 rounded-full bg-primary/10 blur-xl" />
       </div>
-      <h1 className="font-mono text-lg font-medium">Your galaxy is empty.</h1>
+      <h1 className="font-mono text-lg font-medium">Your console is empty.</h1>
       <p className="mt-2 max-w-md text-sm text-white/60">
-        Add a customer to start. Each customer becomes a planet — repos are its
-        moons, findings are the asteroids around each moon.
+        Add a customer to start. Each customer groups its repos, and every
+        finding shows up here ranked by severity.
       </p>
       <Link
         href={`/${workspaceSlug}/customers`}

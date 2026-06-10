@@ -39,8 +39,8 @@ function Reveal({
   );
 }
 
-// Split into two exports so the page can interleave the live galaxie + demo
-// between them: Hero → Features → Portfolio-Map → Live-Demo → SocialProof.
+// Split into two exports around the page's other sections:
+// Hero (live console surface) → Features → SocialProof.
 export function LandingFeatures() {
   return (
     <LazyMotion features={domAnimation} strict>
@@ -119,11 +119,11 @@ const FEATURES = [
   },
   {
     n: "3.0",
-    eyebrow: "Portfolio-Map",
+    eyebrow: "Konsole",
     title: "Dein ganzes Portfolio auf einen Blick",
-    body: "Jede Sonne ein Repo, die Farbe ist die Severity. Was brennt, leuchtet rot, der Rest bleibt ruhig. Du siehst über alle Mandanten sofort, wo es klemmt.",
-    img: "/landing/portfolio-map.png",
-    alt: "Portfolio-Map mit sechs Kunden-Repos, zwei davon kritisch",
+    body: "Jedes Kunden-Repo eine Zeile, nach Severity sortiert. Was brennt, steht oben, der Rest bleibt ruhig. Du siehst über alle Mandanten sofort, wo es klemmt.",
+    img: "/landing/konsole.png",
+    alt: "Triage-Konsole mit Kunden-Repos nach Severity sortiert, kritische zuerst",
     contain: false,
   },
   {
@@ -215,7 +215,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "Die Galaxie ist kein Gimmick. Ich sehe sofort, welches Repo brennt und warum. Onboarding neuer Kunden dauert jetzt Minuten.",
+      "Die Triage-Konsole zeigt mir in Sekunden, welches Kunden-Repo brennt und warum. Onboarding neuer Kunden dauert jetzt Minuten statt Tage.",
     name: "Tomasz K.",
     role: "Principal Engineer",
   },

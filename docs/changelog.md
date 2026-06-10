@@ -4,6 +4,16 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Galaxie-Retirement + Konsolen-Surface (✅ 2026-06-10)
+
+Die PixiJS-Galaxie komplett aus Code, Deps und Produkt entfernt; die Landing auf **ein durchgehendes Konsolen-Surface** umgebaut. Basiert auf 8 User-Entscheidungen (2 Discovery-Runden) + Code-Audit von ~15 Files über 5 Subagenten. Plan: `docs/plans/galaxie-retire-console-landing.md`.
+
+- **Bundle 1 — Retirement** (`e8ed96c`): Workspace `GalaxieRoot`/Map-Tab → neue `WorkspaceConsole` (`SolarListView` + portierter `WorkspaceSwitcher` + `ActivationChecklist`); kein Pixi, kein SVG-Fallback, keyboard-/screenreader-native by default. Gelöscht: `GalaxieScene`/`GalaxieRoot`/`StaticGalaxieSVG`/`MiniMap`/`ZoomIndicator`/`OnboardingBanner`/`pixi/**`, `landing/PortfolioShowcase`, `settings/galaxie`-Route. `OnboardingState`-Type nach `lib/galaxie/types.ts`. Inspector-Slide-in von GSAP → Web-Animations-API. **Heavy-Deps raus**: `pixi.js`, `@pixi/react`, `pixi-filters`, `gsap` (−20 npm-Pakete). `solar-layout.ts` BLEIBT (Konsolen-Tree braucht `computeSolarLayout`).
+- **Bundle 2 — Surface** (`bed0488`): `ConsoleSurface` = Portfolio-Triage-Liste ⇄ Repo-Tree+Inspector mit motion-Scale-Fade-Zoom. `SolarListView` bekommt optionalen `onRepoActivate`-Hook (Workspace unverändert). `HeroSection`-Audit-Demo extrahiert zu `RepoConsole` (mit „← Portfolio"-Back). Live-Surface ersetzt statisches `konsole.png` im Hero-Browser-Frame. Page: Hero(Text+Surface) → Features → SocialProof.
+- **Bundle 3 — Copy/Cleanup**: Feature-Block 3 „Portfolio-Map/Galaxie" → „Konsole"; Testimonial-Galaxie-Lob → Konsole-Lob; Dangling-Copy in `customers`/`scans`/`access`/RepoInspector entschärft; orphaned SVG-Galaxie-Hero-Cluster (`RepoGalaxie`+`Sphere`+`BackgroundStars`+`HoverTooltip`+`SeverityIcon`) gelöscht; `portfolio-map.png` raus.
+- **Verifikation**: typecheck grün, vitest 192 grün (4 vorbestehende `server-only`-DAL-Integration-Failures unverändert), prod-build grün. Mobile-QA = User.
+- **Block-Resolutions**: (1) `WorkspaceSwitcher`+`ActivationChecklist` lebten nur in der Pixi-Chrome → in die Konsole portiert statt verloren; (2) `solar-layout.ts` ist NICHT Pixi-only (Konsolen-Tree-Dep) → behalten; (3) `gsap` doch in `Inspector` (Konsolen-Stack) → auf WAAPI portiert.
+
 ## Galaxie-Workspace-Solar (✅ 2026-06-03)
 
 Workspace-Audit-Galaxie komplett neu gedacht — Sonnensystem-pro-Repo statt freier Planeten-Wolke, asymmetrische Severity-Salienz (nur Kill schreit) statt 5-Hue-Bunt, Calm-by-Default mit Hover-Reveal, Datadog-Pivot statt Modal, Mobile-List statt PixiJS-on-Phone. Master + 3 Sub-Pläne in `docs/plans/done/galaxie-workspace-solar-redesign/`, basiert auf 12 User-Entscheidungen (4 Discovery-Runden), 12 Web-Research-Agents und Code-Audit von 9 Files.

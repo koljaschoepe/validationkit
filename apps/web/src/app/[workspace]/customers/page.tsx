@@ -41,7 +41,7 @@ export default async function CustomersPage({
       <PageShell as="main" size="default" className="space-y-8" id="main-content">
         <PageHeader
           title="Customers"
-          subtitle="Each customer is one client of yours with one or more repos grouped underneath. The Galaxie surfaces them as planets with severity hotspots; this view is the tabular twin for bulk edits."
+          subtitle="Each customer is one client of yours with one or more repos grouped underneath. The console ranks them by severity so the worst surface first; this view is the tabular twin for bulk edits."
         />
 
         {customers.length === 0 ? (

@@ -290,7 +290,7 @@ export function RepoConsole({
 
       {/* Screen-reader-only flat list of clickable demo findings. */}
       <ol
-        id="galaxie-findings-list"
+        id="demo-findings-list"
         className="sr-only"
         aria-label="Liste aller Findings in der Demo"
       >

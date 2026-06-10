@@ -16,12 +16,13 @@ export const dynamic = 'force-dynamic';
 /**
  * Workspace settings layout — Phase Nova-2 P5 restructure.
  *
- * Bundle D (Launch-Verify): the 6 not-yet-backed sections (general, api-keys,
- * audit-apply, galaxie, notifications, webhooks) were full "Coming soon" stub
- * routes wired into the nav, so a paying user clicked through a sidebar full of
+ * Bundle D (Launch-Verify): the not-yet-backed sections (general, api-keys,
+ * audit-apply, notifications, webhooks) were full "Coming soon" stub routes
+ * wired into the nav, so a paying user clicked through a sidebar full of
  * dead-ends. They're hidden from the nav until `nova-2-settings-backend.md`
  * lands the DB backing (the routes still resolve by direct URL). Only shipped,
- * load-bearing sections remain.
+ * load-bearing sections remain. (The galaxie settings route was removed with
+ * the galaxie retirement, 2026-06-10.)
  */
 
 function buildGroups(workspace: string): SettingsGroup[] {

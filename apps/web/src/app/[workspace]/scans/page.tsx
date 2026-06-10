@@ -123,7 +123,7 @@ export default async function ScansPage({
         <footer className="border-t border-border pt-6 text-xs text-muted-foreground">
           ValidationKit ·{" "}
           <Link href="/" className="hover:text-foreground">Audit</Link> ·{" "}
-          <Link href={`/${ws.slug}`} className="hover:text-foreground">Galaxie</Link>
+          <Link href={`/${ws.slug}`} className="hover:text-foreground">Konsole</Link>
         </footer>
       </PageShell>
     </>

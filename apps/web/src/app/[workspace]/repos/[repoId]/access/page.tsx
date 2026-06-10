@@ -278,7 +278,7 @@ export default async function AccessPage({
             href={`/${ws.slug}`}
             className="hover:text-foreground"
           >
-            Galaxie
+            Konsole
           </Link>
         </footer>
       </main>

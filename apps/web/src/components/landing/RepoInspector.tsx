@@ -32,7 +32,7 @@ export function RepoInspector({
         aria-live="polite"
       >
         <p className="font-mono type-mono-sm text-muted-foreground">
-          Klick einen Knoten in der Galaxie, um die Datei zu sehen.
+          Klick eine Datei im Baum, um ihr Finding zu sehen.
         </p>
       </article>
     );
