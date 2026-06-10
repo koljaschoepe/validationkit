@@ -145,6 +145,18 @@ export function SolarListView({
   const hasAny = filteredTree.length > 0;
   const repoCount = filteredTree.length;
 
+  // Expand/Collapse-all — only repo + customer modes nest collapsibly.
+  const collapsibleIds = filteredTree.flatMap((r) => [
+    r.repo.id,
+    ...r.folders.map((fn) => fn.folder.id),
+  ]);
+  const allCollapsed =
+    collapsibleIds.length > 0 &&
+    collapsibleIds.every((id) => collapsed.has(id));
+  const supportsCollapse = groupBy === 'repo' || groupBy === 'customer';
+  const toggleAll = () =>
+    setCollapsed(allCollapsed ? new Set() : new Set(collapsibleIds));
+
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#06080c]">
       {/* Toolbar — triage summary + group-by axes + severity filter chips.
@@ -219,6 +231,19 @@ export function SolarListView({
               );
             })}
           </div>
+
+          {supportsCollapse && hasAny ? (
+            <button
+              type="button"
+              onClick={toggleAll}
+              className={cn(
+                'ml-auto rounded px-2 py-1 type-mono-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white',
+                FOCUS_RING,
+              )}
+            >
+              {allCollapsed ? 'Alle aufklappen' : 'Alle zuklappen'}
+            </button>
+          ) : null}
         </div>
       </div>
 

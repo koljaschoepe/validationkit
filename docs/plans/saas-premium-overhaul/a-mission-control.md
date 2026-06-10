@@ -35,6 +35,17 @@ Die Default-Workspace-Surface von der Pixi-Galaxie auf eine **verdichtete Triage
 - [x] `components/galaxie/SolarListView.tsx` — Konsole-Rewrite (group-by Toolbar, Heat-Leiste, Triage-Sort, 5 Achsen, deutsche Empty/No-Match-Copy).
 - [x] `components/galaxie/GalaxieRoot.tsx` — Default-Flip `console`, Toggle „Konsole / Map".
 
+### Review-Pass (3-Agent-Adversarial, 2026-06-10 · commits A.1 `aa450e2`, A.2)
+Regression-Agent: 0 Regressions (Landing-Hero via `static-demo`-Gate geschützt, API stabil, alte Toggle-Werte migriert, keine Import-Zyklen). Gefixt:
+- [x] **W1**: Triage-Counts/Heat/Sort filter-unabhängig (`data.files` statt `visibleFiles`) — Rang bleibt beim Chip-Toggle stabil.
+- [x] Heat-Leiste: `flex-basis` statt `float`-in-`flex` (robuste Stack-Bar).
+- [x] Mobile-Kill-Signal: „N Kill"-Text auf Folder-Cards + Section-Headern (Heat-Leiste ist `hidden < sm`).
+- [x] a11y: `radiogroup`/`radio`+`aria-checked` (group-by + View-Toggle), `aria-live` auf Summary, `focus-visible`-Ringe auf allen Buttons.
+- [x] i18n: deutsche group-by-/Kategorie-Labels + „Submodul".
+- [x] No-Match: Premium-Empty-State + „Filter zurücksetzen".
+- [x] **M6**: Expand/Collapse-All-Toggle (repo + customer modes).
+- Deferred → Bundle G: Toggle-Tooltip-on-focus (M2), Saved-Views/URL-State/Deep-Links (Critic #6).
+
 ## 6. Files-to-Change
 
 `lib/galaxie/console-grouping.ts` (neu) · `lib/galaxie/console-grouping.test.ts` (neu) · `components/galaxie/SolarListView.tsx` · `components/galaxie/GalaxieRoot.tsx`.
