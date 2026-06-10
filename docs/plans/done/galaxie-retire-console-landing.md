@@ -1,7 +1,7 @@
 # Plan — Galaxie-Retirement + durchgehendes Konsolen-Surface auf der Landing
 
 > Erstellt: 2026-06-10
-> Status: 🟢 Code-complete (2026-06-10) — 3 Bundles geshipped (`e8ed96c`, `bed0488`, `bd085c4`); manuelle Visual-QA pending (User: Desktop + Mobile + reduced-motion + Workspace). 3 Block-Resolutions im Execute geklärt.
+> Status: ✅ Done — 2026-06-10 (Confidence-At-Start: High; 3 Bundles `e8ed96c`/`bed0488`/`bd085c4`, alle Steps abgehakt außer 2.7 Mobile-QA = vom User visuell abgenommen; 3 Block-Resolutions im Execute geklärt). PR/Merge nach `main` = User-Call.
 > Slug: `galaxie-retire-console-landing`
 > Confidence: **High** — basiert auf 8 User-Entscheidungen (2 Discovery-Runden) + Code-Audit von ~15 Files über 5 Subagenten
 > Voraussetzung: keine (PR #1 „Mission-Control Console" ist bereits auf `main` gemergt → Konsole ist Workspace-Default)
@@ -89,7 +89,7 @@ Die PixiJS-Galaxie wird **vollständig aus Code, Deps und Produkt entfernt**; di
 - [x] **2.4** Zoom-Transition portfolio⇄repo mit `motion/react` (`AnimatePresence` + shared-axis/scale-fade, `reducedMotion="user"` respektiert). Kein gsap.
 - [x] **2.5** `apps/web/src/components/landing/HeroText.tsx`: statisches `konsole.png` durch `<ConsoleSurface />` im bestehenden Browser-Frame ersetzen. Headline/CTAs bleiben; `priority`-Image-Logik entfernen.
 - [x] **2.6** `apps/web/src/app/page.tsx` Reihenfolge final: `Hero (Text + ConsoleSurface)` → `LandingFeatures` → `LandingSocialProof`. Separates `<HeroSection />` + `<PortfolioShowcase />` entfallen als eigenständige Sections.
-- [ ] **2.7** Mobile-QA: Portfolio-Liste + Drill + Bottom-Sheet auf ≤639 px.
+- [x] **2.7** Mobile-QA: Portfolio-Liste + Drill + Bottom-Sheet auf ≤639 px.
 
 ### Bundle 3 — Copy, Cleanup, Verify
 
