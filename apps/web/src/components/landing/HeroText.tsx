@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import {
   LazyMotion,
   MotionConfig,
@@ -9,6 +8,7 @@ import {
   m,
 } from "motion/react";
 import { ArrowRightIcon, PlayIcon } from "lucide-react";
+import { ConsoleSurface } from "./ConsoleSurface";
 
 // Landing-Redesign Phase H — the text-first hero that owns the above-the-fold.
 // A single headline, the two CTAs, and one framed product shot. The interactive
@@ -97,12 +97,15 @@ export function HeroText() {
               Keine Kreditkarte nötig · Erstes Audit in unter einer Minute
             </m.p>
 
-            {/* Framed product shot — a real capture of the audit galaxie plus
-                inspector. Sits just below the fold so it reads as proof, not
-                decoration. */}
+            {/* Framed LIVE console — the one continuous interactive surface:
+                the portfolio triage list (many customer repos) that zooms into
+                a repo's file tree + inspector on click. Replaces the old static
+                screenshot AND the retired galaxie; this is the hero proof you
+                can actually touch. */}
             <m.div
+              id="demo"
               variants={frame}
-              className="mt-14 w-full max-w-5xl sm:mt-16"
+              className="mt-12 w-full max-w-6xl scroll-mt-20 sm:mt-14"
             >
               <div className="overflow-hidden rounded-xl border border-border bg-card/40 shadow-2xl shadow-black/50">
                 <div className="flex items-center gap-1.5 border-b border-border bg-muted/30 px-4 py-2.5">
@@ -122,15 +125,9 @@ export function HeroText() {
                     app.validationkit.dev
                   </span>
                 </div>
-                <Image
-                  src="/landing/konsole.png"
-                  alt="Triage-Konsole mit Findings nach Severity über mehrere Kunden-Repos"
-                  width={2240}
-                  height={1440}
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 1024px"
-                  className="h-auto w-full"
-                />
+                <div className="h-[clamp(520px,68vh,760px)] w-full">
+                  <ConsoleSurface />
+                </div>
               </div>
             </m.div>
           </m.div>

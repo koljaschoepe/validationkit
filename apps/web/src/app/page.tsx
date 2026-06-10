@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { HeroText } from "@/components/landing/HeroText";
-import { HeroSection } from "@/components/landing/HeroSection";
 import {
   LandingFeatures,
   LandingSocialProof,
@@ -21,7 +20,6 @@ export default function Home() {
       <main id="main-content" aria-label="Main content">
         <HeroText />
         <LandingFeatures />
-        <HeroSection />
         <LandingSocialProof />
       </main>
 

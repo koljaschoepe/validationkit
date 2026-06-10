@@ -83,12 +83,12 @@ Die PixiJS-Galaxie wird **vollständig aus Code, Deps und Produkt entfernt**; di
 
 ### Bundle 2 — Durchgehendes Konsolen-Surface auf der Landing
 
-- [ ] **2.1** Neue Komponente `apps/web/src/components/landing/ConsoleSurface.tsx`: hält `view: 'portfolio' | 'repo'` + `activeRepoId`. `portfolio` rendert `<SolarListView readOnly initialData={buildLandingMap()} />` mit Repo-Row-`onClick` → `setView('repo')`. `repo` rendert die aus `HeroSection` extrahierte Repo-Ebene (Tree + Inspector) mit `DEMO_GALAXIE` (shared Fixture, Q6) + „← Portfolio"-Button → `setView('portfolio')`.
-- [ ] **2.2** `SolarListView` minimal erweitern: optionaler Prop `onRepoActivate?: (repoId: string) => void`. Wenn gesetzt (Landing-Modus), löst ein Repo-Row-Klick `onRepoActivate` aus statt Inline-Expand. Default (Workspace) unverändert. **Kein Duplikat** — nur ein Hook-Point.
-- [ ] **2.3** `HeroSection` zu reiner Repo-Ebene refactoren (oder Repo-View als `RepoConsole.tsx` extrahieren): Paste-Pill, 5-Stage-Logik, Tree+Inspector, Mobile-Bottom-Sheet bleiben; der äußere Section-/Heading-Wrapper wandert nach `ConsoleSurface`.
-- [ ] **2.4** Zoom-Transition portfolio⇄repo mit `motion/react` (`AnimatePresence` + shared-axis/scale-fade, `reducedMotion="user"` respektiert). Kein gsap.
-- [ ] **2.5** `apps/web/src/components/landing/HeroText.tsx`: statisches `konsole.png` durch `<ConsoleSurface />` im bestehenden Browser-Frame ersetzen. Headline/CTAs bleiben; `priority`-Image-Logik entfernen.
-- [ ] **2.6** `apps/web/src/app/page.tsx` Reihenfolge final: `Hero (Text + ConsoleSurface)` → `LandingFeatures` → `LandingSocialProof`. Separates `<HeroSection />` + `<PortfolioShowcase />` entfallen als eigenständige Sections.
+- [x] **2.1** Neue Komponente `apps/web/src/components/landing/ConsoleSurface.tsx`: hält `view: 'portfolio' | 'repo'` + `activeRepoId`. `portfolio` rendert `<SolarListView readOnly initialData={buildLandingMap()} />` mit Repo-Row-`onClick` → `setView('repo')`. `repo` rendert die aus `HeroSection` extrahierte Repo-Ebene (Tree + Inspector) mit `DEMO_GALAXIE` (shared Fixture, Q6) + „← Portfolio"-Button → `setView('portfolio')`.
+- [x] **2.2** `SolarListView` minimal erweitern: optionaler Prop `onRepoActivate?: (repoId: string) => void`. Wenn gesetzt (Landing-Modus), löst ein Repo-Row-Klick `onRepoActivate` aus statt Inline-Expand. Default (Workspace) unverändert. **Kein Duplikat** — nur ein Hook-Point.
+- [x] **2.3** `HeroSection` zu reiner Repo-Ebene refactoren (oder Repo-View als `RepoConsole.tsx` extrahieren): Paste-Pill, 5-Stage-Logik, Tree+Inspector, Mobile-Bottom-Sheet bleiben; der äußere Section-/Heading-Wrapper wandert nach `ConsoleSurface`.
+- [x] **2.4** Zoom-Transition portfolio⇄repo mit `motion/react` (`AnimatePresence` + shared-axis/scale-fade, `reducedMotion="user"` respektiert). Kein gsap.
+- [x] **2.5** `apps/web/src/components/landing/HeroText.tsx`: statisches `konsole.png` durch `<ConsoleSurface />` im bestehenden Browser-Frame ersetzen. Headline/CTAs bleiben; `priority`-Image-Logik entfernen.
+- [x] **2.6** `apps/web/src/app/page.tsx` Reihenfolge final: `Hero (Text + ConsoleSurface)` → `LandingFeatures` → `LandingSocialProof`. Separates `<HeroSection />` + `<PortfolioShowcase />` entfallen als eigenständige Sections.
 - [ ] **2.7** Mobile-QA: Portfolio-Liste + Drill + Bottom-Sheet auf ≤639 px.
 
 ### Bundle 3 — Copy, Cleanup, Verify

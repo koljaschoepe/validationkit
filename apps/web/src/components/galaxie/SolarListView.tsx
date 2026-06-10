@@ -59,10 +59,18 @@ export function SolarListView({
   initialData,
   readOnly = false,
   workspaceSlug,
+  onRepoActivate,
 }: {
   initialData?: GalaxieData;
   readOnly?: boolean;
   workspaceSlug?: string;
+  /**
+   * Landing-only drill hook. When set, clicking a repo HEADER (repo/customer
+   * group modes) fires this with the repo id instead of toggling inline
+   * expansion — the landing console "zooms" into that repo's file tree on a
+   * separate surface. Undefined in the workspace, where headers expand inline.
+   */
+  onRepoActivate?: (repoId: string) => void;
 }) {
   const data = useMemo(
     () => initialData ?? generateMockGalaxieData(),
@@ -272,6 +280,7 @@ export function SolarListView({
               collapsed={collapsed}
               onToggle={toggleCollapse}
               onSelectFile={openFile}
+              onRepoActivate={onRepoActivate}
             />
           )}
 
@@ -288,6 +297,7 @@ export function SolarListView({
                   collapsed={collapsed}
                   onToggle={toggleCollapse}
                   onSelectFile={openFile}
+                  onRepoActivate={onRepoActivate}
                   indent
                 />
               </section>
@@ -399,32 +409,48 @@ function RepoGroup({
   collapsed,
   onToggle,
   onSelectFile,
+  onRepoActivate,
   indent = false,
 }: {
   sections: RepoSection[];
   collapsed: Set<string>;
   onToggle: (id: string) => void;
   onSelectFile: (file: FileNode) => void;
+  onRepoActivate?: (repoId: string) => void;
   indent?: boolean;
 }) {
   return (
     <>
       {sections.map((section) => {
-        const repoCollapsed = collapsed.has(section.repo.id);
+        // Landing drill mode: the header navigates into the repo (no inline
+        // expansion). Workspace mode: the header toggles inline expansion.
+        const drillMode = onRepoActivate != null;
+        const repoCollapsed = drillMode || collapsed.has(section.repo.id);
         return (
           <section key={section.repo.id}>
             <button
               type="button"
-              onClick={() => onToggle(section.repo.id)}
-              aria-expanded={!repoCollapsed}
+              onClick={() =>
+                drillMode
+                  ? onRepoActivate(section.repo.id)
+                  : onToggle(section.repo.id)
+              }
+              aria-expanded={drillMode ? undefined : !repoCollapsed}
+              aria-label={
+                drillMode ? `${section.repo.label} öffnen` : undefined
+              }
               className={cn(
-                'flex w-full items-center gap-2.5 border-b border-white/10 bg-white/[0.03] px-3 py-2.5 text-left transition active:bg-white/10',
+                'flex w-full items-center gap-2.5 border-b border-white/10 bg-white/[0.03] px-3 py-2.5 text-left transition hover:bg-white/[0.06] active:bg-white/10',
                 FOCUS_RING_INSET,
                 indent && 'pl-7',
               )}
               style={{ minHeight: 44 }}
             >
-              <Chevron open={!repoCollapsed} />
+              {drillMode ? (
+                <span className="w-4 shrink-0" aria-hidden />
+              ) : (
+                <Chevron open={!repoCollapsed} />
+              )}
               <SeverityBadge severity={section.repo.aggregateSeverity} />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                 {section.repo.label}
@@ -438,6 +464,12 @@ function RepoGroup({
               <span className="shrink-0 type-mono-sm text-white/35">
                 {section.fileCount}
               </span>
+              {drillMode ? (
+                <ChevronRightIcon
+                  className="size-4 shrink-0 text-white/30"
+                  aria-hidden
+                />
+              ) : null}
             </button>
 
             {repoCollapsed ? null : (
