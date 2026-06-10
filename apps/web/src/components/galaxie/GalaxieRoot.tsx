@@ -115,7 +115,7 @@ function InteractiveGalaxie(props: GalaxieRootProps) {
   return (
     <div className="relative h-full w-full">
       <div
-        role="group"
+        role="radiogroup"
         aria-label="Workspace-Ansicht"
         className="absolute right-3 top-3 z-50 flex items-center gap-0.5 rounded-md border border-white/10 bg-black/70 p-0.5 backdrop-blur"
       >
@@ -159,18 +159,19 @@ function ViewButton({
   return (
     <button
       type="button"
+      role="radio"
       onClick={onClick}
-      aria-pressed={active}
+      aria-checked={active}
+      aria-label={label}
       title={label}
       className={
-        'flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors ' +
+        'flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ' +
         (active
           ? 'bg-white/15 text-white'
           : 'text-white/60 hover:text-white hover:bg-white/5')
       }
     >
       {icon}
-      <span className="sr-only">{label}</span>
     </button>
   );
 }

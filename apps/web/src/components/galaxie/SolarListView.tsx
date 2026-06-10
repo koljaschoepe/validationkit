@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon, FileTextIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FileTextIcon,
+  SearchXIcon,
+} from 'lucide-react';
 import { SeverityBadge } from '@/components/ui/severity-badge';
 import { cn } from '@/lib/utils';
 import type {
@@ -30,6 +35,12 @@ import {
 } from '@/lib/galaxie/console-grouping';
 import { Inspector } from './Inspector';
 import { EmptyGalaxie } from './EmptyGalaxie';
+
+const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
+const FOCUS_RING_INSET =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/50';
+const KILL_TEXT = 'text-[var(--color-sev-kill,#f4604e)]';
 
 /**
  * Mission-Control triage console — SaaS-Premium-Overhaul Bundle A.
@@ -76,8 +87,9 @@ export function SolarListView({
     return m;
   }, [data.repos]);
 
-  // Files + tree restricted to the active severity-filter chips. Everything
-  // downstream (counts, heat-bars, sort, rows) reflects this filtered set.
+  // Files + tree restricted to the active severity-filter chips. The chips
+  // control which expanded ROWS show; per-row counts/heat/sort stay
+  // filter-independent (fed `data.files`) so the triage ranking is stable.
   const visibleFiles = useMemo(
     () => data.files.filter((f) => active.has(f.severity)),
     [data.files, active],
@@ -136,12 +148,16 @@ export function SolarListView({
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#06080c]">
       {/* Toolbar — triage summary + group-by axes + severity filter chips.
-          Row 1 keeps the top-right corner clear (pr-28) for the Console/Map
-          view-toggle that GalaxieRoot floats there in desktop-interactive mode. */}
+          Row 1 keeps the desktop top-right corner clear (sm:pr-28) for the
+          Console/Map view-toggle GalaxieRoot floats there in interactive mode. */}
       <div className="shrink-0 border-b border-white/10">
-        <p className="px-3 pr-28 pt-3 type-mono-sm text-white/55">
+        <p
+          role="status"
+          aria-live="polite"
+          className="px-3 pt-3 type-mono-sm text-white/55 sm:pr-28"
+        >
           {workspaceCounts.Kill > 0 ? (
-            <span className="font-semibold text-[var(--color-sev-kill,#f4604e)]">
+            <span className={cn('font-semibold', KILL_TEXT)}>
               {workspaceCounts.Kill} Kill
             </span>
           ) : (
@@ -155,7 +171,7 @@ export function SolarListView({
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
           <div
-            role="group"
+            role="radiogroup"
             aria-label="Gruppieren nach"
             className="flex items-center gap-0.5 rounded-md border border-white/10 bg-white/[0.03] p-0.5"
           >
@@ -163,10 +179,12 @@ export function SolarListView({
               <button
                 key={o.value}
                 type="button"
+                role="radio"
                 onClick={() => setGroupBy(o.value)}
-                aria-pressed={groupBy === o.value}
+                aria-checked={groupBy === o.value}
                 className={cn(
                   'rounded px-2 py-1 type-mono-sm transition-colors',
+                  FOCUS_RING,
                   groupBy === o.value
                     ? 'bg-white/15 text-white'
                     : 'text-white/50 hover:bg-white/5 hover:text-white',
@@ -188,11 +206,13 @@ export function SolarListView({
                   type="button"
                   onClick={() => toggleSeverity(sev)}
                   aria-pressed={on}
-                  className={
+                  className={cn(
+                    'rounded px-2 py-1 type-mono-sm',
+                    FOCUS_RING,
                     on
-                      ? 'rounded bg-white/10 px-2 py-1 type-mono-sm text-white'
-                      : 'rounded bg-white/5 px-2 py-1 type-mono-sm text-white/40 line-through'
-                  }
+                      ? 'bg-white/10 text-white'
+                      : 'bg-white/5 text-white/40 line-through',
+                  )}
                 >
                   {count} {sev}
                 </button>
@@ -203,15 +223,27 @@ export function SolarListView({
       </div>
 
       {!hasAny ? (
-        <p className="px-4 py-10 text-center text-xs text-white/50">
-          Keine Findings für die aktiven Filter. Aktiviere oben weitere
-          Severity-Bänder.
-        </p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
+          <SearchXIcon className="size-6 text-white/30" aria-hidden />
+          <p className="text-xs text-white/50">
+            Keine Findings für die aktiven Filter.
+          </p>
+          <button
+            type="button"
+            onClick={() => setActive(new Set(SEVERITY_BANDS))}
+            className={cn(
+              'rounded-md border border-white/15 px-3 py-1.5 type-mono-sm text-white/80 transition-colors hover:bg-white/5',
+              FOCUS_RING,
+            )}
+          >
+            Filter zurücksetzen
+          </button>
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto pb-4">
           {groupBy === 'repo' && (
             <RepoGroup
-              sections={sectionsByRepo(filteredTree, visibleFiles)}
+              sections={sectionsByRepo(filteredTree, data.files)}
               collapsed={collapsed}
               onToggle={toggleCollapse}
               onSelectFile={openFile}
@@ -219,11 +251,11 @@ export function SolarListView({
           )}
 
           {groupBy === 'customer' &&
-            sectionsByCustomer(data, filteredTree, visibleFiles).map((cs) => (
+            sectionsByCustomer(data, filteredTree, data.files).map((cs) => (
               <section key={cs.customer.id}>
                 <SectionHeader
                   label={cs.customer.label}
-                  sublabel="Customer"
+                  sublabel="Kunde"
                   counts={cs.counts}
                 />
                 <RepoGroup
@@ -282,7 +314,10 @@ export function SolarListView({
                 key={sec.folder.id}
                 type="button"
                 onClick={() => openFolder(sec.folder, sec.files)}
-                className="flex w-full items-center gap-2.5 border-b border-white/[0.06] px-3 py-2.5 text-left transition active:bg-white/5 hover:bg-white/[0.03]"
+                className={cn(
+                  'flex w-full items-center gap-2.5 border-b border-white/[0.06] px-3 py-2.5 text-left transition hover:bg-white/[0.03] active:bg-white/5',
+                  FOCUS_RING_INSET,
+                )}
                 style={{ minHeight: 44 }}
               >
                 <SeverityBadge severity={sec.folder.aggregateSeverity} />
@@ -302,10 +337,19 @@ export function SolarListView({
                     {sec.repoLabel} · {sec.folder.name}/
                   </span>
                 </span>
+                {sec.counts.Kill > 0 ? (
+                  <span className={cn('shrink-0 type-mono-sm font-semibold', KILL_TEXT)}>
+                    {sec.counts.Kill} Kill
+                  </span>
+                ) : null}
                 <HeatBar counts={sec.counts} className="hidden w-24 sm:flex" />
                 <span className="shrink-0 type-mono-sm text-white/35">
                   {sec.files.length}
                 </span>
+                <ChevronRightIcon
+                  className="size-4 shrink-0 text-white/30"
+                  aria-hidden
+                />
               </button>
             ))}
         </div>
@@ -350,6 +394,7 @@ function RepoGroup({
               aria-expanded={!repoCollapsed}
               className={cn(
                 'flex w-full items-center gap-2.5 border-b border-white/10 bg-white/[0.03] px-3 py-2.5 text-left transition active:bg-white/10',
+                FOCUS_RING_INSET,
                 indent && 'pl-7',
               )}
               style={{ minHeight: 44 }}
@@ -360,7 +405,7 @@ function RepoGroup({
                 {section.repo.label}
               </span>
               {section.counts.Kill > 0 ? (
-                <span className="shrink-0 type-mono-sm font-semibold text-[var(--color-sev-kill,#f4604e)]">
+                <span className={cn('shrink-0 type-mono-sm font-semibold', KILL_TEXT)}>
                   {section.counts.Kill} Kill
                 </span>
               ) : null}
@@ -416,6 +461,11 @@ function SectionHeader({
       <span className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-white/70">
         {label}
       </span>
+      {counts && counts.Kill > 0 ? (
+        <span className={cn('shrink-0 type-mono-sm font-semibold', KILL_TEXT)}>
+          {counts.Kill} Kill
+        </span>
+      ) : null}
       {counts ? <HeatBar counts={counts} className="hidden w-24 sm:flex" /> : null}
       {sublabel ? (
         <span className="shrink-0 type-mono-sm text-white/35">{sublabel}</span>
@@ -446,11 +496,12 @@ function HeatBar({
       {segs.map((s) => (
         <span
           key={s.severity}
-          className="block h-full first:rounded-l-full last:rounded-r-full"
+          className="h-full first:rounded-l-full last:rounded-r-full"
           style={{
-            width: `${s.pct}%`,
+            flexBasis: `${s.pct}%`,
+            flexGrow: 0,
+            flexShrink: 0,
             backgroundColor: SEVERITY_HEX[s.severity],
-            float: 'left',
           }}
         />
       ))}
@@ -477,7 +528,10 @@ function FolderBranch({
         type="button"
         onClick={onToggle}
         aria-expanded={!collapsed}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 pl-7 text-left transition active:bg-white/5"
+        className={cn(
+          'flex w-full items-center gap-2.5 px-3 py-2.5 pl-7 text-left transition active:bg-white/5',
+          FOCUS_RING_INSET,
+        )}
         style={{ minHeight: 44 }}
       >
         <Chevron open={!collapsed} />
@@ -496,9 +550,9 @@ function FolderBranch({
             {folder.isSubmodule ? (
               <span
                 className="shrink-0 rounded bg-[#5eead4]/15 px-1 py-0.5 text-[9px] uppercase tracking-wide text-[#5eead4]/80"
-                aria-label="Git-Submodule (geteilter Team-Context)"
+                aria-label="Git-Submodul (geteilter Team-Context)"
               >
-                submodule
+                Submodul
               </span>
             ) : null}
           </span>
@@ -539,7 +593,10 @@ function FileRow({
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition active:bg-white/5 hover:bg-white/[0.02]"
+      className={cn(
+        'flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-white/[0.02] active:bg-white/5',
+        FOCUS_RING_INSET,
+      )}
       style={{ minHeight: 44, paddingLeft: indent * 16 }}
     >
       <SeverityBadge severity={file.severity} />

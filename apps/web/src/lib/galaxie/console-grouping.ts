@@ -20,23 +20,24 @@ export type GroupBy = 'repo' | 'severity' | 'rule' | 'customer' | 'folder';
 export const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'repo', label: 'Repo' },
   { value: 'severity', label: 'Severity' },
-  { value: 'rule', label: 'Rule' },
-  { value: 'customer', label: 'Customer' },
-  { value: 'folder', label: 'Folder' },
+  { value: 'rule', label: 'Regel' },
+  { value: 'customer', label: 'Kunde' },
+  { value: 'folder', label: 'Ordner' },
 ];
 
-/** Human labels for the 6 audit-rule categories (the "Rule" group-by axis). */
+/** Human labels for the 6 audit-rule categories (the "Rule" group-by axis).
+ *  German — project UI language. */
 export const CATEGORY_LABEL: Record<FindingCategory, string> = {
-  'unused-agent': 'Unused agent',
-  'duplicate-guidance': 'Duplicate guidance',
-  'context-bloat': 'Context bloat',
-  'stale-reference': 'Stale reference',
-  'token-budget': 'Token budget',
-  'conflicting-rules': 'Conflicting rules',
+  'unused-agent': 'Ungenutzter Agent',
+  'duplicate-guidance': 'Doppelte Anweisung',
+  'context-bloat': 'Kontext-Überladung',
+  'stale-reference': 'Veraltete Referenz',
+  'token-budget': 'Token-Budget',
+  'conflicting-rules': 'Regel-Konflikt',
 };
 
 export const UNCATEGORIZED_KEY = '__uncategorized__';
-export const UNCATEGORIZED_LABEL = 'Uncategorized';
+export const UNCATEGORIZED_LABEL = 'Ohne Kategorie';
 
 type SeverityCounts = Record<Severity, number>;
 
