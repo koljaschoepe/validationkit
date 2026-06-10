@@ -17,7 +17,7 @@ import {
 import type { SeverityBand } from "@vk/core";
 
 export const metadata = {
-  title: "Trust — ValidationKit",
+  title: "Trust · ValidationKit",
   description:
     "What ValidationKit reads, what it writes, what it doesn't yet do, and what's planned.",
 };
@@ -27,7 +27,7 @@ const DEFAULT_SCOPES: Array<{ surface: string; default: string; sev: SeverityBan
     surface: "Local filesystem",
     default: "Read",
     sev: "Strong",
-    optIn: "—",
+    optIn: "None",
   },
   {
     surface: "GitHub App (planned)",
@@ -175,14 +175,13 @@ export default function TrustPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <strong className="text-foreground">Concession:</strong> we
-              deliberately ship boring fundamentals before any growth lever.
+              We deliberately ship boring fundamentals before any growth lever.
             </p>
             <ul className="space-y-1.5 text-muted-foreground list-disc pl-5">
               <li>Read-only by default everywhere a write is plausible.</li>
               <li>
-                5 of 6 audit categories are deterministic — every finding has a
-                file:line citation. No vibe-scores.
+                5 of 6 audit categories are deterministic, so every finding has
+                a file:line citation. No vibe-scores.
               </li>
               <li>
                 LLM-augmented findings carry a confidence band (low / mid /
@@ -208,14 +207,13 @@ export default function TrustPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <strong className="text-foreground">Critique:</strong> these are
-              real gaps. Don&apos;t adopt ValidationKit for production yet if any
-              of these are dealbreakers.
+              These are real gaps, stated plainly. Don&apos;t adopt
+              ValidationKit for production yet if any of these are dealbreakers.
             </p>
             <ul className="space-y-1.5 text-muted-foreground list-disc pl-5">
               <li>
                 <strong className="text-foreground">No SOC-2 / ISO-27001.</strong>{" "}
-                Targeted for Phase 2 (M9–M18) with the Agency-Scale tier ($799/mo).
+                Targeted for Phase 2 (M9 to M18) with the Agency-Scale tier ($799/mo).
               </li>
               <li>
                 <strong className="text-foreground">No third-party pentest.</strong>{" "}
@@ -281,25 +279,25 @@ export default function TrustPage() {
           <CardContent className="space-y-2 text-sm">
             <ul className="space-y-1 text-muted-foreground">
               <li>
-                Imprint —{" "}
+                Imprint:{" "}
                 <Link href={"/legal/impressum" as never} className="text-primary hover:underline underline-offset-4">/legal/impressum</Link>
               </li>
               <li>
-                Privacy policy —{" "}
+                Privacy policy:{" "}
                 <Link href={"/legal/datenschutz" as never} className="text-primary hover:underline underline-offset-4">/legal/datenschutz</Link>
               </li>
               <li>
-                Terms —{" "}
+                Terms:{" "}
                 <Link href={"/legal/agb" as never} className="text-primary hover:underline underline-offset-4">/legal/agb</Link>
               </li>
               <li>
-                DPA (Art. 28 GDPR) —{" "}
+                DPA (Art. 28 GDPR):{" "}
                 <Link href={"/legal/dpa" as never} className="text-primary hover:underline underline-offset-4">/legal/dpa</Link>{" "}
                 · accept (audit-log) at{" "}
                 <Link href="/trust/dpa" className="text-primary hover:underline underline-offset-4">/trust/dpa</Link>
               </li>
               <li>
-                Sub-processors —{" "}
+                Sub-processors:{" "}
                 <Link href={"/legal/subprocessors" as never} className="text-primary hover:underline underline-offset-4">/legal/subprocessors</Link>
                 {" · "}
                 <a href="/trust/sub-processors.json" className="text-primary hover:underline underline-offset-4">JSON</a>
@@ -307,13 +305,13 @@ export default function TrustPage() {
                 <a href="/trust/sub-processors.xml" className="text-primary hover:underline underline-offset-4">RSS</a>
               </li>
               <li>
-                LLM-eval history —{" "}
+                LLM-eval history:{" "}
                 <Link href="/trust/eval" className="text-primary hover:underline underline-offset-4">/trust/eval</Link>{" "}
                 (per-band FPR over time)
               </li>
               <li>
-                TOMs register, incident-response &amp; scope policy — available on
-                request: datenschutz@validationkit.app
+                TOMs register, incident-response &amp; scope policy are available
+                on request via datenschutz@validationkit.app
               </li>
             </ul>
           </CardContent>
@@ -329,8 +327,8 @@ export default function TrustPage() {
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">
               Compliance-Frame Customers (Pharma / Finance / Marketing-with-PII)
-              can export the workspace audit-trail at any time — scans,
-              install_requests, repo write-grants, webhook events.{" "}
+              can export the workspace audit-trail at any time, covering scans,
+              install_requests, repo write-grants, and webhook events.{" "}
               <strong className="text-foreground">Retention: 12 months.</strong>
             </p>
             <Separator />

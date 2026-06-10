@@ -8,20 +8,12 @@ import {
   m,
   AnimatePresence,
 } from "motion/react";
-import { ArrowLeftIcon, HelpCircleIcon, Loader2Icon } from "lucide-react";
+import { ArrowLeftIcon, Loader2Icon } from "lucide-react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  RepoGalaxie,
   DEFAULT_GALAXIE_SETTINGS,
   type GalaxieSettings,
 } from "./RepoGalaxie";
 import { RepoInspector } from "./RepoInspector";
-import { BreadcrumbBar } from "./BreadcrumbBar";
 import { SignUpTeaseDialog } from "./SignUpTeaseDialog";
 import { RepoTreeView } from "./RepoTreeView";
 import { InspectorMobileSheet } from "./InspectorMobileSheet";
@@ -218,7 +210,6 @@ export function HeroSection() {
   return (
     <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion={reducedMotionForLib}>
-        <TooltipProvider>
           <section
             id="demo"
             aria-labelledby="demo-heading"
@@ -226,19 +217,19 @@ export function HeroSection() {
           >
             {/* Landing-Redesign Phase H — the galaxie is demoted below the text
                 hero (which now owns the page h1); this is the live-demo section. */}
-            <div className="mx-auto w-full max-w-7xl px-4 pb-2 pt-6 text-center sm:px-6">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-4 pt-14 text-center sm:px-6 sm:pt-20">
               <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground">
                 Live-Demo · keine Anmeldung
               </p>
               <h2
                 id="demo-heading"
-                className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+                className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
               >
-                Sieh deine Repo-Galaxie — sofort
+                Audit dein Repo in Sekunden
               </h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Wirf eine Repo-URL rein oder erkunde die Demo: jede Sonne ein
-                Repo, jeder Planet ein Finding, Severity auf einen Blick.
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Wirf eine GitHub-URL rein oder erkunde die Demo. Jedes Finding
+                nach Severity sortiert, mit anwendbarem Fix.
               </p>
             </div>
 
@@ -247,7 +238,7 @@ export function HeroSection() {
               href="#galaxie-findings-list"
               className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-border focus:bg-background focus:px-3 focus:py-2 focus:font-mono focus:type-mono-sm focus:text-foreground focus:outline-2 focus:outline-ring focus:outline-offset-2"
             >
-              Galaxie überspringen → Findings-Liste
+              Direkt zur Findings-Liste
             </a>
 
             {isMobile ? (
@@ -266,11 +257,10 @@ export function HeroSection() {
                 onResetToDemo={handleResetToDemo}
               />
             ) : (
-              <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+              <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-4 pt-2 sm:px-6">
                 {/* Nova-3a Phase 2: prominent hero-row with label + URL pill.
-                    Moves the audit-input out of the small toolbar so it is
-                    visually the primary CTA. */}
-                <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    Centred so the primary audit-input reads as the focal CTA. */}
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
                   <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     Audit Dein Repo →
                   </p>
@@ -298,49 +288,19 @@ export function HeroSection() {
                   className="grid flex-1 gap-4 sm:gap-6 lg:grid-cols-[7fr_3fr]"
                   style={{ minHeight: "min(72vh, calc(100svh - 3.5rem - 6rem))" }}
                 >
-                {/* Galaxie-Pane — left, contains the toolbar + the
-                    demo/live/result galaxie. */}
+                {/* Console-Pane — the audit findings as a scannable triage
+                    tree (left). Same demo/live/result data throughout; dimmed
+                    while the audit runs. Replaces the old galaxie so the page
+                    keeps exactly one galaxy (the Portfolio-Map above). */}
                 <div className="relative overflow-hidden rounded-xl border border-border bg-card/40">
-                  {/* Top toolbar: breadcrumb · help · settings (pill moved up). */}
-                  <div className="absolute inset-x-3 top-3 z-20 flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <BreadcrumbBar
-                        path={breadcrumbPath}
-                        onSelect={handleBreadcrumbSelect}
-                      />
-                    </div>
-
-                    <div className="flex flex-shrink-0 items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label="Hinweise zur Galaxie-Bedienung"
-                            className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-                          >
-                            <HelpCircleIcon
-                              className="size-4"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" align="end">
-                          Klick Folder → zoomen · Klick außerhalb / ESC → zurück
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  {/* Galaxie content — DEMO_GALAXIE in idle, same data dimmed
-                      while loading, real galaxie in result. */}
                   <AnimatePresence mode="wait" initial={false}>
                     <m.div
                       key={
                         stage === "result"
-                          ? "live-galaxie"
+                          ? "live-tree"
                           : stage === "loading"
-                            ? "loading-galaxie"
-                            : "demo-galaxie"
+                            ? "loading-tree"
+                            : "demo-tree"
                       }
                       initial={{ opacity: 0 }}
                       animate={{
@@ -348,24 +308,19 @@ export function HeroSection() {
                       }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.35 }}
-                      className="absolute inset-0 h-full w-full"
+                      className="absolute inset-0 h-full w-full overflow-y-auto p-3"
                       style={
                         stage === "loading"
                           ? { willChange: "opacity" }
                           : undefined
                       }
                     >
-                      <RepoGalaxie
+                      <RepoTreeView
                         data={liveGalaxieData}
                         activeNodeId={activeNodeId}
-                        focusId={focusId}
-                        onNodeSelect={
+                        onFileSelect={
                           stage === "loading" ? undefined : handleNodeSelect
                         }
-                        onFocusChange={
-                          stage === "loading" ? undefined : handleFocusChange
-                        }
-                        settings={galaxieSettings}
                       />
                     </m.div>
                   </AnimatePresence>
@@ -390,8 +345,8 @@ export function HeroSection() {
                       </div>
                       {isLongRun ? (
                         <p className="max-w-md rounded-md border border-border bg-card/90 px-3 py-2 text-center type-body-sm text-muted-foreground backdrop-blur">
-                          Großes Repo — kann ein paar Minuten dauern. Sign-in
-                          für Background-Audit + Magic-Link-Benachrichtigung.
+                          Großes Repo? Kann ein paar Minuten dauern. Sign-in
+                          für Background-Audit und Magic-Link-Benachrichtigung.
                         </p>
                       ) : null}
                     </div>
@@ -430,7 +385,7 @@ export function HeroSection() {
               {REPO_DEMO_FINDINGS.map((f) => (
                 <li key={f.id}>
                   <button type="button" onClick={() => setActiveNodeId(f.nodeId)}>
-                    {f.title} — Schweregrad {f.severity} — Knoten {f.nodeId}
+                    {f.title}, Schweregrad {f.severity}, Knoten {f.nodeId}
                   </button>
                 </li>
               ))}
@@ -438,7 +393,6 @@ export function HeroSection() {
 
             <SignUpTeaseDialog open={dialogOpen} onOpenChange={setDialogOpen} />
           </section>
-        </TooltipProvider>
       </MotionConfig>
     </LazyMotion>
   );
@@ -496,7 +450,7 @@ function MobileLayout({
             <span className="truncate">{submittedUrl ?? "Auditing"}</span>
           </div>
           <p className="type-body-sm text-muted-foreground">
-            Audit läuft — Findings erscheinen hier in wenigen Sekunden.
+            Audit läuft. Findings erscheinen hier in wenigen Sekunden.
           </p>
         </div>
       ) : stage === "result" ? (

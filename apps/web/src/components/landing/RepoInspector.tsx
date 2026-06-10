@@ -57,7 +57,7 @@ export function RepoInspector({
       className="relative flex h-full w-full flex-col rounded-xl border border-border bg-card shadow-sm"
       aria-live="polite"
       aria-atomic="true"
-      aria-label={`Inspector — ${node.label}`}
+      aria-label={`Inspector für ${node.label}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         <m.div
@@ -81,15 +81,15 @@ export function RepoInspector({
             {/* Metadata pill-row — only meaningful for files */}
             {isFile ? (
               <div className="grid grid-cols-4 gap-1.5">
-                <PillStat label="lang" value={node.language?.toUpperCase() ?? '—'} />
-                <PillStat label="lines" value={node.lines?.toString() ?? '—'} />
+                <PillStat label="lang" value={node.language?.toUpperCase() ?? 'n/a'} />
+                <PillStat label="lines" value={node.lines?.toString() ?? 'n/a'} />
                 <PillStat
                   label="size"
-                  value={node.bytes ? formatBytes(node.bytes) : '—'}
+                  value={node.bytes ? formatBytes(node.bytes) : 'n/a'}
                 />
                 <PillStat
                   label="updated"
-                  value={node.lastModified ? formatRelativeDate(node.lastModified) : '—'}
+                  value={node.lastModified ? formatRelativeDate(node.lastModified) : 'n/a'}
                 />
               </div>
             ) : null}
@@ -178,8 +178,8 @@ export function RepoInspector({
               <section className="rounded-md border border-border bg-background/40 p-3">
                 <p className="type-body-sm text-muted-foreground">
                   {node.kind === 'repo'
-                    ? 'Repository — Klick auf einen Ordner zum Zoomen, auf eine Datei für Details.'
-                    : `Ordner — enthält ${countDescendantFiles(node.id)} klickbare Dateien.`}
+                    ? 'Repository. Klick auf einen Ordner zum Zoomen, auf eine Datei für Details.'
+                    : `Ordner mit ${countDescendantFiles(node.id)} klickbaren Dateien.`}
                 </p>
               </section>
             ) : null}

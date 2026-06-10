@@ -88,7 +88,7 @@ const files: GraphNode[] = [
     lastModified: '2026-04-30',
     filePath: '/CLAUDE.md',
     previewLines: [
-      '# CLAUDE.md — fraud-detection',
+      '# CLAUDE.md fraud-detection',
       '',
       '> context_budget: 8400 tokens',
       '> last_audit: 2026-04-12',
@@ -104,12 +104,12 @@ const files: GraphNode[] = [
     findingTitle: 'CLAUDE.md überschreitet Agency-Token-Budget',
     findingRule: 'token-budget-overshoot',
     findingDescription:
-      'context_budget: 8400 tokens — 68 % über dem Agency-Default von 5000. Keine Begründung im File.',
+      'context_budget liegt bei 8400 Tokens, also 68 % über dem Agency-Default von 5000. Eine Begründung fehlt im File.',
     findingWhyImportant:
       'Token-Overshoots fressen Cost + Latency unbemerkt. Agency-Lena will ein konsistentes Budget über alle Customer-Repos.',
     findingDiffBefore: '> context_budget: 8400 tokens\n> # (no rationale)',
     findingDiffAfter:
-      '> context_budget: 5000 tokens\n> # back to agency default — fraud-detection has compact spec',
+      '> context_budget: 5000 tokens\n> # back to agency default, fraud-detection has compact spec',
   },
   {
     id: 'file-gemini-md',
@@ -123,7 +123,7 @@ const files: GraphNode[] = [
     lastModified: '2026-05-14',
     filePath: '/GEMINI.md',
     previewLines: [
-      '# GEMINI.md — fraud-detection',
+      '# GEMINI.md fraud-detection',
       '',
       '> mirrored from CLAUDE.md via .agency/sync-claude-gemini.yml',
       '> last_sync: 2026-05-14',
@@ -154,7 +154,7 @@ const files: GraphNode[] = [
     lastModified: '2026-04-08',
     filePath: '/.windsurfrules',
     previewLines: [
-      '# Windsurf rules — fraud-detection',
+      '# Windsurf rules fraud-detection',
       '',
       'Style: TypeScript strict.',
       'Tests: vitest, never jest.',
@@ -189,9 +189,9 @@ const files: GraphNode[] = [
     findingTitle: 'aider.conf.yml referenziert nicht-existente CONVENTIONS.md',
     findingRule: 'stale-file-reference',
     findingDescription:
-      '`read: CONVENTIONS.md` — File existiert nicht im Repo. Aider lädt nichts statt der erwarteten Conventions.',
+      '`read: CONVENTIONS.md` zeigt auf eine Datei, die es im Repo nicht gibt. Aider lädt nichts statt der erwarteten Conventions.',
     findingWhyImportant:
-      'Stale reads in aider.conf.yml sind silent failures — aider startet, ignoriert aber die wichtigsten Conventions.',
+      'Stale reads in aider.conf.yml sind silent failures. Aider startet, ignoriert aber die wichtigsten Conventions.',
     findingDiffBefore: 'read:\n  - CONVENTIONS.md  # ← does not exist',
     findingDiffAfter: 'read:\n  - AGENTS.md       # ← canonical entry-point',
   },
@@ -209,7 +209,7 @@ const files: GraphNode[] = [
     lastModified: '2026-05-08',
     filePath: '/apps/api/AGENTS.md',
     previewLines: [
-      '# apps/api — AGENTS.md',
+      '# apps/api AGENTS.md',
       '',
       'Hono API server, runs on Cloudflare Workers.',
       '',
@@ -234,7 +234,7 @@ const files: GraphNode[] = [
     lastModified: '2026-04-22',
     filePath: '/apps/web/AGENTS.md',
     previewLines: [
-      '# apps/web — AGENTS.md',
+      '# apps/web AGENTS.md',
       '',
       'Next.js 16 frontend.',
       '',
@@ -272,7 +272,7 @@ const files: GraphNode[] = [
     findingDescription:
       'Claude Code Auto-Discovery braucht `description` im YAML-Frontmatter. Skill wird ohne description nicht von Claude aufgegriffen.',
     findingWhyImportant:
-      'Skills ohne description sind für den Agent unsichtbar — der ganze Audit-Wert geht verloren.',
+      'Skills ohne description sind für den Agent unsichtbar, der ganze Audit-Wert geht verloren.',
     findingDiffBefore: '---\nname: db-migration\n# description: (MISSING)\n---',
     findingDiffAfter:
       '---\nname: db-migration\ndescription: Generate Drizzle migrations from schema diffs\n---',
@@ -396,7 +396,7 @@ const files: GraphNode[] = [
     findingTitle: 'settings.local.json versehentlich committed',
     findingRule: 'leaked-local-settings',
     findingDescription:
-      '.claude/settings.local.json ist im Repo — enthält API-Keys + persönliche Developer-Daten. Sollte in `.gitignore`.',
+      '.claude/settings.local.json liegt im Repo und enthält API-Keys plus persönliche Developer-Daten. Gehört in die `.gitignore`.',
     findingWhyImportant:
       'API-Keys + GitHub-Tokens public im Repo sind ein Security-Incident. Sofortiger Rotate + git-history-rewrite empfohlen.',
     findingDiffBefore: '# .gitignore (current)\nnode_modules/\n.next/',
@@ -417,7 +417,7 @@ const files: GraphNode[] = [
     lastModified: '2026-04-05',
     filePath: '/.github/copilot-instructions.md',
     previewLines: [
-      '# Copilot instructions — fraud-detection',
+      '# Copilot instructions fraud-detection',
       '',
       '## Tests',
       'Use **Jest** for all unit-tests.',
@@ -428,12 +428,12 @@ const files: GraphNode[] = [
     ],
     severity: 'Mid',
     findingCount: 1,
-    findingTitle: 'Copilot ↔ CLAUDE.md Konflikt: Vitest vs Jest',
+    findingTitle: 'Konflikt zwischen Copilot und CLAUDE.md, Vitest gegen Jest',
     findingRule: 'duplicate-conflicting-rules',
     findingDescription:
-      'copilot-instructions.md schreibt Jest vor, CLAUDE.md + .windsurfrules schreiben Vitest vor. Resultat: inkonsistenter Code je nach Agent.',
+      'copilot-instructions.md schreibt Jest vor, CLAUDE.md und .windsurfrules schreiben Vitest vor. Das Resultat ist inkonsistenter Code je nach Agent.',
     findingWhyImportant:
-      'Wenn Agents widersprüchliche Test-Frameworks erzwingen, entstehen Doppel-Suites — die PR-Reviews werden chaotisch.',
+      'Wenn Agents widersprüchliche Test-Frameworks erzwingen, entstehen Doppel-Suites und die PR-Reviews werden chaotisch.',
     findingDiffBefore: '## Tests\nUse **Jest** for all unit-tests.',
     findingDiffAfter:
       '## Tests\nUse **Vitest** (vitest workspace), aligned with CLAUDE.md + .windsurfrules.',

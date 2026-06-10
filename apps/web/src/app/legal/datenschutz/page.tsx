@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata = {
-  title: "Datenschutzerklärung — ValidationKit",
+  title: "Datenschutzerklärung · ValidationKit",
   description:
     "Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 DSGVO.",
 };
@@ -85,8 +85,8 @@ export default function DatenschutzPage() {
               Dienstes und zur passwortlosen Anmeldung. Rechtsgrundlage:
               Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung). Bei der
               Anmeldung per Magic-Link sowie bei jeder Session werden zu
-              Sicherheitszwecken IP-Adresse und User-Agent verarbeitet —
-              Rechtsgrundlage Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+              Sicherheitszwecken IP-Adresse und User-Agent verarbeitet.
+              Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
               Interesse an Missbrauchs- und Angriffsabwehr).
             </p>
           </div>
@@ -229,17 +229,17 @@ export default function DatenschutzPage() {
           </p>
           <ul className="space-y-1">
             <Li>
-              <span className="font-mono text-xs">Better-Auth-Session</span> —
+              <span className="font-mono text-xs">Better-Auth-Session</span>:{" "}
               Anmeldung/Session (technisch notwendig).
             </Li>
             <Li>
               <span className="font-mono text-xs">
                 vk_default_workspace_slug
-              </span>{" "}
-              — Merkt den zuletzt genutzten Workspace (funktional).
+              </span>
+              : Merkt den zuletzt genutzten Workspace (funktional).
             </Li>
             <Li>
-              <span className="font-mono text-xs">sidebar</span> — UI-Zustand
+              <span className="font-mono text-xs">sidebar</span>: UI-Zustand
               der Seitenleiste (funktional).
             </Li>
           </ul>
@@ -264,8 +264,8 @@ export default function DatenschutzPage() {
           </p>
           <p>
             Sie haben zudem das Recht, sich bei einer
-            Datenschutz-Aufsichtsbehörde zu beschweren (Art. 77 DSGVO) —
-            zuständig ist die Landesdatenschutzbehörde des Bundeslandes, in dem
+            Datenschutz-Aufsichtsbehörde zu beschweren (Art. 77 DSGVO).
+            Zuständig ist die Landesdatenschutzbehörde des Bundeslandes, in dem
             der Verantwortliche seinen Sitz hat.
           </p>
         </CardContent>
@@ -277,7 +277,7 @@ export default function DatenschutzPage() {
           Privacy policy (English)
         </h2>
         <p className="text-sm text-muted-foreground">
-          Convenience summary — the German version above is the legally
+          This is a convenience summary. The German version above is the legally
           authoritative text.
         </p>
         <Card>
@@ -285,7 +285,7 @@ export default function DatenschutzPage() {
             <p>
               <span className="font-medium text-foreground">Controller:</span>{" "}
               {CONTROLLER.name} (sole proprietor; address in the legal notice).
-              Privacy contact: {CONTROLLER.email}.
+              For privacy questions, contact {CONTROLLER.email}.
             </p>
             <p>
               <span className="font-medium text-foreground">
@@ -322,10 +322,10 @@ export default function DatenschutzPage() {
             <p>
               <span className="font-medium text-foreground">Your rights:</span>{" "}
               access, rectification, erasure, restriction, portability and
-              objection (Art. 15–21 GDPR), and the right to lodge a complaint
-              with a supervisory authority (Art. 77 GDPR). No tracking cookies —
-              only strictly-necessary/functional cookies, so no consent banner
-              is required.
+              objection (Art. 15 to 21 GDPR), and the right to lodge a complaint
+              with a supervisory authority (Art. 77 GDPR). There are no tracking
+              cookies, only strictly-necessary/functional cookies, so no consent
+              banner is required.
             </p>
           </CardContent>
         </Card>

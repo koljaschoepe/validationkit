@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata = {
-  title: "Terms & Pricing — ValidationKit",
+  title: "Terms & Pricing · ValidationKit",
   description:
     "ValidationKit AGB / Terms with pricing pass-through clause and cost volatility notice.",
 };
@@ -69,7 +69,7 @@ export default function AgbPage() {
               per cycle.
             </li>
             <li>
-              Each audit consumes credits — 1 for a Quick audit, 5 for a Deep
+              Each audit consumes credits, 1 for a Quick audit and 5 for a Deep
               audit.
             </li>
             <li>
@@ -85,7 +85,7 @@ export default function AgbPage() {
           </ul>
           <p>
             Every invoice itemizes the subscription line, overage credits, and
-            VAT separately. There is no hidden markup — you can verify the
+            VAT separately. There is no hidden markup, so you can verify the
             AI-compute portion in your workspace AI usage log.
           </p>
         </CardContent>
@@ -127,7 +127,7 @@ export default function AgbPage() {
           <p>
             Customer-supplied API keys are stored encrypted at rest
             (AES-256-GCM, ADR-0008) and are not retrievable via the customer
-            portal once saved — they may only be rotated or removed.
+            portal once saved. They may only be rotated or removed.
           </p>
         </CardContent>
       </Card>
@@ -153,7 +153,7 @@ export default function AgbPage() {
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
             Subscriptions can be canceled at any time via the Stripe customer
-            portal — access continues until the end of the paid period. We
+            portal, and access continues until the end of the paid period. We
             don&apos;t offer pro-rata refunds for partial periods.
           </p>
           <p>
@@ -194,8 +194,8 @@ export default function AgbPage() {
       </Card>
 
       <footer className="text-xs text-muted-foreground">
-        Version 1.0 — 2026-05-21. Anwaltliche Review von AGB + DPA steht aus
-        (Master-Plan §11 out-of-scope). For questions:{" "}
+        Version 1.0, dated 2026-05-21. Anwaltliche Review von AGB + DPA steht aus
+        (Master-Plan §11 out-of-scope). For questions, write to{" "}
         <a
           href="mailto:legal@validationkit.app"
           className="underline-offset-4 hover:underline"

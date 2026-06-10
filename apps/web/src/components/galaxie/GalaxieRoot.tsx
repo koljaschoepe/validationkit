@@ -67,6 +67,12 @@ export interface GalaxieRootProps {
    * GalaxieScene below.
    */
   cameraProgress?: MotionValue<number>;
+  /**
+   * Override inter-customer cluster spacing (landing Portfolio-Map uses a
+   * tighter radius so its clusters fit at a label-legible zoom). Forwarded to
+   * GalaxieScene on the Pixi path; the SVG / list fallbacks ignore it.
+   */
+  clusterRadius?: number;
 }
 
 export default function GalaxieRoot(props: GalaxieRootProps) {

@@ -112,6 +112,12 @@ interface GalaxieSceneProps {
    * (static-demo already disables them). Absent = normal behaviour.
    */
   cameraProgress?: MotionValue<number>;
+  /**
+   * Override the inter-customer cluster spacing. The landing Portfolio-Map uses
+   * a tighter radius than the workspace default so its handful of clusters fit
+   * the frame at a zoom where on-canvas labels are legible.
+   */
+  clusterRadius?: number;
 }
 
 export default function GalaxieScene({
@@ -124,6 +130,7 @@ export default function GalaxieScene({
   initialZoomLevel,
   enableAutoTour = false,
   cameraProgress,
+  clusterRadius,
 }: GalaxieSceneProps = {}) {
   const isStatic = mode === 'static-demo';
   const router = useRouter();
@@ -148,6 +155,13 @@ export default function GalaxieScene({
 
   const cameraRef = useRef<Camera>(new Camera());
   const worldRef = useRef<Container | null>(null);
+  // Flips true once GalaxieWorld's mount-effect has assigned worldRef.current.
+  // worldRef is a plain ref (no reactive trigger), so without this the camera
+  // effects below have no signal to re-apply once the Pixi world finally mounts.
+  // That race strands the camera at the identity origin and leaves only the CSS
+  // starfield visible (the landing "empty galaxy" bug).
+  const [worldReady, setWorldReady] = useState(false);
+  const handleWorldReady = useCallback(() => setWorldReady(true), []);
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   // Data + layout are stable for the lifetime of the component.
@@ -171,7 +185,10 @@ export default function GalaxieScene({
 
   // Sub-A — Solar-Layout (Sonnensystem-pro-Repo, Multi-Sonnen-Cluster pro Customer).
   // Drives GalaxieWorld rendering. See `docs/plans/galaxie-workspace-solar-A-layout.md`.
-  const solarLayout = useMemo(() => computeSolarLayout(galaxieData), [galaxieData]);
+  const solarLayout = useMemo(
+    () => computeSolarLayout(galaxieData, clusterRadius),
+    [galaxieData, clusterRadius],
+  );
   const solarLayoutById = useMemo(
     () =>
       new Map<string, SolarLayoutNode>(
@@ -190,7 +207,7 @@ export default function GalaxieScene({
   );
 
   const zoomLevels = useMemo<ZoomLevel[]>(() => {
-    const centers = getClusterCenters(galaxieData);
+    const centers = getClusterCenters(galaxieData, clusterRadius);
     const focus = (
       c: { x: number; y: number } | undefined,
       scale: number,
@@ -203,13 +220,19 @@ export default function GalaxieScene({
       focus(centers[1], 1.7),
       focus(centers[2], 1.7),
     ];
-  }, [galaxieData]);
+  }, [galaxieData, clusterRadius]);
 
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
-    const update = () =>
-      setSize({ w: el.clientWidth, h: el.clientHeight });
+    const update = () => {
+      // Only adopt real dimensions. A 0×0 read (Pixi mounted via inView before
+      // the sticky ancestor has laid out) would init the <Application> at 0×0 /
+      // its 300×150 fallback and never recover, leaving only the CSS starfield.
+      if (el.clientWidth > 0 && el.clientHeight > 0) {
+        setSize({ w: el.clientWidth, h: el.clientHeight });
+      }
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -246,7 +269,7 @@ export default function GalaxieScene({
     cameraRef.current.scale = target.scale;
     applyCamera();
     initialCameraAppliedRef.current = true;
-  }, [size, zoomLevels, initialZoomLevel, applyCamera]);
+  }, [size, zoomLevels, initialZoomLevel, applyCamera, worldReady]);
 
   const tweenTo = useCallback(
     (target: ZoomLevel) => {
@@ -341,13 +364,13 @@ export default function GalaxieScene({
   // the cluster center instead.
   const tweenToCustomerCluster = useCallback(
     (customerId: string, scale: number) => {
-      const center = getClusterCenters(galaxieData).find(
+      const center = getClusterCenters(galaxieData, clusterRadius).find(
         (c) => c.customerId === customerId,
       );
       if (!center) return;
       tweenTo({ x: -center.x * scale, y: -center.y * scale, scale });
     },
-    [tweenTo, galaxieData],
+    [tweenTo, galaxieData, clusterRadius],
   );
 
   // Landing-Redesign Phase I.3 — scroll-driven camera waypoints, derived once
@@ -362,7 +385,7 @@ export default function GalaxieScene({
     if (!fireCust) {
       return { waypoints: [overview], inspectorFile: null as FileNode | null };
     }
-    const center = getClusterCenters(galaxieData).find(
+    const center = getClusterCenters(galaxieData, clusterRadius).find(
       (c) => c.customerId === fireCust.id,
     );
     const cluster: ZoomLevel = center
@@ -390,7 +413,7 @@ export default function GalaxieScene({
       galaxieData.files.find((f) => f.repoId === fireRepo?.id) ??
       null;
     return { waypoints: [overview, cluster, repoWp, detailWp], inspectorFile };
-  }, [galaxieData, solarLayout, solarLayoutById, initialZoomLevel]);
+  }, [galaxieData, solarLayout, solarLayoutById, initialZoomLevel, clusterRadius]);
 
   // rAF loop driving the camera from spring-smoothed scroll progress. Runs only
   // when a progress source is wired (the landing scrollytelling); the workspace
@@ -426,9 +449,11 @@ export default function GalaxieScene({
       }
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    // Apply once synchronously so a static-at-mount progress value lands even
+    // before the first animation frame (loop() schedules the next rAF itself).
+    loop();
     return () => cancelAnimationFrame(raf);
-  }, [cameraProgress, size, scrollTour, applyCamera]);
+  }, [cameraProgress, size, scrollTour, applyCamera, worldReady]);
 
   const handleSearchPick = useCallback(
     (res: SearchResult) => {
@@ -693,6 +718,7 @@ export default function GalaxieScene({
           >
             <GalaxieWorld
               worldRef={worldRef}
+              onWorldReady={handleWorldReady}
               centerX={size.w / 2}
               centerY={size.h / 2}
               camera={cameraRef.current}
@@ -767,6 +793,7 @@ function severityOf(target: SolarSprite): Severity {
 
 function GalaxieWorld({
   worldRef,
+  onWorldReady,
   centerX,
   centerY,
   camera,
@@ -781,6 +808,7 @@ function GalaxieWorld({
   selectedNodeId,
 }: {
   worldRef: MutableRefObject<Container | null>;
+  onWorldReady: () => void;
   centerX: number;
   centerY: number;
   camera: Camera;
@@ -795,6 +823,17 @@ function GalaxieWorld({
   selectedNodeId: string | null;
 }) {
   const localRef = useRef<Container | null>(null);
+  // Bumped once per mount-effect run. The sprite diff-effect's other deps
+  // (data/folders/layout/camera) are stable for the component's life, so it
+  // would otherwise run only once. But the mount-effect re-runs whenever a click
+  // handler's identity changes (they chain through `size` → applyCamera), and
+  // each re-run tears down and rebuilds the world's reveal layers AND destroys
+  // every sprite. Without re-running the diff-effect in lockstep, the world is
+  // left with only its 4 reveal layers and no suns/planets — the flaky "empty
+  // starfield" landing bug. A counter (not a boolean) is required: a boolean
+  // toggled false→true inside one effect-flush batches back to its prior value,
+  // so the diff-effect sees no change. Incrementing always yields a fresh value.
+  const [mountGen, setMountGen] = useState(0);
   // Stable sprite map for diff-updates (avoids destroy + rebuild on every
   // `data` change). Lifecycle owned by the mount-effect below.
   const spritesRef = useRef<Map<string, Container>>(new Map());
@@ -833,6 +872,11 @@ function GalaxieWorld({
     const world = localRef.current;
     if (!world) return;
     worldRef.current = world;
+    // Signal the parent so the camera effects re-run now that the world exists.
+    onWorldReady();
+    // Re-run the sprite diff-effect in lockstep with this (re)mount so the
+    // suns/planets are (re)populated onto the freshly set-up world.
+    setMountGen((g) => g + 1);
 
     const ctx = gsap.context(() => {}, world);
     ctxRef.current = ctx;
@@ -1032,7 +1076,7 @@ function GalaxieWorld({
       selectedEdgeRef.current = null;
       worldRef.current = null;
     };
-  }, [worldRef, onHover, onSunClick, onFolderClick, onFileClick]);
+  }, [worldRef, onWorldReady, onHover, onSunClick, onFolderClick, onFileClick]);
 
   // Diff-effect: add new entities, reposition existing, destroy orphans, and
   // re-render severity / dismiss / solution-status on changed entities.
@@ -1147,7 +1191,7 @@ function GalaxieWorld({
         sprite.updateLabelLOD(camera.scale);
       }
     }
-  }, [data, folders, layoutById, camera]);
+  }, [data, folders, layoutById, camera, mountGen]);
 
   // Badge-cache becomes ready after async rasterization. Refresh every mounted
   // sprite so the badges that were skipped at mount-time now appear.

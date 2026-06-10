@@ -60,8 +60,8 @@ export function BlurOverlayCTA({
     variant === "background"
       ? "Der Audit läuft im Hintergrund. Sobald wir authentifiziert wissen, wem das gehört, runen wir ihn fertig und du bekommst den Report im Workspace."
       : hiddenCount && hiddenCount > 0
-        ? `${hiddenCount} weitere Findings warten. Magic-Link runt das Audit für deinen Workspace neu und persistiert das Ergebnis.`
-        : "Magic-Link runt das Audit für deinen Workspace neu und persistiert das Ergebnis — inkl. Apply-PRs.";
+        ? `${hiddenCount} weitere Findings warten. Der Magic-Link führt das Audit für deinen Workspace neu aus und persistiert das Ergebnis.`
+        : "Der Magic-Link führt das Audit für deinen Workspace neu aus und persistiert das Ergebnis, inklusive Apply-PRs.";
 
   return (
     <div className="mx-auto w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">

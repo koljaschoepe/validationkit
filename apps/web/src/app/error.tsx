@@ -29,9 +29,8 @@ export default function RouteError({
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>
-            <strong>Concession:</strong> The page errored out on the server.{" "}
-            <strong>Critique:</strong> retry once. If it happens twice,
-            it&apos;s real — please report at{" "}
+            The page errored out on the server. Retry once. If it happens
+            twice, it&apos;s real, so please report it at{" "}
             <Link
               href="https://github.com/koljaschoepe/validationkit/issues"
               className="text-primary underline-offset-4 hover:underline"

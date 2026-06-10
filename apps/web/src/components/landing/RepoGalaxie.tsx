@@ -339,7 +339,7 @@ export function RepoGalaxie({
       viewBox={`${-VIEWBOX_SIZE / 2} ${-VIEWBOX_SIZE / 2} ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}
       preserveAspectRatio="xMidYMid meet"
       role="application"
-      aria-label="Repository-Galaxie — Maus ziehen zum Pannen, ⌘+Scroll zum Zoomen, Pfeiltasten zum Navigieren"
+      aria-label="Repository-Galaxie. Maus ziehen zum Pannen, ⌘+Scroll zum Zoomen, Pfeiltasten zum Navigieren"
       className="h-full w-full"
       style={{ cursor: svgCursor, touchAction: 'pan-y' }}
       onClick={handleBackgroundClick}

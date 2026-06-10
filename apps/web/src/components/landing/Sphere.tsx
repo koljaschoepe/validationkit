@@ -268,8 +268,8 @@ export function Sphere({
 
   const isFile = node.kind === 'file';
   const ariaLabel = isFile
-    ? `${node.label}, Datei${node.severity ? `, Severity ${node.severity}` : ''} — Enter zum Öffnen`
-    : `${node.label}, ${node.kind} — Enter zum Zoomen`;
+    ? `${node.label}, Datei${node.severity ? `, Severity ${node.severity}` : ''}. Enter zum Öffnen`
+    : `${node.label}, ${node.kind}. Enter zum Zoomen`;
 
   return (
     <g

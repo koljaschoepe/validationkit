@@ -98,15 +98,18 @@ export interface ClusterCenter {
  * Deterministic cluster centers: customers sorted by slug, placed on a circle of
  * radius {@link SOLAR_LAYOUT_CONSTANTS.CUSTOMER_CLUSTER_RADIUS} around the origin.
  */
-export function getClusterCenters(data: GalaxieData): ClusterCenter[] {
+export function getClusterCenters(
+  data: GalaxieData,
+  clusterRadius: number = CUSTOMER_CLUSTER_RADIUS,
+): ClusterCenter[] {
   const sorted = [...data.customers].sort((a, b) => a.slug.localeCompare(b.slug));
   const n = Math.max(sorted.length, 1);
   return sorted.map((c, i) => {
     const angle = (i / n) * Math.PI * 2;
     return {
       customerId: c.id,
-      x: Math.cos(angle) * CUSTOMER_CLUSTER_RADIUS,
-      y: Math.sin(angle) * CUSTOMER_CLUSTER_RADIUS,
+      x: Math.cos(angle) * clusterRadius,
+      y: Math.sin(angle) * clusterRadius,
     };
   });
 }
@@ -121,11 +124,14 @@ export function getClusterCenters(data: GalaxieData): ClusterCenter[] {
  *
  * Determinism: no RNG, no jitter. Identical input produces byte-identical output.
  */
-export function computeSolarLayout(data: GalaxieData): SolarLayout {
+export function computeSolarLayout(
+  data: GalaxieData,
+  clusterRadius: number = CUSTOMER_CLUSTER_RADIUS,
+): SolarLayout {
   const nodes: SolarLayoutNode[] = [];
   const folders: FolderNode[] = [];
 
-  const clusterCenters = getClusterCenters(data);
+  const clusterCenters = getClusterCenters(data, clusterRadius);
   const centerByCustomer = new Map(
     clusterCenters.map((c) => [c.customerId, c]),
   );

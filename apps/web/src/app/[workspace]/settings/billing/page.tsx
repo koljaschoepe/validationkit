@@ -40,7 +40,7 @@ function eur(cents: number): string {
 }
 
 function formatDate(d: Date | null): string {
-  if (!d) return "—";
+  if (!d) return "n/a";
   return d.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -113,7 +113,7 @@ export default async function WorkspaceBillingPage({
       {search?.status === "pack_success" && (
         <StatusBanner
           kind="success"
-          message="Credit pack purchased — credits will appear in a moment."
+          message="Credit pack purchased. Credits will appear in a moment."
         />
       )}
       {search?.status === "error" && (
@@ -205,7 +205,7 @@ export default async function WorkspaceBillingPage({
           </div>
           <p className="text-xs text-muted-foreground">
             {snap.config.isLifetimeCap
-              ? "Free tier credits don't reset — upgrade to a paid plan for a monthly cycle."
+              ? "Free tier credits don't reset. Upgrade to a paid plan for a monthly cycle."
               : `Resets on ${formatDate(snap.currentPeriodEnd)}. Need more? Buy a credit pack below or enable auto-overage in AI settings.`}
           </p>
         </CardContent>
@@ -218,7 +218,7 @@ export default async function WorkspaceBillingPage({
         <CardContent className="flex flex-col gap-4 text-sm">
           {grants.length === 0 ? (
             <p className="text-muted-foreground">
-              No active packs. Buy one below to stash extra credits — packs
+              No active packs. Buy one below to stash extra credits. Packs
               expire after 12 months.
             </p>
           ) : (
@@ -312,7 +312,7 @@ export default async function WorkspaceBillingPage({
         <CardContent className="flex flex-col gap-3 text-sm">
           <p className="text-muted-foreground">
             Update payment method, view invoices, cancel subscription, or
-            change your VAT ID — all in Stripe&apos;s hosted portal.
+            change your VAT ID, all in Stripe&apos;s hosted portal.
           </p>
           <form action={openBillingPortalAction}>
             <Button type="submit" variant="outline" size="sm">

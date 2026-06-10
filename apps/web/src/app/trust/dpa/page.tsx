@@ -51,7 +51,7 @@ export default async function DpaPage() {
             <Badge variant="outline" className="font-mono">
               Version: {CURRENT_DPA_VERSION}
             </Badge>
-            <Badge variant="outline">Status: DRAFT — pre-M8 lawyer-review</Badge>
+            <Badge variant="outline">Status: DRAFT, pre-M8 lawyer-review</Badge>
           </div>
         </header>
 
@@ -59,14 +59,12 @@ export default async function DpaPage() {
           <FileWarning className="size-4" />
           <AlertTitle>Concession-then-Critique</AlertTitle>
           <AlertDescription>
-            <span className="font-semibold text-foreground">Concession:</span>{" "}
-            shipping a DPA before lawyer-review is more than most $19/mo
-            competitors do at our stage.{" "}
-            <span className="font-semibold text-foreground">Critique:</span>{" "}
-            it&apos;s a DRAFT. Don&apos;t adopt ValidationKit for production
-            against PII workloads until the M8 lawyer-pass lands. Audit-log of
-            your acceptance survives the M8 update — versioned column means
-            old acceptances stay attached to the old text.
+            On the upside, shipping a DPA before lawyer-review is more than most
+            $19/mo competitors do at our stage. The honest caveat is that it is
+            still a DRAFT. Don&apos;t adopt ValidationKit for production
+            against PII workloads until the M8 lawyer-pass lands. The audit-log of
+            your acceptance survives the M8 update, because the versioned column
+            keeps old acceptances attached to the old text.
           </AlertDescription>
         </Alert>
 
@@ -126,9 +124,9 @@ export default async function DpaPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              The full Article-28 Data Processing Agreement — definitions, scope,
-              sub-processors, security measures, deletion and audit rights — is
-              maintained as a versioned page:
+              The full Article-28 Data Processing Agreement covers definitions,
+              scope, sub-processors, security measures, deletion and audit
+              rights. It is maintained as a versioned page.
             </p>
             <Button asChild variant="outline" size="sm">
               <Link href={"/legal/dpa" as never}>Read the full DPA →</Link>

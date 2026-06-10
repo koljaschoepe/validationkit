@@ -24,7 +24,7 @@ export function EmailFooter() {
     <Section style={{ marginTop: 8 }}>
       <Hr style={{ borderColor: BORDER, margin: "24px 0 12px" }} />
       <Text style={{ color: MUTED, fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-        ValidationKit — Kolja Schöpe (Einzelunternehmen, Deutschland)
+        ValidationKit · Kolja Schöpe (Einzelunternehmen, Deutschland)
       </Text>
       <Text
         style={{ color: MUTED, fontSize: 11, lineHeight: 1.6, margin: "4px 0 0" }}

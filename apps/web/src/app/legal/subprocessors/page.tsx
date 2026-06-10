@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Sub-processors — ValidationKit",
+  title: "Sub-processors · ValidationKit",
   description:
     "List of sub-processors used by ValidationKit per GDPR Art. 28.",
 };
@@ -28,13 +28,13 @@ const SUBPROCESSORS: ReadonlyArray<Subprocessor> = [
   {
     name: "Anthropic, PBC",
     purpose: "LLM API for Deep audits + LLM-rule findings",
-    region: "USA (AWS us-east-1) — EU SCC + TIA in place",
+    region: "USA (AWS us-east-1), EU SCC + TIA in place",
     dpaUrl: "https://trust.anthropic.com",
   },
   {
     name: "OpenAI Ireland Ltd",
     purpose: "LLM API for Quick audits (GPT-5-nano default)",
-    region: "USA (Azure) — EU SCC + TIA in place",
+    region: "USA (Azure), EU SCC + TIA in place",
     dpaUrl: "https://openai.com/policies/data-processing-addendum",
   },
   {
@@ -58,13 +58,13 @@ const SUBPROCESSORS: ReadonlyArray<Subprocessor> = [
   {
     name: "Resend Inc.",
     purpose: "Transactional email (magic-link sign-in, billing notices)",
-    region: "USA — EU SCC in place",
+    region: "USA, EU SCC in place",
     dpaUrl: "https://resend.com/legal/dpa",
   },
   {
     name: "Inngest Inc.",
     purpose: "Background job execution (audit runs, Stripe reconcile)",
-    region: "USA — EU SCC in place",
+    region: "USA, EU SCC in place",
     dpaUrl: "https://www.inngest.com/legal/dpa",
   },
 ];
@@ -129,9 +129,9 @@ export default function SubprocessorsPage() {
           </p>
           <p>
             Object to a sub-processor change? Reply to the notification email
-            within 14 days. We&apos;ll work with you on a path forward —
-            including termination with pro-rata refund if no acceptable
-            alternative exists.
+            within 14 days. We&apos;ll work with you on a path forward, including
+            termination with a pro-rata refund if no acceptable alternative
+            exists.
           </p>
         </CardContent>
       </Card>

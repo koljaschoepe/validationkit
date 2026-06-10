@@ -18,7 +18,8 @@ export default function NotFound() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              No page matches this URL. The most useful entry points:
+              No page matches this URL. Here are the most useful entry
+              points.
             </p>
             <ul className="space-y-1 text-sm">
               <li>
@@ -26,7 +27,7 @@ export default function NotFound() {
                   href="/"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  / — anonymous audit
+                  / · anonymous audit
                 </Link>
               </li>
               <li>
@@ -34,7 +35,7 @@ export default function NotFound() {
                   href="/pricing"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  /pricing — tiers + FAQ
+                  /pricing · tiers + FAQ
                 </Link>
               </li>
               <li>
@@ -42,7 +43,7 @@ export default function NotFound() {
                   href="/dashboard"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  /dashboard — signed-in workspace
+                  /dashboard · signed-in workspace
                 </Link>
               </li>
               <li>
@@ -50,7 +51,7 @@ export default function NotFound() {
                   href="/trust"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  /trust — DPA + sub-processor feed
+                  /trust · DPA + sub-processor feed
                 </Link>
               </li>
             </ul>

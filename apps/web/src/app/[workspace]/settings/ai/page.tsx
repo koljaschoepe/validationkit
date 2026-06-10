@@ -107,7 +107,7 @@ export default async function AiSettingsPage({ params }: PageProps) {
           <p className="text-muted-foreground">
             With BYOK enabled, every audit runs against your provider account.
             We still bill the subscription, but AI compute goes straight to
-            you — no markup. Your key is encrypted at rest (AES-256-GCM) and
+            you with no markup. Your key is encrypted at rest (AES-256-GCM) and
             never returned to the browser.
           </p>
           {!byokAllowed ? (
@@ -158,7 +158,7 @@ export default async function AiSettingsPage({ params }: PageProps) {
                     type="password"
                     placeholder={
                       subRow?.byokEnabled
-                        ? "•••••••• (already saved — paste a new key to rotate)"
+                        ? "•••••••• (already saved, paste a new key to rotate)"
                         : "sk-…"
                     }
                     autoComplete="off"
@@ -184,7 +184,7 @@ export default async function AiSettingsPage({ params }: PageProps) {
           <p className="text-muted-foreground">
             When enabled, audits keep running after your monthly quota is
             exhausted. Extra credits are billed at €0.30 each on the next
-            invoice. Off by default — keeps your spend predictable.
+            invoice. It is off by default, which keeps your spend predictable.
           </p>
           <form action={overageAction} className="flex items-center gap-3">
             <input

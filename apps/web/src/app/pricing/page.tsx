@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "4-Tier-Pricing für ValidationKit — Free / Starter / Pro / Agency. Audit-Credits + BYOK + Stripe-Tax. Transparente €-Preise mit VAT-Anzeige.",
+    "4-Tier-Pricing für ValidationKit in den Stufen Free, Starter, Pro und Agency. Audit-Credits + BYOK + Stripe-Tax. Transparente €-Preise mit VAT-Anzeige.",
 };
 
 // `headers()` call below (VAT-by-IP) opts the page into dynamic rendering
@@ -137,7 +137,7 @@ export default async function PricingPage({
                     ? `≈ ${eur(monthlyIncl)} / month, billed annually`
                     : vat.inclusive
                       ? `incl. ${Math.round(vat.rate * 100)}% VAT (${vat.country})`
-                      : "Net price — VAT calculated at checkout"}
+                      : "Net price, VAT calculated at checkout"}
                 </p>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-4">
@@ -204,7 +204,7 @@ export default async function PricingPage({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Quick — 1 credit</h2>
+            <h2 className="text-lg font-semibold">Quick · 1 credit</h2>
           </div>
           <p className="text-sm text-muted-foreground">
             Fast deterministic + small-model pass. GPT-5-nano scores findings
@@ -215,7 +215,7 @@ export default async function PricingPage({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Layers className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Deep — 5 credits</h2>
+            <h2 className="text-lg font-semibold">Deep · 5 credits</h2>
           </div>
           <p className="text-sm text-muted-foreground">
             Claude Sonnet 4.6 with prompt-cached repo context and extended
@@ -238,11 +238,11 @@ export default async function PricingPage({
         />
         <Faq
           q="What happens when I'm out of credits?"
-          a="By default the next audit blocks with an upgrade prompt. If you enable Auto-Overage in the workspace's AI settings, extra credits get billed via Stripe at €0.30 each at the end of the cycle — or pre-buy a 100 / 500 credit pack from your billing dashboard."
+          a="By default the next audit blocks with an upgrade prompt. If you enable Auto-Overage in the workspace's AI settings, extra credits get billed via Stripe at €0.30 each at the end of the cycle. Alternatively, pre-buy a 100 or 500 credit pack from your billing dashboard."
         />
         <Faq
           q="Can I bring my own Anthropic / OpenAI key?"
-          a="Yes, from the Pro tier onwards. Your provider key is encrypted at rest (AES-256-GCM) and used for every audit on that workspace. AI-cost pass-through is disabled for BYOK workspaces — you still pay the subscription, but compute goes straight to your provider account."
+          a="Yes, from the Pro tier onwards. Your provider key is encrypted at rest (AES-256-GCM) and used for every audit on that workspace. AI-cost pass-through is disabled for BYOK workspaces, so you still pay the subscription, but compute goes straight to your provider account."
         />
         <Faq
           q="How does VAT and EU reverse-charge work?"
@@ -255,7 +255,7 @@ export default async function PricingPage({
           Audit prices = a fixed subscription + AI-compute pass-through. Your
           invoices show every line item separately. Overage credits are
           billed at €0.30 each (covers AI-cost + Stripe fees + service
-          margin). Provider pricing can change — we'll send a 30-day notice
+          margin). Provider pricing can change, so we'll send a 30-day notice
           before any rate adjustment.
         </p>
       </footer>

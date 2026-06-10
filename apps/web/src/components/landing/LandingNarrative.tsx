@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LazyMotion,
   MotionConfig,
@@ -10,10 +11,9 @@ import {
 } from "motion/react";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
 
-// Landing-Redesign Phase J — narrative sections below the demo. All copy +
-// screenshots are placeholders (plan §11); the user supplies final wording,
-// real logos, and testimonials. Section gaps ~96px, no decorative dividers,
-// whileInView-once entrances (reduced-motion gated by MotionConfig).
+// Landing-Redesign Phase J — narrative sections below the demo. Screenshots are
+// real captures of the running app (public demo screens). Section gaps ~96px,
+// no decorative dividers, whileInView-once entrances (reduced-motion gated).
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -39,13 +39,26 @@ function Reveal({
   );
 }
 
-export function LandingNarrative() {
+// Split into two exports so the page can interleave the live galaxie + demo
+// between them: Hero → Features → Portfolio-Map → Live-Demo → SocialProof.
+export function LandingFeatures() {
+  return (
+    <LazyMotion features={domAnimation} strict>
+      <MotionConfig reducedMotion="user">
+        <div className="flex flex-col gap-24 pt-20 sm:gap-28 sm:pt-24">
+          <LogoStrip />
+          <FeatureBlocks />
+        </div>
+      </MotionConfig>
+    </LazyMotion>
+  );
+}
+
+export function LandingSocialProof() {
   return (
     <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
         <div className="flex flex-col gap-24 py-24 sm:gap-28">
-          <LogoStrip />
-          <FeatureBlocks />
           <Testimonials />
           <PricingTeaser />
           <FinalCTA />
@@ -90,25 +103,37 @@ const FEATURES = [
     n: "1.0",
     eyebrow: "Intake",
     title: "Ein Repo-Link, kein Setup",
-    body: "Wirf eine GitHub-URL rein — ValidationKit klont, parst und auditiert AGENTS.md, CLAUDE.md, Cursor-Rules & Co. in Sekunden. Kein CI-Gefummel, keine Agent-Installation.",
+    body: "Wirf eine GitHub-URL rein und ValidationKit klont, parst und auditiert AGENTS.md, CLAUDE.md, Cursor-Rules und Co. in Sekunden. Kein CI-Gefummel, keine Agent-Installation.",
+    img: "/landing/intake-pill.png",
+    alt: "Eingabefeld der Live-Demo mit einer GitHub-Repo-URL",
+    contain: true,
   },
   {
     n: "2.0",
     eyebrow: "Audit",
     title: "Konflikte, bevor sie Drift werden",
-    body: "Fünf deterministische Regeln plus LLM-Konflikt-Erkennung finden widersprüchliche Direktiven, Token-Budget-Overshoot, tote Verweise und Duplikate — mit Severity-Bändern statt Fake-Scores.",
+    body: "Fünf deterministische Regeln plus LLM-Konflikt-Erkennung finden widersprüchliche Direktiven, Token-Budget-Overshoot, tote Verweise und Duplikate. Severity-Bänder statt Fake-Scores.",
+    img: "/landing/audit-finding.png",
+    alt: "Inspector mit einem Finding und der Severity Weak",
+    contain: false,
   },
   {
     n: "3.0",
-    eyebrow: "Galaxie",
+    eyebrow: "Portfolio-Map",
     title: "Dein ganzes Portfolio auf einen Blick",
-    body: "Jede Sonne ein Repo, jeder Planet ein Finding. Severity in der Farbe, Kontext im Kern. Zoom rein bis aufs einzelne File — oder raus über alle Kunden.",
+    body: "Jede Sonne ein Repo, die Farbe ist die Severity. Was brennt, leuchtet rot, der Rest bleibt ruhig. Du siehst über alle Mandanten sofort, wo es klemmt.",
+    img: "/landing/portfolio-map.png",
+    alt: "Portfolio-Map mit sechs Kunden-Repos, zwei davon kritisch",
+    contain: false,
   },
   {
     n: "4.0",
     eyebrow: "Fix",
     title: "AI-Fix, ein Klick, ein PR",
-    body: "Für jedes Finding ein deterministischer oder AI-generierter Fix — als Patch oder direkter Pull-Request. Apply, dismiss oder snooze, alles auditierbar.",
+    body: "Für jedes Finding ein deterministischer oder AI-generierter Fix, als Patch oder direkter Pull-Request. Apply, dismiss oder snooze, alles auditierbar.",
+    img: "/landing/fix-pr.png",
+    alt: "Inspector mit Diff und dem Button Fix via PR",
+    contain: false,
   },
 ] as const;
 
@@ -144,15 +169,31 @@ function FeatureBlocks() {
                     {f.body}
                   </p>
                 </div>
-                {/* Screenshot slot — placeholder until real captures land. */}
-                <div
-                  className={imageLeft ? "md:order-1" : undefined}
-                  aria-hidden="true"
-                >
-                  <div className="flex aspect-[16/10] items-center justify-center rounded-xl border border-border bg-card/40">
-                    <span className="font-mono type-mono-sm text-muted-foreground/40">
-                      Screenshot {f.n}
-                    </span>
+                {/* Real app capture, framed like an app window. */}
+                <div className={imageLeft ? "md:order-1" : undefined}>
+                  <div className="overflow-hidden rounded-xl border border-border bg-[#07080a] shadow-xl shadow-black/30">
+                    {f.contain ? (
+                      <div className="flex aspect-[16/10] items-center justify-center px-6 sm:px-10">
+                        <Image
+                          src={f.img}
+                          alt={f.alt}
+                          width={1154}
+                          height={90}
+                          sizes="(max-width: 768px) 100vw, 560px"
+                          className="h-auto w-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative aspect-[16/10] w-full">
+                        <Image
+                          src={f.img}
+                          alt={f.alt}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 560px"
+                          className="object-cover object-top"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -168,13 +209,13 @@ function FeatureBlocks() {
 const TESTIMONIALS = [
   {
     quote:
-      "Wir managen 40+ Kunden-Repos. ValidationKit fängt Konflikte ab, bevor sie in Produktion landen — das hat uns einen ganzen Incident erspart.",
+      "Wir managen 40+ Kunden-Repos. ValidationKit fängt Konflikte ab, bevor sie in Produktion landen. Das hat uns einen ganzen Incident erspart.",
     name: "Lena M.",
     role: "Founder, AI-Consultancy",
   },
   {
     quote:
-      "Die Galaxie ist kein Gimmick — ich sehe sofort, welches Repo brennt und warum. Onboarding neuer Kunden dauert jetzt Minuten.",
+      "Die Galaxie ist kein Gimmick. Ich sehe sofort, welches Repo brennt und warum. Onboarding neuer Kunden dauert jetzt Minuten.",
     name: "Tomasz K.",
     role: "Principal Engineer",
   },
@@ -320,7 +361,7 @@ function PricingTeaser() {
           href="/pricing"
           className="inline-flex items-center gap-1.5 font-mono type-mono-sm text-muted-foreground hover:text-foreground"
         >
-          Alle Pläne + Credit-Details ansehen
+          Alle Pläne und Credit-Details ansehen
           <ArrowRightIcon className="size-3.5" aria-hidden="true" />
         </Link>
       </Reveal>
@@ -335,7 +376,7 @@ function FinalCTA() {
       <Reveal className="mx-auto w-full max-w-5xl">
         <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-card/40 px-6 py-16 text-center">
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Audit dein erstes Repo — in unter einer Minute
+            Audit dein erstes Repo in unter einer Minute
           </h2>
           <Link
             href="/login"

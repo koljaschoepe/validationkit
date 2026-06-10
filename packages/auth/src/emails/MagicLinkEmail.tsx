@@ -116,7 +116,7 @@ export function MagicLinkEmail({
           <Text
             style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: "0 0 8px" }}
           >
-            Or paste this URL into your browser:
+            Or paste this URL into your browser.
           </Text>
           <Text
             style={{

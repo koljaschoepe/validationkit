@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "ValidationKit — Agent-File Audit",
+    default: "ValidationKit · Agent-File Audit",
     template: "%s · ValidationKit",
   },
   description:
@@ -45,13 +45,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "de_DE",
     siteName: "ValidationKit",
-    title: "ValidationKit — Agent-File Audit",
+    title: "ValidationKit · Agent-File Audit",
     description:
       "Deterministic audits for AGENTS.md, CLAUDE.md, and 8 more vendor formats. No vibe scores.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ValidationKit — Agent-File Audit",
+    title: "ValidationKit · Agent-File Audit",
     description:
       "Deterministic audits for AGENTS.md, CLAUDE.md, and 8 more vendor formats. No vibe scores.",
   },

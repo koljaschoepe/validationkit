@@ -163,6 +163,78 @@ const FINDING_SNIPPETS: Record<Severity, string[]> = {
   ],
 };
 
+// ── Landing Portfolio-Map — a deliberately SMALL, hand-authored fixture ───────
+// The 30-repo generated portfolio read as an unreadable point-cloud. The public
+// "Portfolio-Map" instead shows 6 customers with one repo each, 4 files apiece,
+// and exactly two repos on fire — few, big, labelled, calm. Hand-authored (not
+// RNG) so the severity story is deterministic: only the two blazes scream.
+const MAP_FILE_PATHS = [
+  '.claude/CLAUDE.md',
+  '.cursor/rules/typescript.mdc',
+  'AGENTS.md',
+  'aider.conf.yml',
+] as const;
+
+interface MapRepoSpec {
+  customerLabel: string;
+  customerSlug: string;
+  repoSlug: string;
+  repoLabel: string;
+  fileSeverities: [Severity, Severity, Severity, Severity];
+}
+
+const LANDING_MAP_SPEC: MapRepoSpec[] = [
+  { customerLabel: 'Northwind Trading', customerSlug: 'northwind', repoSlug: 'billing-core', repoLabel: 'billing-core', fileSeverities: ['Strong', 'Strong', 'Mid', 'Strong'] },
+  { customerLabel: 'Globex Corp', customerSlug: 'globex', repoSlug: 'agent-runtime', repoLabel: 'agent-runtime', fileSeverities: ['Kill', 'Mid', 'Strong', 'Weak'] },
+  { customerLabel: 'Acme Robotics', customerSlug: 'acme', repoSlug: 'motion-api', repoLabel: 'motion-api', fileSeverities: ['Strong', 'Strong', 'Strong', 'Mid'] },
+  { customerLabel: 'Umbrella Health', customerSlug: 'umbrella', repoSlug: 'patient-web', repoLabel: 'patient-web', fileSeverities: ['Mid', 'Strong', 'Strong', 'Mid'] },
+  { customerLabel: 'Soylent Systems', customerSlug: 'soylent', repoSlug: 'data-mesh', repoLabel: 'data-mesh', fileSeverities: ['Kill', 'Weak', 'Mid', 'Strong'] },
+  { customerLabel: 'Initech Labs', customerSlug: 'initech', repoSlug: 'docs-portal', repoLabel: 'docs-portal', fileSeverities: ['Strong', 'Exceptional', 'Mid', 'Strong'] },
+];
+
+export function buildLandingMap(): GalaxieData {
+  const customers: Customer[] = [];
+  const repos: Repo[] = [];
+  const files: FileNode[] = [];
+
+  for (const spec of LANDING_MAP_SPEC) {
+    const customerId = `cust-${spec.customerSlug}`;
+    const repoId = `${customerId}/${spec.repoSlug}`;
+
+    spec.fileSeverities.forEach((sev, i) => {
+      const path = MAP_FILE_PATHS[i]!;
+      const snippet = FINDING_SNIPPETS[sev][0]!;
+      files.push({
+        id: `${repoId}::${path}`,
+        repoId,
+        customerId,
+        path,
+        severity: sev,
+        findingSnippet: snippet,
+        ...(FILE_KIND_BY_PATH[path] ? { kind: FILE_KIND_BY_PATH[path] } : {}),
+        findings: [{ id: `${repoId}::${path}::finding`, severity: sev, snippet }],
+      });
+    });
+
+    repos.push({
+      id: repoId,
+      customerId,
+      slug: spec.repoSlug,
+      label: spec.repoLabel,
+      aggregateSeverity: aggregate(spec.fileSeverities),
+    });
+
+    customers.push({
+      id: customerId,
+      slug: spec.customerSlug,
+      label: spec.customerLabel,
+      aggregateSeverity: aggregate(spec.fileSeverities),
+    });
+  }
+
+  return { customers, repos, files };
+}
+
 export const DEFAULT_MOCK_SEED = 'galaxie-mock-v1';
 
 export function generateMockGalaxieData(

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata = {
-  title: "Impressum — ValidationKit",
+  title: "Impressum · ValidationKit",
   description: "Anbieterkennzeichnung nach § 5 DDG (ex-TMG).",
 };
 
@@ -31,7 +31,7 @@ const OPERATOR = {
   phone: "[Telefonnummer oder Kontaktformular]",
   // Kleinunternehmer (§ 19 UStG) → keine USt-IdNr (diese Zeile dann weglassen).
   // Sonst die deutsche USt-IdNr nach § 27a UStG eintragen:
-  vatId: "[USt-IdNr gemäß § 27a UStG — oder als Kleinunternehmer (§ 19 UStG) weglassen]",
+  vatId: "[USt-IdNr gemäß § 27a UStG, oder als Kleinunternehmer (§ 19 UStG) weglassen]",
 };
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -82,8 +82,8 @@ export default function ImpressumPage() {
           <Row label="Anschrift" value={`${OPERATOR.street}, ${OPERATOR.city}`} />
           <Row label="Land" value={OPERATOR.country} />
           <p className="pt-2 text-xs text-muted-foreground">
-            Einzelunternehmen — kein Handelsregistereintrag, keine
-            Geschäftsführer-Angabe erforderlich.
+            Einzelunternehmen ohne Handelsregistereintrag. Eine
+            Geschäftsführer-Angabe ist nicht erforderlich.
           </p>
         </CardContent>
       </Card>
@@ -176,8 +176,8 @@ export default function ImpressumPage() {
           Legal notice (English)
         </h2>
         <p className="text-sm text-muted-foreground">
-          Convenience translation — the German version above is the legally
-          authoritative text.
+          This is a convenience translation. The German version above is the
+          legally authoritative text.
         </p>
 
         <Card>

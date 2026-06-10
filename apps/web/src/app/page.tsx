@@ -3,7 +3,10 @@ import { SiteNav } from "@/components/SiteNav";
 import { HeroText } from "@/components/landing/HeroText";
 import { PortfolioShowcase } from "@/components/landing/PortfolioShowcase";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { LandingNarrative } from "@/components/landing/LandingNarrative";
+import {
+  LandingFeatures,
+  LandingSocialProof,
+} from "@/components/landing/LandingNarrative";
 
 // J1: the landing audit form invokes auditAction (scan + LLM) as a server
 // action on this route. The foreground GitHub-URL path can exceed the 60s
@@ -18,9 +21,10 @@ export default function Home() {
       <SiteNav />
       <main id="main-content" aria-label="Main content">
         <HeroText />
+        <LandingFeatures />
         <PortfolioShowcase />
         <HeroSection />
-        <LandingNarrative />
+        <LandingSocialProof />
       </main>
 
       <footer className="border-t border-border">

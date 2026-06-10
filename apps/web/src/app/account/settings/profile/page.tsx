@@ -15,8 +15,8 @@ export default async function ProfileSettingsPage() {
       <header className="space-y-2 border-b border-border pb-6">
         <h1 className="type-h1 font-semibold tracking-tight">Profile</h1>
         <p className="type-body text-muted-foreground">
-          Your sign-in identity. Magic-link is keyed to this email — change it
-          and the next login uses the new address.
+          Your sign-in identity. Magic-link is keyed to this email, so if you
+          change it the next login uses the new address.
         </p>
       </header>
 

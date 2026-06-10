@@ -92,7 +92,7 @@ export function MemberInviteEmail({
             {inviterName} added you as an admin to the workspace{" "}
             <span style={{ color: TEXT }}>{workspaceName}</span> on ValidationKit.
             {alreadyHadAccount
-              ? " It's already on your account — open it below."
+              ? " It's already on your account, so open it below."
               : " Sign in with this email address to accept; your invite is attached automatically on first sign-in."}
           </Text>
 
@@ -116,7 +116,7 @@ export function MemberInviteEmail({
           <Text
             style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: "0 0 8px" }}
           >
-            Or paste this URL into your browser:
+            Or paste this URL into your browser.
           </Text>
           <Text
             style={{
@@ -140,7 +140,7 @@ export function MemberInviteEmail({
 
           <Text style={{ color: MUTED, fontSize: 11, lineHeight: 1.6, margin: 0 }}>
             If you weren&apos;t expecting this invite, you can safely ignore this
-            email — no account is created until you sign in yourself.
+            email. No account is created until you sign in yourself.
           </Text>
 
           <EmailFooter />
