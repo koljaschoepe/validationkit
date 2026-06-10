@@ -7,9 +7,12 @@ import { sendTransactionalEmail, MemberInviteEmail } from "@vk/auth";
 import { getSessionUser } from "./session";
 import { getUserRole, type Role } from "./authz";
 
-// Role + getUserRole moved to the single-source authz module (Bundle A).
-// Re-exported here so existing `@/lib/membership` importers keep resolving.
-export type { Role };
+// Role + getUserRole live in the single-source authz module; import them from
+// `@/lib/authz` directly. Do NOT re-export `Role` from this "use server" file:
+// Turbopack threads every export of a "use server" module as a server-action
+// binding, so a type re-export breaks the production build with "The export
+// Role was not found in module lib/membership.ts". (Build-only failure — tsc
+// and the pre-commit gate don't run `next build`, so it stayed latent.)
 
 export interface MemberRow {
   id: string;
