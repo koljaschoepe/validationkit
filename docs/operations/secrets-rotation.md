@@ -34,8 +34,8 @@
 ### `RESEND_API_KEY`, `RESEND_FROM` (Prod only)
 - **Was:** Resend-Account-Credential + Sender-Email.
 - **Quelle:** Resend-Dashboard → API-Keys → "Add API Key" mit Restricted-Permission "Send emails only".
-- **Prod:** Vercel-ENV, Production-only.
-- **Wenn gesetzt:** `packages/auth/src/server.ts:44–59` schaltet automatisch auf `smtp.resend.com:465`.
+- **Prod:** Vercel-ENV, Production-only. **`RESEND_FROM` ist Pflicht, sobald `RESEND_API_KEY` gesetzt ist** — `apps/web/src/env.ts` bricht den Prod-Boot sonst ab (Fix S7-01: ohne sie fiele der Absender auf die Resend-Sandbox `onboarding@resend.dev` zurück, die nicht an Kunden zustellt).
+- **Wenn gesetzt:** `packages/auth/src/server.ts:44–59` schaltet automatisch auf `smtp.resend.com:465`; Absender-Kette in beiden Sende-Pfaden (`server.ts` Magic-Link + `emails/sender.ts` Transactional) = `RESEND_FROM ?? SMTP_FROM ?? Fallback`.
 - **Rotation:** Nach Compromise. Sender-Domain (`auth@validationkit.app`) muss DKIM-verifiziert sein in Resend-Dashboard.
 
 ## Background-Jobs

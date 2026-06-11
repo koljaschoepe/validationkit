@@ -145,7 +145,14 @@ function createAuth(): AuthInstance {
           });
 
           await transport.sendMail({
+            // RESEND_FROM is the documented prod sender (verified Resend
+            // domain). Without it the Resend path would fall back to the
+            // sandbox sender `onboarding@resend.dev`, which only delivers to
+            // the account owner — i.e. no customer could ever sign in
+            // (second-opinion audit S7-01). env.ts enforces RESEND_FROM in
+            // production whenever RESEND_API_KEY is set.
             from:
+              process.env.RESEND_FROM ??
               process.env.SMTP_FROM ??
               (useResend ? "onboarding@resend.dev" : "auth@validationkit.local"),
             to: email,

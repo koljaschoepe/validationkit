@@ -70,7 +70,13 @@ export async function sendTransactionalEmail(
   try {
     const transport = getTransport();
     const info = await transport.sendMail({
-      from: args.from ?? "notifications@validationkit.app",
+      // Same sender chain as the magic-link path (server.ts): RESEND_FROM is
+      // the verified prod sender, SMTP_FROM the local-dev/Mailpit override.
+      from:
+        args.from ??
+        process.env.RESEND_FROM ??
+        process.env.SMTP_FROM ??
+        "notifications@validationkit.app",
       to: args.to,
       subject: args.subject,
       html,

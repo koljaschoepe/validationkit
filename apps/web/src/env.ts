@@ -107,6 +107,17 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvProblem[] 
           "production needs an email transport for magic-link sign-in (set RESEND_API_KEY or SMTP_HOST)",
       });
     }
+    // With the Resend transport active, a verified sender is mandatory:
+    // without RESEND_FROM every mail would fall back to Resend's sandbox
+    // sender `onboarding@resend.dev`, which only delivers to the account
+    // owner — magic-link sign-in would be dead for customers (audit S7-01).
+    if (env.RESEND_API_KEY && !env.RESEND_FROM && !env.SMTP_FROM) {
+      problems.push({
+        key: "RESEND_FROM",
+        message:
+          "required when RESEND_API_KEY is set — verified sender address (e.g. auth@validationkit.app); sandbox fallback cannot deliver to customers",
+      });
+    }
   }
 
   return problems;
