@@ -17,7 +17,17 @@ import { signStripeEvent } from "@/test/msw/stripe-mock";
 
 const insertReturning = vi.fn();
 const selectLimit = vi.fn();
-const updateWhere = vi.fn();
+const updateReturning = vi.fn();
+// `await db.update().set().where()` (state-mark) and `…where().returning()`
+// (atomic re-claim, S3-01) both occur — return a promise that ALSO exposes
+// .returning so either chain works.
+const updateWhere = vi.fn(() => {
+  const result = Promise.resolve(undefined) as Promise<undefined> & {
+    returning: typeof updateReturning;
+  };
+  result.returning = updateReturning;
+  return result;
+});
 
 function chainableInsert() {
   return {
@@ -46,7 +56,11 @@ function chainableUpdate() {
 vi.mock("@vk/db", () => ({
   isDbEnabled: vi.fn(() => true),
   schema: {
-    stripeEvent: { id: "stripeEvent.id" },
+    stripeEvent: {
+      id: "stripeEvent.id",
+      status: "stripeEvent.status",
+      processedAt: "stripeEvent.processedAt",
+    },
     subscription: {
       workspaceId: "subscription.workspaceId",
       tier: "subscription.tier",
@@ -97,10 +111,13 @@ vi.mock("@/lib/stripe", () => ({
   })),
 }));
 
-// drizzle-orm `eq` is referentially-transparent here — we don't inspect the
-// filter, just count the calls.
+// drizzle-orm operators are referentially-transparent here — we don't
+// inspect the filters, just count the calls.
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col, val) => ({ col, val })),
+  and: vi.fn((...args: unknown[]) => ({ and: args })),
+  or: vi.fn((...args: unknown[]) => ({ or: args })),
+  lt: vi.fn((col, val) => ({ lt: [col, val] })),
 }));
 
 // ---- helpers ---- --------------------------------------------------------
@@ -120,7 +137,8 @@ beforeEach(() => {
   // Default: insertion succeeds (NOT a replay).
   insertReturning.mockResolvedValue([{ id: "evt_test_id" }]);
   selectLimit.mockResolvedValue([]);
-  updateWhere.mockResolvedValue(undefined);
+  // Default: a duplicate delivery wins no re-claim (row not failed/stale).
+  updateReturning.mockResolvedValue([]);
 });
 
 // ---- tests ---- ----------------------------------------------------------
@@ -190,8 +208,10 @@ describe("POST /api/stripe/webhook", () => {
     expect(res.status).toBe(400);
   });
 
-  it("200 + duplicate:true when the event was already inserted (replay)", async () => {
-    insertReturning.mockResolvedValueOnce([]); // empty returning = replay
+  it("200 + duplicate:true when the event is already 'processed' (replay)", async () => {
+    insertReturning.mockResolvedValueOnce([]); // row exists = replay
+    updateReturning.mockResolvedValueOnce([]); // no re-claim (not failed/stale)
+    selectLimit.mockResolvedValueOnce([{ status: "processed" }]);
     const { body, signature } = signStripeEvent({
       id: "evt_replay_1",
       type: "invoice.paid",
@@ -201,6 +221,32 @@ describe("POST /api/stripe/webhook", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual({ ok: true, duplicate: true });
+  });
+
+  it("500 when a duplicate arrives while the first delivery is in flight (S3-01)", async () => {
+    insertReturning.mockResolvedValueOnce([]);
+    updateReturning.mockResolvedValueOnce([]); // fresh 'processing' — no claim
+    selectLimit.mockResolvedValueOnce([{ status: "processing" }]);
+    const { body, signature } = signStripeEvent({
+      id: "evt_inflight_1",
+      type: "invoice.paid",
+      data: { object: {} },
+    });
+    const res = await callRoute(body, signature);
+    expect(res.status).toBe(500);
+  });
+
+  it("re-processes a 'failed' event instead of duplicate-dropping (S3-01)", async () => {
+    insertReturning.mockResolvedValueOnce([]);
+    updateReturning.mockResolvedValueOnce([{ id: "evt_failed_1" }]); // re-claimed
+    const { body, signature } = signStripeEvent({
+      id: "evt_failed_1",
+      type: "invoice.paid",
+      data: { object: {} }, // empty → handler no-ops, but it RUNS
+    });
+    const res = await callRoute(body, signature);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true }); // NOT duplicate
   });
 
   it("200 for an unhandled event type (default branch)", async () => {

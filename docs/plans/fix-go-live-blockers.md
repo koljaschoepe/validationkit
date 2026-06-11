@@ -82,9 +82,9 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 - [x] E3: Heilung ebenfalls step-gewrappt, damit ein Fehler pro Sub nicht den Run killt.
 
 **Phase F — Tests + Gates (~1.5h)**
-- [ ] F1: `route.integration.test.ts` erweitern: (a) `invoice.paid` monthly → Grant 50 + Quota-Reset; (b) annual-Sub → Quota 600 + Grant 600; (c) Handler-Fehler → Row `failed` → Replay desselben Events verarbeitet erneut + Grant genau 1× (Idempotenz); (d) frisches `processing`-Duplikat → 500.
-- [ ] F2: Reconcile-Heilungs-Test (Unit mit gemocktem Stripe-Client): fehlender Grant wird nachgebucht, vorhandener nicht doppelt; gelöschter Workspace crasht den Run nicht.
-- [ ] F3: Gates: `pnpm typecheck` · `pnpm test` · `pnpm test:integration` · `pnpm --filter @vk/web build` (Build ist Pflicht — CI fährt keins, Audit S4-04).
+- [x] F1: `route.integration.test.ts` erweitern: (a) `invoice.paid` monthly → Grant 50 + Quota-Reset; (b) annual-Sub → Quota 600 + Grant 600; (c) Handler-Fehler → Row `failed` → Replay desselben Events verarbeitet erneut + Grant genau 1× (Idempotenz); (d) frisches `processing`-Duplikat → 500.
+- [x] F2: Reconcile-Heilungs-Test (Unit mit gemocktem Stripe-Client): fehlender Grant wird nachgebucht, vorhandener nicht doppelt; gelöschter Workspace crasht den Run nicht.
+- [x] F3: Gates: `pnpm typecheck` · `pnpm test` · `pnpm test:integration` · `pnpm --filter @vk/web build` (Build ist Pflicht — CI fährt keins, Audit S4-04).
 
 ## 7. Files-to-Change
 
