@@ -77,9 +77,9 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 - [x] D2: Kommentar im Code: warum insert-before-process vorher Geld-Events verlor (Audit-Referenz S3-01).
 
 **Phase E — S2-05/S3-04 Reconcile-Heilung (~2.5h)**
-- [ ] E1: `packages/inngest/src/functions/stripe-reconcile.ts` — `publishEvent` in `step.run` wrappen + Workspace-Existenz-Check davor (verwaiste Subs: loggen statt FK-Crash) → S3-04.
-- [ ] E2: Heilungs-Step: pro aktiver Subscription mit `stripeSubscriptionId` letzte bezahlte Invoice via Stripe-API holen; existiert kein `credit_ledger`-Eintrag `reason='monthly_grant'` mit `referenceId = invoice.id` → `grantCredits` nachholen (idempotent durch 0016-Index) + Warn-Log (geheilter Drop = Alarm-Signal).
-- [ ] E3: Heilung ebenfalls step-gewrappt, damit ein Fehler pro Sub nicht den Run killt.
+- [x] E1: `packages/inngest/src/functions/stripe-reconcile.ts` — `publishEvent` in `step.run` wrappen + Workspace-Existenz-Check davor (verwaiste Subs: loggen statt FK-Crash) → S3-04.
+- [x] E2: Heilungs-Step: pro aktiver Subscription mit `stripeSubscriptionId` letzte bezahlte Invoice via Stripe-API holen; existiert kein `credit_ledger`-Eintrag `reason='monthly_grant'` mit `referenceId = invoice.id` → `grantCredits` nachholen (idempotent durch 0016-Index) + Warn-Log (geheilter Drop = Alarm-Signal).
+- [x] E3: Heilung ebenfalls step-gewrappt, damit ein Fehler pro Sub nicht den Run killt.
 
 **Phase F — Tests + Gates (~1.5h)**
 - [ ] F1: `route.integration.test.ts` erweitern: (a) `invoice.paid` monthly → Grant 50 + Quota-Reset; (b) annual-Sub → Quota 600 + Grant 600; (c) Handler-Fehler → Row `failed` → Replay desselben Events verarbeitet erneut + Grant genau 1× (Idempotenz); (d) frisches `processing`-Duplikat → 500.
