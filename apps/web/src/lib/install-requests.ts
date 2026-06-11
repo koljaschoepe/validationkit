@@ -6,7 +6,18 @@ import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 import { resolveWorkspaceFromSlug } from "./workspace-context";
-import { getUserRole } from "./authz";
+import { getUserRole, requireWorkspaceAccess } from "./authz";
+
+// In-function tenant guard (second-opinion audit S1-02): this module must
+// stay "use server" (decideInstall/requestInstall are real client-invoked
+// actions), so every exported read is a registered RPC endpoint — page-level
+// gating is bypassed by direct action dispatch and each entry point has to
+// verify the caller itself.
+async function assertCallerInWorkspace(workspaceId: string): Promise<void> {
+  const user = await getSessionUser();
+  if (!user) throw new Error("Forbidden: sign-in required");
+  await requireWorkspaceAccess(workspaceId, user.id);
+}
 
 export interface RequestInstallInput {
   targetRepoLabel: string;
@@ -178,6 +189,7 @@ export async function decideInstall(
 export async function listRequestsForWorkspace(
   workspaceId: string,
 ): Promise<InstallRequestRow[]> {
+  await assertCallerInWorkspace(workspaceId);
   const db = getDb();
   const rows = await db
     .select({
@@ -206,6 +218,7 @@ export interface PendingRequestForWorkspace extends InstallRequestRow {
 export async function listPendingRequestsForWorkspace(
   workspaceId: string,
 ): Promise<PendingRequestForWorkspace[]> {
+  await assertCallerInWorkspace(workspaceId);
   const db = getDb();
   const rows = await db
     .select({
@@ -244,6 +257,7 @@ export interface InstallDecisionRow {
 export async function listDecisionsForWorkspace(
   workspaceId: string,
 ): Promise<InstallDecisionRow[]> {
+  await assertCallerInWorkspace(workspaceId);
   const db = getDb();
   const rows = await db
     .select({

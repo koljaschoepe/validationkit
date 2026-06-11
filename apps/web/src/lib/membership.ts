@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { sendTransactionalEmail, MemberInviteEmail } from "@vk/auth";
 import { getSessionUser } from "./session";
-import { getUserRole, type Role } from "./authz";
+import { getUserRole, requireWorkspaceAccess, type Role } from "./authz";
 
 // Role + getUserRole live in the single-source authz module; import them from
 // `@/lib/authz` directly. Do NOT re-export `Role` from this "use server" file:
@@ -27,6 +27,12 @@ export interface MemberRow {
 }
 
 export async function listMembers(workspaceId: string): Promise<MemberRow[]> {
+  // In-function tenant guard (second-opinion audit S1-02): this "use server"
+  // module's exports are registered RPC endpoints; the member list (incl.
+  // emails) must never rely on page-level gating alone.
+  const caller = await getSessionUser();
+  if (!caller) throw new Error("Forbidden: sign-in required");
+  await requireWorkspaceAccess(workspaceId, caller.id);
   const db = getDb();
   const rows = await db
     .select({

@@ -60,9 +60,9 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 - [x] A4: `docs/operations/secrets-rotation.md` — RESEND_FROM-Eintrag mit dem realen Code-Verhalten synchronisieren.
 
 **Phase B — S1-01/S1-02 IDOR-Sweep (~1.5h)**
-- [ ] B1: Pro Modul Client-Importer prüfen (`grep -rn` aus `"use client"`-Files): `customer-dal.ts`, `install-requests.ts`, `solution-dal.ts` erwartet 0 Client-Importer → `"use server"` → `import "server-only"` + K14-Header-Kommentar. **Block-Resolver:** Falls doch ein Client-Importer existiert → STOP, AskUserQuestion (nicht raten).
-- [ ] B2: `membership.ts` enthält echte Client-Actions → bleibt `"use server"`; `listMembers` bekommt als erste Anweisung `requireWorkspaceAccess(workspaceId, user.id)` (authz-SSOT).
-- [ ] B3: Verifikation: `pnpm --filter @vk/web build`, dann `server-reference-manifest.json` greppen — 0 Treffer für customer-dal/install-requests/solution-dal.
+- [x] B1: Pro Modul Client-Importer prüfen. **Befund (Execute 2026-06-11):** `solution-dal.ts` ist bereits `server-only` (Bundle-A K12/K13 — Audit S1-02 hier veraltet, kein Change). `customer-dal.ts` hat 0 Client-Importer → `server-only`-Konvertierung wie geplant. `install-requests.ts` hat 2 echte Client-Actions (`decideInstall`, `requestInstall`) → **User-Entscheidung (Block-Resolver): In-Function-Guards** für die 3 List-Funktionen statt server-only (B2-Muster).
+- [x] B2: `membership.ts` enthält echte Client-Actions → bleibt `"use server"`; `listMembers` bekommt als erste Anweisung `requireWorkspaceAccess(workspaceId, user.id)` (authz-SSOT).
+- [x] B3: Verifikation: `pnpm --filter @vk/web build` grün; Manifest: 0 Treffer customer-dal/solution-dal; install-requests bleibt registriert (echte Actions + geguardete Reads) — erwartet nach B1-Resolver.
 
 **Phase C — Migration 0019 + S2-01 Annual (~2h)**
 - [ ] C1: `packages/db/src/schema.ts` — `stripeEvent.status` (`varchar(12)`, notNull, default `'processed'` → Legacy-Rows gelten als erledigt) + `subscription.billingCycle` (`varchar(10)`, notNull, default `'monthly'`).

@@ -1,4 +1,12 @@
-"use server";
+// Second-opinion audit S1-01: server-only module, NOT a "use server" action
+// surface. All five exports were previously registered as client-reachable
+// RPC endpoints taking a client-supplied workspaceId without any in-function
+// session/membership check — a cross-tenant read+write IDOR of the same class
+// K14 closed in customers.ts (page-level gating via resolveWorkspaceFromSlug
+// is bypassed entirely by direct action dispatch). server-only removes the
+// RPC surface; all callers (customers pages + customer-actions.ts) resolve
+// workspace membership before calling in.
+import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { updateTag } from "next/cache";
