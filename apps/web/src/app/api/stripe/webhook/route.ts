@@ -1,6 +1,6 @@
 import * as React from "react";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, or } from "drizzle-orm";
 import type Stripe from "stripe";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import {
@@ -43,6 +43,12 @@ async function fetchWorkspaceContact(workspaceId: string): Promise<
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// A 'processing' row older than this is treated as a crashed first attempt
+// and may be re-claimed by a retry. Must comfortably exceed the function's
+// real handler runtime (seconds) while staying far below Stripe's retry
+// spacing (minutes-hours).
+const STALE_PROCESSING_MS = 5 * 60_000;
 
 /**
  * Stripe webhook handler.
@@ -106,18 +112,68 @@ export async function POST(req: Request): Promise<Response> {
 
   const db = getDb();
 
-  const seen = await db
+  // S3-01 (second-opinion audit): the stripe_event row is a processing-state
+  // machine, not a plain dedupe. The previous insert-before-process marked
+  // the event as seen BEFORE the handler ran — a transient handler failure
+  // (Neon hiccup, Stripe API error) left the row in place, so Stripe's retry
+  // of the same event id short-circuited as `duplicate` and the event (e.g.
+  // a paid invoice's monthly credit grant) was lost permanently, with no
+  // reconcile path to heal it. Now: claim as 'processing', mark 'processed'
+  // on success / 'failed' on error, and let Stripe's 72h retry re-run failed
+  // or stale-processing events. Handlers are idempotent (grant idempotency
+  // index, PK/unique upserts), so replaying a partial first attempt is safe.
+  const claimed = await db
     .insert(schema.stripeEvent)
     .values({
       id: event.id,
       type: event.type,
+      status: "processing",
       payload: event.data as unknown as Record<string, unknown>,
     })
     .onConflictDoNothing({ target: schema.stripeEvent.id })
     .returning({ id: schema.stripeEvent.id });
 
-  if (seen.length === 0) {
-    return NextResponse.json({ ok: true, duplicate: true });
+  if (claimed.length === 0) {
+    // Row exists. Atomically re-claim iff it is 'failed' or has been stuck
+    // 'processing' past the stale window (process died mid-handler) — the
+    // conditional UPDATE guarantees only one concurrent delivery wins.
+    const reclaimed = await db
+      .update(schema.stripeEvent)
+      .set({ status: "processing", processedAt: new Date() })
+      .where(
+        and(
+          eq(schema.stripeEvent.id, event.id),
+          or(
+            eq(schema.stripeEvent.status, "failed"),
+            and(
+              eq(schema.stripeEvent.status, "processing"),
+              lt(
+                schema.stripeEvent.processedAt,
+                new Date(Date.now() - STALE_PROCESSING_MS),
+              ),
+            ),
+          ),
+        ),
+      )
+      .returning({ id: schema.stripeEvent.id });
+
+    if (reclaimed.length === 0) {
+      const existing = await db
+        .select({ status: schema.stripeEvent.status })
+        .from(schema.stripeEvent)
+        .where(eq(schema.stripeEvent.id, event.id))
+        .limit(1);
+      if (existing[0]?.status === "processed") {
+        return NextResponse.json({ ok: true, duplicate: true });
+      }
+      // Fresh 'processing': the first delivery is still in flight (handlers
+      // finish well under the stale window). 500 → Stripe retries later, by
+      // which point the row is 'processed' or 'failed'.
+      return NextResponse.json(
+        { error: "Event is currently being processed." },
+        { status: 500 },
+      );
+    }
   }
 
   try {
@@ -159,9 +215,24 @@ export async function POST(req: Request): Promise<Response> {
       default:
         break;
     }
+    await db
+      .update(schema.stripeEvent)
+      .set({ status: "processed", processedAt: new Date() })
+      .where(eq(schema.stripeEvent.id, event.id));
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(`[stripe-webhook] handler failed for ${event.type}`, err);
+    // Mark 'failed' so the next Stripe delivery re-runs the handler instead
+    // of short-circuiting as a duplicate. Best-effort: if even this UPDATE
+    // fails, the row stays 'processing' and the stale window re-opens it.
+    try {
+      await db
+        .update(schema.stripeEvent)
+        .set({ status: "failed", processedAt: new Date() })
+        .where(eq(schema.stripeEvent.id, event.id));
+    } catch (markErr) {
+      console.error("[stripe-webhook] could not mark event failed", markErr);
+    }
     return NextResponse.json({ error: "Handler error." }, { status: 500 });
   }
 }

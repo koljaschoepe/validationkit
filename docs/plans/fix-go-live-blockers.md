@@ -73,8 +73,8 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 - [x] C6: `apps/web/src/app/pricing/page.tsx` — Annual-Copy präzisieren („<N×12> credits / year, granted up-front").
 
 **Phase D — S3-01 Webhook-Status-Machine (~2h)**
-- [ ] D1: `apps/web/src/app/api/stripe/webhook/route.ts:104-161` — Insert mit `status: 'processing'`; bei Konflikt bestehende Row lesen: `processed` → `{ok, duplicate}`; `failed` ODER `processing` mit `processedAt` älter 5 min → Status auf `processing` + Re-Run der Handler; frisches `processing` → 500 (in-flight). Nach erfolgreichem Switch → `status: 'processed'`; im catch → `status: 'failed'` + weiterhin 500.
-- [ ] D2: Kommentar im Code: warum insert-before-process vorher Geld-Events verlor (Audit-Referenz S3-01).
+- [x] D1: `apps/web/src/app/api/stripe/webhook/route.ts:104-161` — Insert mit `status: 'processing'`; bei Konflikt bestehende Row lesen: `processed` → `{ok, duplicate}`; `failed` ODER `processing` mit `processedAt` älter 5 min → Status auf `processing` + Re-Run der Handler; frisches `processing` → 500 (in-flight). Nach erfolgreichem Switch → `status: 'processed'`; im catch → `status: 'failed'` + weiterhin 500.
+- [x] D2: Kommentar im Code: warum insert-before-process vorher Geld-Events verlor (Audit-Referenz S3-01).
 
 **Phase E — S2-05/S3-04 Reconcile-Heilung (~2.5h)**
 - [ ] E1: `packages/inngest/src/functions/stripe-reconcile.ts` — `publishEvent` in `step.run` wrappen + Workspace-Existenz-Check davor (verwaiste Subs: loggen statt FK-Crash) → S3-04.
