@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { getDb, isDbEnabled, schema } from "@vk/db";
-import { TIERS, type TierId, grantCredits } from "@vk/billing";
+import {
+  TIERS,
+  type TierId,
+  type BillingCycle,
+  grantCredits,
+} from "@vk/billing";
 import { flushPendingForCustomer } from "@vk/inngest";
 import {
   PlanChangeConfirmation,
@@ -194,6 +199,7 @@ async function handleCheckoutCompleted(
     workspaceId,
     tier,
     status: "active",
+    cycle: cycleFromMetadata(session.metadata),
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
     currentPeriodEnd: null,
@@ -223,6 +229,7 @@ async function handleSubscriptionUpdated(
     workspaceId,
     tier,
     status: sub.status,
+    cycle: cycleFromSubscription(sub),
     stripeCustomerId: stringOrNull(sub.customer),
     stripeSubscriptionId: sub.id,
     currentPeriodEnd: periodEndFromSubscription(sub),
@@ -276,6 +283,7 @@ async function handleSubscriptionDeleted(
     workspaceId,
     tier: "free",
     status: "canceled",
+    cycle: "monthly",
     stripeCustomerId: stringOrNull(sub.customer),
     stripeSubscriptionId: null,
     currentPeriodEnd: null,
@@ -431,18 +439,44 @@ interface ApplyTierInput {
   workspaceId: string;
   tier: TierId;
   status: string;
+  cycle: BillingCycle;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   currentPeriodEnd: Date | null;
 }
 
+/** Cycle from our own checkout/subscription metadata (set in billing-actions). */
+function cycleFromMetadata(
+  metadata: Stripe.Metadata | null | undefined,
+): BillingCycle {
+  return metadata?.cycle === "annual" ? "annual" : "monthly";
+}
+
+/**
+ * Cycle for a live Stripe subscription: own metadata first, price interval as
+ * fallback (covers subscriptions created outside our checkout). Unknown
+ * intervals fall back to 'monthly' — under-granting is the safe direction.
+ */
+function cycleFromSubscription(sub: Stripe.Subscription): BillingCycle {
+  const meta = sub.metadata?.cycle;
+  if (meta === "annual" || meta === "monthly") return meta;
+  const interval = sub.items?.data?.[0]?.price?.recurring?.interval;
+  return interval === "year" ? "annual" : "monthly";
+}
+
 async function applyTierToWorkspace(input: ApplyTierInput): Promise<void> {
   const db = getDb();
   const config = TIERS[input.tier];
+  // S2-01: invoice.paid fires once per billing interval, so an annual sub
+  // gets its whole year of credits as one up-front allotment. The quota is
+  // what handleInvoicePaid grants and what consumeCredits gates on.
+  const quotaPerCycle =
+    config.creditsPerCycle * (input.cycle === "annual" ? 12 : 1);
   const updates: Record<string, unknown> = {
     tier: input.tier,
     status: input.status,
-    creditsQuotaPerCycle: config.creditsPerCycle,
+    billingCycle: input.cycle,
+    creditsQuotaPerCycle: quotaPerCycle,
     updatedAt: new Date(),
   };
   if (input.stripeCustomerId) updates.stripeCustomerId = input.stripeCustomerId;
@@ -465,7 +499,8 @@ async function applyTierToWorkspace(input: ApplyTierInput): Promise<void> {
       workspaceId: input.workspaceId,
       tier: input.tier,
       status: input.status,
-      creditsQuotaPerCycle: config.creditsPerCycle,
+      billingCycle: input.cycle,
+      creditsQuotaPerCycle: quotaPerCycle,
       creditsUsedThisPeriod: 0,
       stripeCustomerId: input.stripeCustomerId,
       stripeSubscriptionId: input.stripeSubscriptionId,

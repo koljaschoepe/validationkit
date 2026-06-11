@@ -65,12 +65,12 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 - [x] B3: Verifikation: `pnpm --filter @vk/web build` grün; Manifest: 0 Treffer customer-dal/solution-dal; install-requests bleibt registriert (echte Actions + geguardete Reads) — erwartet nach B1-Resolver.
 
 **Phase C — Migration 0019 + S2-01 Annual (~2h)**
-- [ ] C1: `packages/db/src/schema.ts` — `stripeEvent.status` (`varchar(12)`, notNull, default `'processed'` → Legacy-Rows gelten als erledigt) + `subscription.billingCycle` (`varchar(10)`, notNull, default `'monthly'`).
-- [ ] C2: `packages/db/drizzle/0019_stripe_event_status_billing_cycle.sql` NEW — idempotent (`ADD COLUMN IF NOT EXISTS`), + `_journal.json`-Eintrag mit monoton steigendem `when`.
-- [ ] C3: `pnpm db:migrate` gegen lokale DB **und** gegen `validationkit_test` (hängt bei 16/19 — Audit-Befund; auf 20/20 ziehen, sonst sind die neuen Integration-Tests blind).
-- [ ] C4: Webhook `handleSubscriptionUpdated` → Cycle aus `sub.items.data[0].price.recurring.interval` (`"year"` → `annual`) ableiten und an `applyTierToWorkspace` durchreichen; dort `billingCycle` persistieren + `creditsQuotaPerCycle = config.creditsPerCycle * (cycle === "annual" ? 12 : 1)`.
-- [ ] C5: Pre-Flight-Check (Annahme verifizieren): `consumeCredits`/`canConsume` gaten auf `creditsUsedThisPeriod < creditsQuotaPerCycle` — bestätigen, dass das ×12-Quota das Jahres-Allotment freischaltet.
-- [ ] C6: `apps/web/src/app/pricing/page.tsx` — Annual-Copy präzisieren („<N×12> credits / year, granted up-front").
+- [x] C1: `packages/db/src/schema.ts` — `stripeEvent.status` (`varchar(12)`, notNull, default `'processed'` → Legacy-Rows gelten als erledigt) + `subscription.billingCycle` (`varchar(10)`, notNull, default `'monthly'`).
+- [x] C2: `packages/db/drizzle/0019_stripe_event_status_billing_cycle.sql` NEW — idempotent (`ADD COLUMN IF NOT EXISTS`), + `_journal.json`-Eintrag mit monoton steigendem `when`.
+- [x] C3: `pnpm db:migrate` gegen lokale DB **und** gegen `validationkit_test` (hängt bei 16/19 — Audit-Befund; auf 20/20 ziehen, sonst sind die neuen Integration-Tests blind).
+- [x] C4: Webhook `handleSubscriptionUpdated` → Cycle aus `sub.items.data[0].price.recurring.interval` (`"year"` → `annual`) ableiten und an `applyTierToWorkspace` durchreichen; dort `billingCycle` persistieren + `creditsQuotaPerCycle = config.creditsPerCycle * (cycle === "annual" ? 12 : 1)`.
+- [x] C5: Pre-Flight-Check (Annahme verifizieren): `consumeCredits`/`canConsume` gaten auf `creditsUsedThisPeriod < creditsQuotaPerCycle` — bestätigen, dass das ×12-Quota das Jahres-Allotment freischaltet.
+- [x] C6: `apps/web/src/app/pricing/page.tsx` — Annual-Copy präzisieren („<N×12> credits / year, granted up-front").
 
 **Phase D — S3-01 Webhook-Status-Machine (~2h)**
 - [ ] D1: `apps/web/src/app/api/stripe/webhook/route.ts:104-161` — Insert mit `status: 'processing'`; bei Konflikt bestehende Row lesen: `processed` → `{ok, duplicate}`; `failed` ODER `processing` mit `processedAt` älter 5 min → Status auf `processing` + Re-Run der Handler; frisches `processing` → 500 (in-flight). Nach erfolgreichem Switch → `status: 'processed'`; im catch → `status: 'failed'` + weiterhin 500.

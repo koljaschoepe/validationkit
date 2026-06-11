@@ -148,8 +148,25 @@ export default async function PricingPage({
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
-                      <strong>{tier.creditsPerCycle}</strong> credits{" "}
-                      {tier.isLifetimeCap ? "(lifetime)" : "/ month"}
+                      {/* Annual subs receive the whole year up-front (one
+                          invoice.paid per year) — the copy must promise
+                          exactly what the grant delivers (audit S2-01). */}
+                      {tier.isLifetimeCap ? (
+                        <>
+                          <strong>{tier.creditsPerCycle}</strong> credits
+                          (lifetime)
+                        </>
+                      ) : cycle === "annual" ? (
+                        <>
+                          <strong>{tier.creditsPerCycle * 12}</strong> credits
+                          / year, granted up-front
+                        </>
+                      ) : (
+                        <>
+                          <strong>{tier.creditsPerCycle}</strong> credits /
+                          month
+                        </>
+                      )}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">

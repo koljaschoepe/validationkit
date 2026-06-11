@@ -547,6 +547,12 @@ export const subscription = pgTable("subscription", {
     .references(() => workspace.id, { onDelete: "cascade" }),
   tier: varchar("tier", { length: 20 }).notNull().default("free"),
   status: varchar("status", { length: 20 }).notNull().default("active"),
+  // 'monthly' | 'annual' — mirrors the Stripe price interval. Annual subs get
+  // their full year allotment up-front (creditsQuotaPerCycle ×12) because
+  // invoice.paid fires only once per year (second-opinion audit S2-01).
+  billingCycle: varchar("billing_cycle", { length: 10 })
+    .notNull()
+    .default("monthly"),
   stripeCustomerId: varchar("stripe_customer_id", { length: 80 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 80 }),
   // Credit-System (replaces legacy runs/paidRepos quotas).
@@ -581,11 +587,17 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
   }),
 }));
 
-// Stripe webhook idempotency. Stripe retries the same event id; we upsert on
-// PRIMARY KEY and let the second-onwards write fall through with no-op.
+// Stripe webhook idempotency + processing state. Stripe retries the same
+// event id; the PK upsert dedupes. `status` tracks the handler outcome
+// ('processing' | 'processed' | 'failed') so a transient handler failure can
+// be re-processed by Stripe's 72h retry instead of being swallowed as a
+// duplicate — insert-before-process used to lose money events permanently
+// (second-opinion audit S3-01). Default 'processed' keeps pre-0019 rows
+// counting as done.
 export const stripeEvent = pgTable("stripe_event", {
   id: varchar("id", { length: 80 }).primaryKey(),
   type: varchar("type", { length: 80 }).notNull(),
+  status: varchar("status", { length: 12 }).notNull().default("processed"),
   processedAt: timestamp("processed_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
