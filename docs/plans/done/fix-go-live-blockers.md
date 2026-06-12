@@ -1,7 +1,7 @@
 # Plan — Fix der 4 Go-Live-Blocker (Second-Opinion-Audit)
 
 > Erstellt: 2026-06-11
-> Status: 🟡 In Review
+> Status: ✅ Done — 2026-06-12 (Confidence-At-Start: High, 21/21 Steps abgehakt, 2 deferred: User-Visual-QA + RESEND_FROM-Vercel-Setup; alle Gates grün)
 > Slug: `fix-go-live-blockers`
 > Confidence: **High** — basiert auf 8 User-Entscheidungen (2 Discovery-Runden) + Code-Audit von 10 Files + der vollen Evidenz aus `docs/audits/2026-06-second-opinion/` (alle 4 Blocker CoVe-verified mit file:line)
 > Quelle: `docs/audits/2026-06-second-opinion/_synthesis.md` (Blocker S7-01 · S1-01 · S3-01+S2-05 · S2-01)
@@ -151,8 +151,11 @@ Nach Execute sind alle 4 Go-Live-Blocker des Second-Opinion-Audits geschlossen: 
 
 ## 12. Open Questions (nur Post-Execute-Items)
 
-- C5 verifiziert die `consumeCredits`-Quota-Semantik als Pre-Flight (Annahme: gated auf `creditsUsedThisPeriod < creditsQuotaPerCycle`); falls anders → Block-Resolver.
-- Exaktes Stale-Fenster (Default 5 min) ggf. an reale Webhook-`maxDuration` anpassen — im Execute prüfen.
+- ~~C5 Quota-Semantik~~ → im Execute verifiziert (`credits.ts:53`: available = Quota − Used) ✓.
+- ~~Stale-Fenster~~ → 5 min gesetzt (`STALE_PROCESSING_MS`); Handler laufen in Sekunden, Stripe-Retry-Spacing in Minuten — passt.
+- **Deferred 1 (User-Visual-QA):** `/[workspace]/customers` + Detail (server-only-Umbau) und `/pricing` Annual-Toggle („600 credits / year, granted up-front") im Browser prüfen.
+- **Deferred 2 (User-extern):** `RESEND_FROM` in Vercel-Prod-Env setzen (verifizierte Resend-Domain) — der neue Env-Guard bricht den Prod-Boot sonst bewusst ab.
+- **Execute-Notizen:** Magic-Link-Absender live via Mailpit verifiziert (From = `RESEND_FROM ?? SMTP_FROM`-Kette greift); Env-Guard via `validateEnv`-Direktaufruf verifiziert; `validationkit_test`-DB von 16 auf 20/20 Migrationen gezogen. Der vermeintliche Next-16-„Instance-Lock" aus dem Audit war eine fremde App („Julia") auf Port 3000 — VK-Dev-Server laufen auf anderen Ports problemlos.
 
 ## 13. Geschätzter Aufwand
 
