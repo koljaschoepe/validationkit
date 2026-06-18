@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { decideInstall } from "@/lib/install-requests";
 function InviteForm({ workspaceId }: { workspaceId: string }) {
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +33,9 @@ function InviteForm({ workspaceId }: { workspaceId: string }) {
         });
       }
       setEmail("");
+      // Re-fetch the server-rendered member/invite list so the new pending
+      // invite shows up without a manual reload.
+      router.refresh();
     });
   }
 
@@ -72,6 +77,7 @@ function RevokeButton({
   membershipId: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   return (
     <Button
       type="button"
@@ -87,6 +93,7 @@ function RevokeButton({
             toast.error(r.error ?? "Revoke failed");
           } else {
             toast.success("Member revoked");
+            router.refresh();
           }
         });
       }}
@@ -99,6 +106,7 @@ function RevokeButton({
 function DecideButtons({ requestId }: { requestId: string }) {
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
+  const router = useRouter();
 
   function decide(decision: "approved" | "rejected") {
     startTransition(async () => {
@@ -112,6 +120,7 @@ function DecideButtons({ requestId }: { requestId: string }) {
             : "Rejected.",
         );
         setNote("");
+        router.refresh();
       }
     });
   }
