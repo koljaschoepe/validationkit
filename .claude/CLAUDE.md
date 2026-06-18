@@ -6,9 +6,13 @@ Skills-Registry, Customer-Workspaces, Billing.
 
 Solo-Developer-Projekt, deployed auf Vercel.
 
-## Aktive Phase (Juni 2026 →): Production-Launch-Readiness · Master `docs/plans/production-launch-readiness.md`
+## Aktive Phase (Juni 2026 →): Genau ZWEI offene Pläne
 
-Production-Launch-Readiness läuft (10 Bundles A–J, basiert auf 14-Subagent-Launch-Verify-Audit unter `docs/audits/2026-06-launch-verify/`). Ziel: GA-ready für zahlende DACH-B2B-Kunden auf eigener Domain. **Stand 2026-06-09:** alle *codebaren* Launch-Kills zu (Auth-IDORs · Stripe-Geld-Pfad · Galaxie-Kontrast+Keyboard · Scan-Detail · Impressum+Datenschutz · Email-Footer · Member-Invite-Mail · GitHub-Audit-Timeout). Kritischer Restpfad = **User-extern** (Stripe-Live-KYC, Sentry/Upstash, Domain-Kauf, Impressum-Daten ausfüllen). Verbleibender Code = Strong/Mid-Politur (G-Deliverability, AGB-de, Cleanup-Rest, Galaxie-LOD, Retention-Cron). Nova-3a ist abgeschlossen (`docs/plans/done/nova-3-repo-polish-and-prod-prep.md`).
+Nach der 16-Subagent-Plan-Reconciliation (2026-06-18, jeder Punkt code-verifiziert) wurde der alte 10-Bundle-Master `production-launch-readiness` + alle Sub-/Waisen-Pläne nach `docs/plans/done/` archiviert; alle *code-now*-Reste sind umgesetzt (Branch `launch-prep-execute`: J5-Refund, B-Resilience, J6, AGB-de + OSS + LegalFooter + Subprozessor-SSOT, 3 Orphan-Deletes, Doc-Sync). Es bleiben **exakt zwei** aktive Pläne:
+- **`docs/plans/production-go-live.md`** — der einzige Plan mit echter User-Aktion: Domain-Kauf, Stripe-Live-KYC, Sentry/Upstash/Resend-Domain provisionieren, Live-Keys, `__Host-`-Cookie + CSP-Enforce, migrate-out-of-build, Impressum-Adressdaten.
+- **`docs/plans/frontend-and-polish.md`** — alles Code ohne externe Voraussetzung, das dein Visual-QA / eine Produktentscheidung braucht: Frontend-Visual-Politur, Settings-Backend-Features (API-Keys/Webhooks/Notifications), J1-GitHub-Background-Refactor, Inngest-`onFailure`, Email-de-Copy, axe-Harness.
+
+Nova-3a ist abgeschlossen (`docs/plans/done/nova-3-repo-polish-and-prod-prep.md`).
 
 **Recently Shipped (Mai–Juni 2026):**
 - **App-Visual-Overhaul: 3-Farben-System** (✅ 2026-06-10) — striktes 3-Akzent-System (Rot=negativ/Orange=neutral/Grün=positiv); `severity-colors.ts` = reine Var-Mapper-SSOT auf `globals.css`-Tokens (`severityColorVar`, kein Hex-Duplikat, toter Pixi-Code raus). `SeverityBadge` = 1px-Hairline-Pills, nur Kill gefüllt (kein border-2/3px/dashed/italic). `--radius` 8→6px. Konsole: Gruppierung nur Repo+Kunde, Severity+Regel als Filter, `SeverityDot` statt 5-Farb-HeatBar. Hero = 100dvh side-by-side/stacked. Unterer CTA = RepoUrlPill (Anon-Audit via `vk:audit-repo`-Event). Fake-Logos/Stat/Testimonials raus → ehrliches Early-Access-Framing. Plan: `docs/plans/done/app-visual-overhaul-3color.md`. ⚠️ Offen: 4 Feature-Screenshots-Regen (Playwright-Env-Block).
@@ -21,11 +25,6 @@ Production-Launch-Readiness läuft (10 Bundles A–J, basiert auf 14-Subagent-La
 - **Repo-Health + Workflow-Overhaul** (✅ 2026-05) — `docs/plans/done/repo-health-and-workflow-overhaul.md`
 - **Phase Nova-2 — Full-Product (Shell)** (✅ 2026-05-20) — 3-Tier OKLCH-Tokens + ui-vk Components + Hero-Polish + Auth/Onboarding + Settings-Restructure + Mobile-Adaptation + Lighthouse-CI-Config (Lighthouse-CI selbst NICHT eingerichtet — Nova-3a Bundle E). Plan: `docs/plans/done/nova/nova-2-full-product.md`
 - **Phase Galaxie G1–G6** (✅ 2026-05) — `docs/plans/done/galaxie/`
-
-**3 Nova-2 Sub-Pläne in Review** (gezielter Folge-/execute pro Bereich, NICHT in Nova-3a-Scope):
-- `docs/plans/nova-2-live-audit-flow.md` — anonymes Audit auf Landing
-- `docs/plans/nova-2-settings-backend.md` — DB-Schemas + APIs für die 6 NEW Settings-Sections
-- `docs/plans/nova-2-a11y-deep-sweep.md` — axe-core Playwright + Demo-Recording
 
 Style-Guide: [docs/design/linear-aesthetic.md](../docs/design/linear-aesthetic.md).
 Volle Vision: [docs/vision.md](../docs/vision.md).

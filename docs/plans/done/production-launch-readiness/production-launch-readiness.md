@@ -1,5 +1,7 @@
 # Plan — Production-Launch-Readiness Master
 
+> **✅ ARCHIVIERT 2026-06-18** — Orchestrierung abgeschlossen. Nach der 16-Subagent-Plan-Reconciliation (2026-06-18) wurden alle *code-now*-Reste umgesetzt (Branch `launch-prep-execute`); der verbleibende offene Scope ist in **zwei** Nachfolge-Pläne aufgeteilt: `docs/plans/production-go-live.md` (manuell/Geld/extern) + `docs/plans/frontend-and-polish.md` (Code ohne externe Voraussetzung). Dieser Master + seine 10 Bundle-Sub-Pläne dienen ab hier nur noch als Historie.
+
 > Erstellt: 2026-06-05 · Wave-2-Update 2026-06-08 · **Launch-Verify-Refresh 2026-06-08**
 > Status: 🟡 In Execute — Bundle A 4/6 committet, dann durch Launch-Verify-Audit **reopened** (2 übersehene IDORs). 10 Bundles (A–J).
 > Slug: `production-launch-readiness`

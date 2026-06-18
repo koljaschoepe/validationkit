@@ -4,6 +4,15 @@ Pro Phase ein Block. Verweist auf detaillierte Plan-Files und Roadmaps. Aktive P
 
 ---
 
+## Plan-Reconciliation + Konsolidierung auf 2 offene Pläne (✅ 2026-06-18)
+
+16-Subagent-Reconciliation aller 16 aktiven Pläne gegen den echten Code (Plan-Checkboxen waren durchgängig stale — die meisten Bundles längst implementiert). Ergebnis: alle *code-now*-Reste umgesetzt, alle erledigten/obsoleten Pläne archiviert, verbleibender Scope auf **genau zwei** Pläne reduziert. Branch `launch-prep-execute`.
+
+- **Umgesetzt + committet**: J5-Credit-Refund-on-Failure (reserve-before-LLM, exakte Pool-Reversal); B-Resilience (`customer_update.name='auto'`, deterministische Inngest-Enqueue-`id`); J6-List-Refresh nach Invite/Revoke/Decide; Bundle F — **AGB-de**, OSS-Notices + `THIRD_PARTY_NOTICES.md`, reusable `LegalFooter`, Subprozessor-Single-Source; 3 Orphan-Deletes (`CreditMeter`/`IntensitySelector`/`cost-estimator`); Doc-Sync (Galaxie-Metapher aus README/vision/CLAUDE.md raus, 8 Audit-Drafts gelöscht). Typecheck 23/23, Tests 335/335 grün.
+- **Archiviert** (`docs/plans/done/`): Master `production-launch-readiness` + 10 Bundle-Sub-Pläne → `done/production-launch-readiness/`; `pre-launch-second-opinion-audit`, `production-live-connect-stub`, 3× `nova-2-*`, `saas-premium-overhaul` (+ Sub-Pläne) → `done/`.
+- **Verbleibend (2 Pläne)**: `production-go-live.md` (Domain/Stripe-Live-KYC/Sentry/Upstash/Live-Keys — der einzige manuelle Block) + `frontend-and-polish.md` (Frontend-Visual + Settings-Backend-Features + J1/J4-Architektur + Email-de-Copy + axe-Harness — Code ohne externe Voraussetzung).
+- **Bewusst NICHT autonom**: DB-Migrationen (drizzle-Snapshots bei 0011 eingefroren → hand-geschrieben, Constraint-Risiko), GitHub-Background-Refactor (Shared-Package), CSP-Enforce-Flip, alles Domain-/Geld-gekoppelte.
+
 ## App-Visual-Overhaul: 3-Farben-System + Hero-Viewport (✅ 2026-06-10)
 
 App-weiter Visual-Pass: striktes 3-Farben-System (Rot/Orange/Grün), ruhigeres Severity-Styling, 100dvh-Hero, aufgeräumte Konsole, ehrliche Trust-Bausteine. Basiert auf 11 User-Entscheidungen (3 Discovery-Runden) + Code-Audit über 4 Subagenten. Plan: `docs/plans/done/app-visual-overhaul-3color.md`.
