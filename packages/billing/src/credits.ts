@@ -27,11 +27,23 @@ export interface CreditBalance {
   total: number;
 }
 
+/**
+ * One pool the consume drained, recorded so a refund can reverse the EXACT
+ * rows (prepaid FIFO is lossy otherwise). `prepaidGrantId: null` = the
+ * subscription per-cycle counter; else a specific prepaid grant row.
+ */
+export interface ConsumeDebitLine {
+  prepaidGrantId: string | null;
+  amount: number;
+}
+
 export interface ConsumeResult {
   allowed: boolean;
   reason?: string;
   newSubscriptionUsed: number;
   newPrepaidRemaining: number;
+  /** What was drained, in order — used by `refundCredits` for an exact reversal. */
+  debits: ConsumeDebitLine[];
 }
 
 export async function getCreditBalance(
@@ -135,6 +147,7 @@ export async function consumeCredits(args: {
         reason: "No subscription row — call ensureSubscription first.",
         newSubscriptionUsed: 0,
         newPrepaidRemaining: 0,
+        debits: [],
       };
     }
     const subscriptionRemaining = Math.max(
@@ -166,11 +179,13 @@ export async function consumeCredits(args: {
         reason: `Insufficient credits. Need ${args.amount}, have ${totalAvailable}.`,
         newSubscriptionUsed: subRow.credits_used_this_period,
         newPrepaidRemaining: prepaidTotal,
+        debits: [],
       };
     }
 
     let remaining = args.amount;
     let updatedPrepaidTotal = prepaidTotal;
+    const debits: ConsumeDebitLine[] = [];
 
     for (const row of prepaidRows) {
       if (remaining <= 0) break;
@@ -182,11 +197,13 @@ export async function consumeCredits(args: {
           .where(eq(schema.prepaidCreditGrant.id, row.id));
         remaining -= take;
         updatedPrepaidTotal -= take;
+        debits.push({ prepaidGrantId: row.id, amount: take });
       }
     }
 
     let newUsed = subRow.credits_used_this_period;
     if (remaining > 0) {
+      debits.push({ prepaidGrantId: null, amount: remaining });
       newUsed = subRow.credits_used_this_period + remaining;
       await tx
         .update(schema.subscription)
@@ -232,7 +249,74 @@ export async function consumeCredits(args: {
       allowed: true,
       newSubscriptionUsed: newUsed,
       newPrepaidRemaining: updatedPrepaidTotal,
+      debits,
     };
+  });
+}
+
+/**
+ * Reverse a `consumeCredits` debit — used when an audit fails AFTER credits
+ * were reserved (J5: reserve-before-LLM), so the customer is never charged for
+ * an undelivered audit. Restores the exact rows the consume drained (prepaid
+ * grants by id, then the subscription counter) and writes a `refund` ledger
+ * row to keep the append-only ledger balanced.
+ *
+ * Also suppresses an as-yet-unmetered `overage` marker for the same audit: a
+ * failed overage audit must not reach the Stripe meter. Safe to delete because
+ * the marker carries no balance (balanceAfter is unaffected) and the guard
+ * skips any row already mirrored into stripe_meter_event_log.
+ */
+export async function refundCredits(args: {
+  workspaceId: string;
+  amount: number;
+  referenceId: string;
+  debits: ConsumeDebitLine[];
+  db?: Db;
+}): Promise<{ balanceAfter: number }> {
+  const db = args.db ?? getDb();
+  return db.transaction(async (tx) => {
+    for (const d of args.debits) {
+      if (d.amount <= 0) continue;
+      if (d.prepaidGrantId === null) {
+        await tx
+          .update(schema.subscription)
+          .set({
+            creditsUsedThisPeriod: sql`GREATEST(0, ${schema.subscription.creditsUsedThisPeriod} - ${d.amount})`,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.subscription.workspaceId, args.workspaceId));
+      } else {
+        await tx
+          .update(schema.prepaidCreditGrant)
+          .set({
+            creditsRemaining: sql`${schema.prepaidCreditGrant.creditsRemaining} + ${d.amount}`,
+          })
+          .where(eq(schema.prepaidCreditGrant.id, d.prepaidGrantId));
+      }
+    }
+
+    // Drop the unmetered overage marker for this audit (no-op if it was already
+    // flushed to the meter — that row stays for billing integrity).
+    await tx.execute(sql`
+      DELETE FROM credit_ledger cl
+      WHERE cl.workspace_id = ${args.workspaceId}
+        AND cl.reference_id = ${args.referenceId}
+        AND cl.reason = 'overage'
+        AND NOT EXISTS (
+          SELECT 1 FROM stripe_meter_event_log log
+          WHERE log.identifier = cl.id::text
+        )
+    `);
+
+    const balance = await getCreditBalance(args.workspaceId, tx as unknown as Db);
+    await tx.insert(schema.creditLedger).values({
+      workspaceId: args.workspaceId,
+      delta: args.amount,
+      reason: "refund",
+      referenceId: args.referenceId,
+      balanceAfter: balance.total,
+    });
+    return { balanceAfter: balance.total };
   });
 }
 

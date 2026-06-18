@@ -85,7 +85,8 @@ vi.mock("./rate-limit", () => ({
 
 vi.mock("@vk/billing", () => ({
   canConsume: vi.fn(() => Promise.resolve({ allowed: true })),
-  consumeCredits: vi.fn(() => Promise.resolve({ allowed: true })),
+  consumeCredits: vi.fn(() => Promise.resolve({ allowed: true, debits: [] })),
+  refundCredits: vi.fn(() => Promise.resolve({ balanceAfter: 0 })),
   creditsForIntensity: vi.fn(() => 1),
   DEFAULT_INTENSITY: "quick",
   ensureSubscription: vi.fn(() =>
@@ -265,6 +266,67 @@ describe("auditAction", () => {
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/failed to audit/i);
     expect(cleanupTempDir).toHaveBeenCalledWith("/tmp/extracted/err");
+  });
+
+  it("J5: refunds reserved credits when the LLM audit fails after reservation", async () => {
+    // DB-on, signed-in path: credits are reserved BEFORE runAudit. When runAudit
+    // throws, the scan must be refunded (and the failed scan surfaced) so the
+    // customer is never charged for an undelivered audit.
+    const { getSessionUser } = await import("./session");
+    vi.mocked(getSessionUser).mockResolvedValueOnce({
+      id: "user_pay",
+      email: "p@test",
+      name: null,
+    });
+
+    const { isDbEnabled } = await import("@vk/db");
+    vi.mocked(isDbEnabled).mockReturnValue(true);
+    dbInsertReturning.mockResolvedValueOnce([{ id: "scan_pay" }]);
+
+    const { consumeCredits, refundCredits } = await import("@vk/billing");
+    vi.mocked(consumeCredits).mockResolvedValueOnce({
+      allowed: true,
+      newSubscriptionUsed: 1,
+      newPrepaidRemaining: 0,
+      debits: [{ prepaidGrantId: null, amount: 1 }],
+    });
+
+    const { parseGithubUrl, fetchRepoZipball } = await import("./github-fetch");
+    vi.mocked(parseGithubUrl).mockReturnValueOnce({
+      owner: "o",
+      repo: "r",
+      ref: null,
+    } as never);
+    vi.mocked(fetchRepoZipball).mockResolvedValueOnce("/tmp/pay");
+
+    const { scanRepository } = await import("@vk/parser");
+    vi.mocked(scanRepository).mockResolvedValueOnce({
+      rootPath: "/tmp/pay",
+      files: [{ relativePath: "a.ts", absolutePath: "/tmp/pay/a.ts" }],
+      warnings: [],
+    } as never);
+
+    const { runAudit } = await import("@vk/audit");
+    vi.mocked(runAudit).mockRejectedValueOnce(new Error("LLM provider 503"));
+
+    const { auditAction } = await import("./audit-action");
+    const res = await auditAction(
+      { ok: false },
+      fd({ path: "github.com/o/r" }),
+    );
+
+    expect(res.ok).toBe(false);
+    expect(consumeCredits).toHaveBeenCalledTimes(1);
+    expect(refundCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: "ws_1",
+        referenceId: "scan_pay",
+        debits: [{ prepaidGrantId: null, amount: 1 }],
+      }),
+    );
+    // reservation happened before the (failing) LLM call
+    expect(consumeCredits).toHaveBeenCalledBefore(vi.mocked(refundCredits));
+    vi.mocked(isDbEnabled).mockReturnValue(false);
   });
 
   it("deep-intensity is downgraded to quick on free tier (signed-in)", async () => {

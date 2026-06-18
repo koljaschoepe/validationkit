@@ -30,6 +30,7 @@ export {
 
 export {
   consumeCredits,
+  refundCredits,
   grantCredits,
   getCreditBalance,
   canConsume,
@@ -39,6 +40,7 @@ export {
   type CreditBalance,
   type CreditReason,
   type ConsumeResult,
+  type ConsumeDebitLine,
   type CanConsumeResult,
 } from "./credits.js";
 

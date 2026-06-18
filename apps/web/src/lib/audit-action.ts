@@ -22,6 +22,7 @@ import { checkRateLimit, ipFromHeaders, type LimitKey } from "./rate-limit";
 import {
   canConsume,
   consumeCredits,
+  refundCredits,
   creditsForIntensity,
   DEFAULT_INTENSITY,
   ensureSubscription,
@@ -348,15 +349,12 @@ async function runForegroundAudit(
     byokFlag: actor.byokFlag,
   };
 
-  const report = await runAudit(probe, {
-    includeLLM: true,
-    intensity: actor.intensity,
-    meteringContext,
-  });
-
   const credits = creditsForIntensity(actor.intensity);
 
-  // Consume credits. Anonymous and DB-disabled paths skip this branch entirely.
+  // J5 — reserve credits ATOMICALLY before the LLM runs. consumeCredits holds a
+  // FOR UPDATE lock on the subscription row, so two concurrent audits can't both
+  // pass the gate and then both pay for the (expensive) LLM call — the loser
+  // fails here, before any tokens are burned, instead of after.
   const consume = await consumeCredits({
     workspaceId: actor.workspaceId,
     amount: credits,
@@ -365,13 +363,35 @@ async function runForegroundAudit(
     allowOverage: actor.autoOverageEnabled,
   });
   if (!consume.allowed) {
-    // Race: another concurrent audit drained the pool between canConsume and
-    // consumeCredits. Mark the scan failed and surface the reason.
     await db
       .update(schema.scan)
       .set({ status: "failed", failureReason: consume.reason ?? null })
       .where(eq(schema.scan.id, row.id));
     throw new Error(consume.reason ?? "Out of credits.");
+  }
+
+  let report: AuditReport;
+  try {
+    report = await runAudit(probe, {
+      includeLLM: true,
+      intensity: actor.intensity,
+      meteringContext,
+    });
+  } catch (err) {
+    // J5 — the audit failed after we reserved credits. Refund the exact pools we
+    // drained and suppress any unmetered overage marker, so the customer is
+    // never charged for an undelivered audit.
+    await refundCredits({
+      workspaceId: actor.workspaceId,
+      amount: credits,
+      referenceId: row.id,
+      debits: consume.debits,
+    });
+    await db
+      .update(schema.scan)
+      .set({ status: "failed", failureReason: (err as Error).message })
+      .where(eq(schema.scan.id, row.id));
+    throw err;
   }
 
   // Aggregate per-call costs from ai_usage_event for this scan.

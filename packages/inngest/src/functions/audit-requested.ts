@@ -3,8 +3,10 @@ import { scanRepository, classifyPath } from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import {
   consumeCredits,
+  refundCredits,
   creditsForIntensity,
   DEFAULT_INTENSITY,
+  type ConsumeDebitLine,
   type Intensity,
 } from "@vk/billing";
 import { getDb, schema } from "@vk/db";
@@ -49,24 +51,19 @@ export const auditRequested: any = inngest.createFunction(
         .where(eq(schema.scan.id, scanId));
     });
 
+    // J5: tracks what the reserve step drained, so the catch block can refund
+    // it if the audit later fails. Stays null until credits are actually held.
+    let reserved: { credits: number; debits: ConsumeDebitLine[] } | null = null;
+
     try {
       const scan = await step.run("scan", () => scanRepository(rootPath));
-      const meteringContext: MeteringContext | undefined =
-        workspaceIdFromPayload
-          ? {
-              workspaceId: workspaceIdFromPayload,
-              scanId,
-              byokFlag,
-            }
-          : undefined;
-      const report = await step.run("audit", () =>
-        runAudit(scan, { includeLLM: true, intensity, meteringContext }),
-      );
-
       const credits = creditsForIntensity(intensity);
-      let totalCostMicrocents = 0;
+
+      // J5: reserve credits ATOMICALLY before the (expensive) LLM call. The
+      // enqueue-time canConsume check may be stale by now, so the pool race is
+      // settled here — before any tokens are burned, not after.
       if (workspaceIdFromPayload) {
-        await step.run("consume-credits", async () => {
+        reserved = await step.run("reserve-credits", async () => {
           // K-PAY2: honor the workspace's auto-overage setting so a drained
           // pool goes to metered overage instead of failing the background
           // audit. Read it fresh here (payload may be stale by run time).
@@ -87,7 +84,24 @@ export const auditRequested: any = inngest.createFunction(
           if (!result.allowed) {
             throw new Error(result.reason ?? "Out of credits.");
           }
+          return { credits, debits: result.debits };
         });
+      }
+
+      const meteringContext: MeteringContext | undefined =
+        workspaceIdFromPayload
+          ? {
+              workspaceId: workspaceIdFromPayload,
+              scanId,
+              byokFlag,
+            }
+          : undefined;
+      const report = await step.run("audit", () =>
+        runAudit(scan, { includeLLM: true, intensity, meteringContext }),
+      );
+
+      let totalCostMicrocents = 0;
+      if (workspaceIdFromPayload) {
         const costRows = await db
           .select({ total: sum(schema.aiUsageEvent.costMicrocents) })
           .from(schema.aiUsageEvent)
@@ -176,6 +190,20 @@ export const auditRequested: any = inngest.createFunction(
       return { ok: true, findings: report.findings.length };
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
+      // J5: the audit failed after credits were reserved — refund the exact
+      // pools drained and suppress any unmetered overage marker, so a failed
+      // background audit is never charged. No-op if nothing was reserved.
+      if (reserved && workspaceIdFromPayload) {
+        const held = reserved;
+        await step.run("refund-credits", () =>
+          refundCredits({
+            workspaceId: workspaceIdFromPayload,
+            amount: held.credits,
+            referenceId: scanId,
+            debits: held.debits,
+          }),
+        );
+      }
       await step.run("mark-failed", async () => {
         await db
           .update(schema.scan)
