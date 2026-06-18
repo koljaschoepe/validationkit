@@ -286,6 +286,9 @@ async function enqueueBackgroundAudit(
   if (!row) throw new Error("Failed to enqueue scan.");
 
   await inngest.send({
+    // Deterministic id → a replayed server action can't double-enqueue the
+    // same queued scan (Inngest dedupes within its event-id window).
+    id: `audit-requested-${row.id}`,
     name: "audit/requested",
     data: {
       scanId: row.id,

@@ -80,7 +80,9 @@ export async function createCheckoutSession(
     metadata: { workspaceId, userId: user.id, tier, cycle },
     allow_promotion_codes: true,
     automatic_tax: { enabled: true },
-    customer_update: snap.stripeCustomerId ? { address: "auto" } : undefined,
+    customer_update: snap.stripeCustomerId
+      ? { address: "auto", name: "auto" }
+      : undefined,
     tax_id_collection: { enabled: true },
     success_url: `${baseUrl}/billing?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/billing?status=cancelled`,
@@ -200,7 +202,9 @@ export async function createPrepaidPackCheckoutSession(
     },
     allow_promotion_codes: true,
     automatic_tax: { enabled: true },
-    customer_update: snap.stripeCustomerId ? { address: "auto" } : undefined,
+    customer_update: snap.stripeCustomerId
+      ? { address: "auto", name: "auto" }
+      : undefined,
     tax_id_collection: { enabled: true },
     success_url: `${baseUrl}/billing?status=pack_success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/billing?status=pack_cancelled`,

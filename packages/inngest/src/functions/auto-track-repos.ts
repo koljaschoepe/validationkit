@@ -84,6 +84,9 @@ export const autoTrackRepos: any = inngest.createFunction(
           .where(eq(schema.repo.id, r.id));
 
         await inngest.send({
+          // Deterministic id → Inngest dedupes a replayed poll so a single
+          // queued scan can't be enqueued twice.
+          id: `audit-requested-${row.id}`,
           name: "audit/requested",
           data: { scanId: row.id, rootPath: r.rootPath },
         });
