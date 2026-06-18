@@ -1,46 +1,36 @@
 # Repo-Health Audits — Mai 2026
 
-> Erstellt: 2026-05-21 im Rahmen des Repo-Health-and-Workflow-Overhaul-Plans (`docs/plans/done/repo-health-and-workflow-overhaul.md`).
-> Methode: 8 spezialisierte Subagent-Audits parallel + Hauptagent-Synthese.
+> Erstellt: 2026-05-21. Methode: parallele Subagent-Audits + Hauptagent-Synthese.
+> **Stand 2026-06-18:** Der kanonische Audit ist der 12-Report-Nova-3-Lauf
+> (`01-*.md` … `12-*.md` + `_synthesis.md`). Die ursprünglichen 8 losen Drafts
+> (`context-files.md`, `workflow.md`, `adr-vs-code.md`, `tech-stack-drift.md`,
+> `tests-eval-ci.md`, `packages-health.md`, `settings-backend.md`,
+> `dead-code-apps-web.md`) waren ein früherer Repo-Health-Lauf und wurden als
+> superseded entfernt.
 
-8 Audit-Reports, jeweils mit Severity-Bändern {Kill, Weak, Mid, Strong, Exceptional}. Jeder Report listet konkrete `file:line`-Findings und konkrete Fix-Empfehlungen.
+## Index (kanonisch)
 
-## Index
+Voller Health-Score + konsolidierte KILL-Liste: [`_synthesis.md`](./_synthesis.md).
 
-| # | Audit | Datei | KILL | Hot-Findings |
-|---|-------|-------|------|--------------|
-| 1 | Kontext-Files-Konsistenz | [`context-files.md`](./context-files.md) | 7 | R3F-Stack-Doku ≠ Code; Better-Auth-Org-Plugin-Behauptung; Drift-Cleanup-Lücken |
-| 2 | /plan + /execute Workflow | [`workflow.md`](./workflow.md) | 0 | "Open Questions" sammelt Vermutungen statt Discovery; Plan-File-Skelett unterspezifiziert |
-| 3 | ADR ↔ Code Reality | [`adr-vs-code.md`](./adr-vs-code.md) | 1 | ADR-0003 Drift-Cleanup hat 7 leakende Code-Stellen (Mis-Selling); ADR-0002 nur partial in Kraft |
-| 4 | Tech-Stack-Drift | [`tech-stack-drift.md`](./tech-stack-drift.md) | 2 | `@react-spring/web` + `@xyflow/react` 0 Imports; `shadcn` als Runtime-dep; `lucide-react@1.x` verdächtig |
-| 5 | Tests + Eval + CI | [`tests-eval-ci.md`](./tests-eval-ci.md) | 0 | vitest.config schließt 14 apps/web-Tests aus (Quasi-KILL); kein Lint-Gate in CI; conflict-eval nicht gegated |
-| 6 | packages/ Monorepo Health | [`packages-health.md`](./packages-health.md) | 0 | Keine Circulars, saubere DAG. `@vk/fixes` vager Name, dist/ in Git, `@vk/core` 0 JSDoc bei 43× Nutzung |
-| 7 | Settings + Auth Backend-Gap | [`settings-backend.md`](./settings-backend.md) | 1 | 13 von 16 Settings-Sections sind Shells; Danger-Zone besonders kritisch (Placeholder-Workspace-Name) |
-| 8 | Dead-Code apps/web | [`dead-code-apps-web.md`](./dead-code-apps-web.md) | 0 | ~400 LOC dead code: AuditForm, 5 ui-vk Komponenten, OnboardingBanner-Body, dashboard/loading, settings/user |
-
-## Konsolidierte KILL-Liste (alle Audits)
-
-11 KILL-Findings über alle Audits:
-
-1. **Drift-Cleanup-Leck** (Audit 3): 7 Code-Stellen verkaufen oder erwähnen das gedroppte Drift-Feature → **gefixt in Phase 1.14** (alle 7 Stellen + Migration 0012).
-2. **`@react-spring/web` + `@xyflow/react` 0 Imports** (Audit 4): zu entfernen → Phase 2.1.
-3. **`shadcn` als Runtime-Dependency** (Audit 4): zu devDep → Phase 2.1.
-4. **Settings-Danger-Zone Placeholder** (Audit 7): Mis-Selling-Risk → **gefixt in Phase 1.18** (EmptyState mit Disclaimer).
-5. **R3F-Stack-Doku ≠ Code** (Audit 1): CLAUDE.md, vision.md, ADR-0002 sagten R3F, Code ist Pixi+SVG → **gefixt in Phase 1.1–1.7** + ADR-0004.
-6. **Better-Auth-Org-Plugin Behauptung** (Audit 1): Code nutzt eigene workspace/membership-Tables → **gefixt in Phase 1.4** + ADR-0006 (Phase 2.4c).
-7. **vitest.config schließt apps/web-Tests aus** (Audit 5, Quasi-KILL): 14 Tests liefen nie → **gefixt in Phase 1.16**.
-
-→ **7 von 11 KILL-Findings sind bereits in Phase 1 adressiert.** Rest (3 Tech-Stack-Cleanups) wird in Phase 2.1 erledigt.
+| # | Domain | Datei |
+|---|--------|-------|
+| 01 | Dead-Code | [`01-dead-code.md`](./01-dead-code.md) |
+| 02 | Dependencies | [`02-dependencies.md`](./02-dependencies.md) |
+| 03 | TypeScript | [`03-typescript.md`](./03-typescript.md) |
+| 04 | DB-Schema | [`04-db-schema.md`](./04-db-schema.md) |
+| 05 | Security | [`05-security.md`](./05-security.md) |
+| 06 | Performance | [`06-performance.md`](./06-performance.md) |
+| 07 | A11y + SEO | [`07-a11y-seo.md`](./07-a11y-seo.md) |
+| 08 | Tests + Eval | [`08-tests-eval.md`](./08-tests-eval.md) |
+| 09 | Configs | [`09-configs.md`](./09-configs.md) |
+| 10 | Kontext-Files | [`10-context-files.md`](./10-context-files.md) |
+| 11 | UI-Konsistenz | [`11-ui-consistency.md`](./11-ui-consistency.md) |
+| 12 | API-Routes | [`12-api-routes.md`](./12-api-routes.md) |
 
 ## Methodologie
 
-- 8 Subagents parallel, je 30–45 min Recherche, Read-Only.
+- Subagents parallel, je 30–45 min Recherche, Read-Only.
 - Briefings self-contained (Subagents hatten keinen Konversations-Kontext).
-- Output-Format: Severity-Bänder + `file:line`-Referenzen + konkrete Fix-Empfehlungen.
-- 6 von 8 Audits mussten neu gestartet werden (Welle 1 verlor 6 an Session-Limit). Welle 2 lief sauber durch.
-
-## Folgepläne / Sub-Plans aus Findings
-
-- Repo-Health-and-Workflow-Overhaul-Plan (dieser hier) — adressiert die meisten KILL-Findings.
-- `customer-route-rename` (Phase 3.8, noch nicht geschrieben) — Customer-Route-IA-Drift aus Audit 8.
-- `nova-2-settings-backend.md` (existiert bereits) — bekommt Audit-7-Findings als Priorisierungs-Input.
+- Output-Format: Severity-Bänder {Kill, Weak, Mid, Strong, Exceptional} +
+  `file:line`-Referenzen + konkrete Fix-Empfehlungen.
+- Severity-Konvention: `packages/core/src/severity.ts`.

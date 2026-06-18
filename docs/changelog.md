@@ -157,7 +157,7 @@ Marketing-Pages-Polish + Drift/Compare-Feature gedropt.
 ## Phase Future (Backlog)
 
 - **Nova-3b** — Tests-Critical-Paths (Stripe-Webhook, audit-action, API-Routes, DAL, session, billing, Audit-Rules) + UI-Konsistenz-Phase-3-Workspace-Hub-Polish (Sub-11 Polish-Liste mit 30 Items in 6 Sub-Phasen). Eigener `/plan`-Cycle, ~30h.
-- **Production-Live-Connect** — Stripe-Live + Vercel-Prod-Env + Domain + Resend-Prod + Inngest-Cloud + Sentry + Stripe-Tax-DE + KYC. Skelett: `docs/plans/production-live-connect-stub.md`.
+- ~~**Production-Live-Connect** — Stripe-Live + Vercel-Prod-Env + Domain + Resend-Prod + Inngest-Cloud + Sentry + Stripe-Tax-DE + KYC. Skelett: `docs/plans/production-live-connect-stub.md`.~~ → **Superseded (2026-06-18)** durch Production-Launch-Readiness-Master (Bundle C Production-Infra + Bundle E), siehe `docs/plans/production-launch-readiness.md`.
 - Themen-Backlog im `TODO.md` Parking-Lot.
 
 ---

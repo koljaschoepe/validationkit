@@ -5,11 +5,13 @@ Multi-Tenant-Web-App für AI-Consultancies, die Context-Engineering-Files
 5–30 Customer-Repos auditieren, Drift erkennen, AI-Solutions generieren
 und via Zero-Code-Workflow als PR oder Direct-Commit applizieren.
 
-UI-Vision: **"Galaxie"** — Customer = Planet, Repo = Mond, File = Asteroid.
-Severity als räumliche Hotspots, Click → Inspector → Apply. Siehe
-[docs/vision.md](docs/vision.md) für die volle Vision,
-[docs/roadmap/phase-galaxie.md](docs/roadmap/phase-galaxie.md) für die
-aktuelle Sprint-Reihenfolge.
+UI: **SolarListView-Triage-Konsole** — eine keyboard-/screenreader-native
+Severity-Triage-Konsole, gruppiert nach Repo + Kunde. Findings nach Severity
+sortiert, Filter über Severity + Regel, Click → Inspector → Apply. (Die frühere
+"Galaxie"-Canvas-UI wurde 2026-06-10 retired — PixiJS-Stack komplett entfernt.)
+Siehe [docs/vision.md](docs/vision.md) für die volle Vision,
+[docs/plans/production-launch-readiness.md](docs/plans/production-launch-readiness.md)
+für die aktuelle Phase + Sprint-Reihenfolge.
 
 Solo-Projekt. Deployed auf Vercel.
 

@@ -36,7 +36,7 @@ Letzter Repo-Audit: [docs/audits/2026-05/_synthesis.md](../docs/audits/2026-05/_
 | Layer       | Wahl                                       |
 |-------------|--------------------------------------------|
 | Monorepo    | Turborepo + pnpm                           |
-| Web         | Next.js 16 + App Router (Cache Components-Adoption ist Nova-3a-Goal — aktuell 0 `'use cache'`-Directives) |
+| Web         | Next.js 16 + App Router (`'use cache'`/Cache-Components-Migration ist post-launch geplant — aktuell 0 `'use cache'`-Directives) |
 | Konsole     | **Galaxie retired (2026-06-10)** — PixiJS v8/@pixi/react/pixi-filters/GSAP komplett entfernt (Code+Deps). Workspace = `SolarListView`-Triage-Konsole (keyboard-/screenreader-native, kein Pixi). Landing-Hero = durchgehendes Konsolen-Surface (`ConsoleSurface`: Portfolio-Liste → Repo-Tree+Inspector-Drill), Animationen via `motion/react`. Siehe `docs/plans/galaxie-retire-console-landing.md`. |
 | Auth        | Better-Auth 1.6 + Magic-Link (Resend); Workspaces über eigene `workspace`+`membership`-Tabellen (kein Org-Plugin) |
 | DB          | Neon Postgres + Drizzle (pgvector im Vision-Stack, aber NOCH NICHT installiert — V2 nach Embeddings-Roadmap) |
