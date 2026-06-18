@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SUB_PROCESSORS, type SubProcessor } from "@/lib/sub-processors";
 
 export const metadata = {
   title: "Sub-processors · ValidationKit",
@@ -14,60 +15,18 @@ export const metadata = {
     "List of sub-processors used by ValidationKit per GDPR Art. 28.",
 };
 
-interface Subprocessor {
-  name: string;
-  purpose: string;
-  region: string;
-  dpaUrl: string;
-}
+// Single source of truth: this page renders directly from
+// `@/lib/sub-processors`, the same manifest that backs
+// `/trust/sub-processors.json` + `.xml`. The 30-day notification commitment
+// lives in the AGB clause `/legal/agb`. Deprecated entries are hidden from the
+// active list but kept in the manifest for the historical record (DPA §5).
+const VISIBLE_SUB_PROCESSORS: ReadonlyArray<SubProcessor> = SUB_PROCESSORS.filter(
+  (s) => s.status !== "deprecated",
+);
 
-// Sub-Plan-C — keep this list in sync with `docs/operations/transfer-impact-assessment.md`
-// and the audit row in DB schema for `dpa_acceptance`. 30-day notification
-// commitment lives in the AGB clause `/legal/agb`.
-const SUBPROCESSORS: ReadonlyArray<Subprocessor> = [
-  {
-    name: "Anthropic, PBC",
-    purpose: "LLM API for Deep audits + LLM-rule findings",
-    region: "USA (AWS us-east-1), EU SCC + TIA in place",
-    dpaUrl: "https://trust.anthropic.com",
-  },
-  {
-    name: "OpenAI Ireland Ltd",
-    purpose: "LLM API for Quick audits (GPT-5-nano default)",
-    region: "USA (Azure), EU SCC + TIA in place",
-    dpaUrl: "https://openai.com/policies/data-processing-addendum",
-  },
-  {
-    name: "Stripe Payments Europe Ltd",
-    purpose: "Subscription billing, invoicing, customer portal, tax",
-    region: "Ireland (EU) + USA",
-    dpaUrl: "https://stripe.com/legal/dpa",
-  },
-  {
-    name: "Vercel Inc.",
-    purpose: "Application hosting, edge network, env-var storage",
-    region: "USA + EU (deployment region pinning available)",
-    dpaUrl: "https://vercel.com/legal/dpa",
-  },
-  {
-    name: "Neon Inc.",
-    purpose: "Postgres database (workspaces, audits, billing state)",
-    region: "EU (Frankfurt) primary; USA replica",
-    dpaUrl: "https://neon.tech/dpa",
-  },
-  {
-    name: "Resend Inc.",
-    purpose: "Transactional email (magic-link sign-in, billing notices)",
-    region: "USA, EU SCC in place",
-    dpaUrl: "https://resend.com/legal/dpa",
-  },
-  {
-    name: "Inngest Inc.",
-    purpose: "Background job execution (audit runs, Stripe reconcile)",
-    region: "USA, EU SCC in place",
-    dpaUrl: "https://www.inngest.com/legal/dpa",
-  },
-];
+function isEuScc(s: SubProcessor): boolean {
+  return s.regions.some((r) => r.toUpperCase().includes("EU"));
+}
 
 export default function SubprocessorsPage() {
   return (
@@ -91,25 +50,34 @@ export default function SubprocessorsPage() {
         </CardHeader>
         <CardContent>
           <ul className="flex flex-col divide-y">
-            {SUBPROCESSORS.map((s) => (
-              <li key={s.name} className="flex flex-col gap-1 py-3">
+            {VISIBLE_SUB_PROCESSORS.map((s) => (
+              <li key={s.id} className="flex flex-col gap-1 py-3">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{s.name}</span>
                   <Badge variant="secondary" className="text-[10px]">
-                    {s.region.includes("EU") ? "EU SCC + TIA" : "EU-only"}
+                    {isEuScc(s) ? "EU SCC + TIA" : "Multi-region"}
                   </Badge>
+                  {s.status === "planned" ? (
+                    <Badge variant="outline" className="text-[10px]">
+                      planned
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="text-sm text-muted-foreground">{s.purpose}</p>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{s.region}</span>
-                  <Link
-                    href={s.dpaUrl as never}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    DPA →
-                  </Link>
+                  <span className="text-muted-foreground">
+                    {s.regions.join(" · ")}
+                  </span>
+                  {s.dpaUrl ? (
+                    <Link
+                      href={s.dpaUrl as never}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground underline-offset-4 hover:underline"
+                    >
+                      DPA →
+                    </Link>
+                  ) : null}
                 </div>
               </li>
             ))}
