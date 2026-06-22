@@ -22,10 +22,11 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 - [ ] Feature-Screenshots-Regen (4 Stück) — **deferred: Playwright-MCP in dieser Env tot (Calls timeouten)**. Bleibt offen bis lauffähiges Playwright-Env.
 
 ### B · Frontend-Code (sicher, aber UX-Politur) — ex-Bundle D
-- [ ] **S13** `global-error.tsx:20` `lang="en" → "de"` (DACH).
-- [ ] **S14 Toasts** auf `AddCustomerForm`/`AddRepoForm`/`IntensitySelector`-Nachfolger + BYOK/SpendCap/Overage-Settings (aktuell stilles `router.refresh()`).
-- [ ] **SessionList** `window.confirm()` → shadcn `AlertDialog`.
-- [ ] **S20 Inspector-Focus-Trap**: `galaxie/Inspector.tsx` (`createPortal`, `aria-modal` ohne Containment) → Radix `Sheet` (`components/ui/sheet.tsx` liegt ungenutzt bereit). *(Damit wird `sheet.tsx` wieder genutzt — nicht löschen.)*
+- [x] **S13** (2026-06-22): `global-error.tsx` `lang="de"` + komplette deutsche Copy (DACH).
+- [x] **S14 Toasts (Client-Forms)** (2026-06-22): `AddCustomerForm` + `AddRepoForm` mit `toast.success`/`toast.error` (deutsch) statt stillem `router.refresh()`. **IntensitySelector existiert nicht mehr** (gelöscht). BYOK/SpendCap/Overage/Intensity sind **Server-Action-Forms** (kein `router.refresh()`) → eigener Sub-Schritt **S14b** (Client-Wrapper-Refactor, siehe unten).
+- [ ] **S14b AI-Settings-Toasts**: `settings/ai/page.tsx` 4 Server-Action-Forms (BYOK/SpendCap/Overage/Intensity) brauchen Client-Wrapper (`useActionState`/onClick) für Toast-Feedback. *(scope-expansion, vom Quick-Win-Pass getrennt)*
+- [x] **SessionList** (2026-06-22): `window.confirm()` → shadcn `AlertDialog` (neue `components/ui/alert-dialog.tsx`, unified-`radix-ui`-Stil wie `sheet.tsx`), deutsche Copy.
+- [ ] **S20 Inspector-Focus-Trap**: `galaxie/Inspector.tsx` (`createPortal`, `aria-modal` ohne Containment) → Radix `Sheet` (`components/ui/sheet.tsx` liegt ungenutzt bereit). *(Damit wird `sheet.tsx` wieder genutzt — nicht löschen.)* **669-Zeilen-Konsolen-Refactor — schwerer als die übrigen B-Items.**
 
 ### C · Produkt-Feature-Backends (offene Produktentscheidungen!) — ex `nova-2-settings-backend`
 > ⚠️ Der Plan hat **4 offene Open-Questions** (§7 im Original) — vor Bau klären. Settings-Stubs sind aktuell aus der Nav versteckt, also **nicht launch-blockierend**. Galaxie-Settings-Teile sind obsolet (Pixi retired).

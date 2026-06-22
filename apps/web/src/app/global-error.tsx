@@ -17,7 +17,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang="de">
       <body
         style={{
           backgroundColor: "#0a0a0a",
@@ -38,17 +38,17 @@ export default function GlobalError({
           }}
         >
           <h1 style={{ fontSize: "1.25rem", margin: "0 0 0.75rem" }}>
-            Something broke at the root.
+            Auf Root-Ebene ist etwas fehlgeschlagen.
           </h1>
           <p style={{ fontSize: "0.9rem", lineHeight: 1.5 }}>
-            The layout itself failed to render. This usually means a
-            server-component-level exception. Reload to retry; if it
-            persists, report at{" "}
+            Das Layout selbst konnte nicht gerendert werden — das deutet
+            meist auf eine Exception auf Server-Component-Ebene hin. Lade die
+            Seite neu; falls das Problem bestehen bleibt, melde es unter{" "}
             <a
               href="https://github.com/koljaschoepe/validationkit/issues"
               style={{ color: "#fafafa", textDecoration: "underline" }}
             >
-              GitHub issues
+              GitHub Issues
             </a>
             .
           </p>
@@ -78,7 +78,7 @@ export default function GlobalError({
                 fontWeight: 500,
               }}
             >
-              Home
+              Startseite
             </a>
           </p>
         </main>

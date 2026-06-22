@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,13 @@ export function AddCustomerForm({ workspaceSlug }: { workspaceSlug: string }) {
       fd.set("label", label);
       const result = await submitAddCustomer(fd);
       if (!result.ok) {
-        setErr(result.error ?? "Failed to add customer.");
+        const msg = result.error ?? "Kunde konnte nicht angelegt werden.";
+        setErr(msg);
+        toast.error(msg);
         return;
       }
       setLabel("");
+      toast.success("Kunde angelegt.");
       router.refresh();
     });
   }

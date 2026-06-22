@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,12 +35,15 @@ export function AddRepoForm({
       const { addRepoAction } = await import("@/lib/customer-actions");
       const result = await addRepoAction(fd);
       if (!result.ok) {
-        setErr(result.error ?? "Failed to add repo.");
+        const msg = result.error ?? "Repo konnte nicht hinzugefügt werden.";
+        setErr(msg);
+        toast.error(msg);
         return;
       }
       setLabel("");
       setRootPath("");
       setGithub("");
+      toast.success("Repo hinzugefügt.");
       router.refresh();
     });
   }
