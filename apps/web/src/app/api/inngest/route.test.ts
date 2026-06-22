@@ -17,6 +17,12 @@ vi.mock("@vk/inngest", () => ({
   functions: [],
 }));
 
+// App-local worker (J4) — mocked so this smoke test doesn't pull in the
+// server-only solution DAL. Its body is covered via the DAL/worker path.
+vi.mock("@/lib/inngest/solution-generate", () => ({
+  solutionGenerate: { id: "solution-generate" },
+}));
+
 describe("/api/inngest route exports", () => {
   it("exports GET, POST, PUT handlers (Inngest CLI contract)", async () => {
     const mod = await import("./route");

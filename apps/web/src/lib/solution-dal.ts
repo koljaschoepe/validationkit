@@ -20,6 +20,7 @@ import {
   isSupported,
   type FixProposal,
 } from "@vk/fixes";
+import { inngest, isInngestEnabled } from "@vk/inngest";
 import { galaxieWorkspaceTag } from "./cache-tags";
 import { userIsMember } from "./authz";
 
@@ -219,7 +220,11 @@ export async function getOrGenerateSolution(
     return await getSolution(findingId);
   }
 
-  // 4) Insert (or refresh) the pending row + attempt generation in the same call.
+  // 4) Insert (or refresh) the pending row, then hand the (slow) LLM generation
+  //    to a background worker (J4) so this request returns immediately — the UI
+  //    polls `pollSolution` until the row leaves `pending`. Without Inngest
+  //    (dev / unconfigured) fall back to inline generation so the flow still
+  //    completes within the request.
   await db
     .insert(schema.solution)
     .values({
@@ -235,6 +240,38 @@ export async function getOrGenerateSolution(
         updatedAt: new Date(),
       },
     });
+  updateTag(galaxieWorkspaceTag(row.scan.workspaceId));
+
+  if (isInngestEnabled()) {
+    await inngest.send({ name: "solution/requested", data: { findingId } });
+  } else {
+    await runSolutionGeneration(findingId);
+  }
+
+  return await getSolution(findingId);
+}
+
+/**
+ * J4 — the slow half of solution generation, split out so an Inngest worker
+ * (apps/web/src/lib/inngest/solution-generate.ts) can run it instead of
+ * blocking the `requestSolution` server-action. It only gets the findingId, so
+ * it re-fetches the finding + scan, rehydrates the scan context, generates, and
+ * writes the row to `ready` / `failed`. Access was already enforced when the
+ * pending row was created, so this internal path is intentionally ungated.
+ * Idempotent — safe to re-run; it simply overwrites the row again.
+ */
+export async function runSolutionGeneration(findingId: string): Promise<void> {
+  if (!isDbEnabled()) return;
+  const db = getDb();
+
+  const findingRows = await db
+    .select({ finding: schema.finding, scan: schema.scan })
+    .from(schema.finding)
+    .innerJoin(schema.scan, eq(schema.finding.scanId, schema.scan.id))
+    .where(eq(schema.finding.id, findingId))
+    .limit(1);
+  const row = findingRows[0];
+  if (!row) return;
 
   const scanContext = rehydrateScanContext(row.scan.rawScan);
   if (!scanContext) {
@@ -247,7 +284,7 @@ export async function getOrGenerateSolution(
       })
       .where(eq(schema.solution.findingId, findingId));
     updateTag(galaxieWorkspaceTag(row.scan.workspaceId));
-    return await getSolution(findingId);
+    return;
   }
 
   const audit = findingRowToAuditFinding(row.finding);
@@ -270,7 +307,7 @@ export async function getOrGenerateSolution(
       })
       .where(eq(schema.solution.findingId, findingId));
     updateTag(galaxieWorkspaceTag(row.scan.workspaceId));
-    return await getSolution(findingId);
+    return;
   }
 
   await db
@@ -287,9 +324,7 @@ export async function getOrGenerateSolution(
       updatedAt: new Date(),
     })
     .where(eq(schema.solution.findingId, findingId));
-
   updateTag(galaxieWorkspaceTag(row.scan.workspaceId));
-  return await getSolution(findingId);
 }
 
 // alpha-Mapping lebt in lib/solution-alpha.ts (non-"use server"), damit es
