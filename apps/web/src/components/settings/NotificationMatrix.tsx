@@ -1,131 +1,112 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { saveNotificationPrefsAction } from '@/lib/notification-actions';
 
 /**
- * NotificationMatrix — Event × Channel toggle-grid for per-workspace
- * notification preferences. Rows are events, columns are channels. Each
- * cell is a Switch-style toggle.
+ * NotificationMatrix — per-workspace email notification preferences.
  *
- * Phase Nova-2 P5: UI-only preview. Save-action wires up in the backend
- * sub-plan along with the `notification_preference` table.
+ * Block C (settings backend): email is the only wired channel today, so this
+ * is a per-event on/off list, persisted to `notification_preference`. The
+ * event list + initial values come from the server page (the events config
+ * lives in the server-only lib/notification-prefs). Slack/Webhook/In-app
+ * columns return once their delivery infra exists.
  */
 
-const EVENTS = [
-  { id: 'scan.complete', label: 'Scan complete', description: 'Audit finishes for any repo' },
-  { id: 'scan.failed', label: 'Scan failed', description: 'Audit errored or timed out' },
-  { id: 'finding.kill', label: 'Kill-severity finding', description: 'New Kill-band finding detected' },
-  { id: 'finding.applied', label: 'Finding applied', description: 'Patch merged via PR or local' },
-  { id: 'member.added', label: 'Member added', description: 'New teammate joined the workspace' },
-  { id: 'billing.event', label: 'Billing event', description: 'Tier change, invoice, payment fail' },
-] as const;
-
-const CHANNELS = [
-  { id: 'email', label: 'Email' },
-  { id: 'slack', label: 'Slack' },
-  { id: 'webhook', label: 'Webhook' },
-  { id: 'in-app', label: 'In-app' },
-] as const;
-
-type EventId = (typeof EVENTS)[number]['id'];
-type ChannelId = (typeof CHANNELS)[number]['id'];
-type Matrix = Record<EventId, Record<ChannelId, boolean>>;
-
-const DEFAULT_MATRIX: Matrix = EVENTS.reduce((acc, ev) => {
-  acc[ev.id] = CHANNELS.reduce((cAcc, ch) => {
-    // Sane defaults: kill = email + slack, scan complete = in-app only
-    cAcc[ch.id] =
-      ev.id === 'finding.kill' && (ch.id === 'email' || ch.id === 'slack');
-    return cAcc;
-  }, {} as Record<ChannelId, boolean>);
-  return acc;
-}, {} as Matrix);
+export interface NotificationEvent {
+  id: string;
+  label: string;
+  description: string;
+}
 
 export function NotificationMatrix({
-  initial = DEFAULT_MATRIX,
-  disabled = false,
-  onChange,
+  events,
+  initial,
 }: {
-  initial?: Matrix;
-  disabled?: boolean;
-  onChange?: (next: Matrix) => void;
+  events: ReadonlyArray<NotificationEvent>;
+  initial: Record<string, boolean>;
 }) {
-  const [matrix, setMatrix] = useState<Matrix>(initial);
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(initial);
+  const [dirty, setDirty] = useState(false);
+  const [pending, startTransition] = useTransition();
 
-  function toggle(eventId: EventId, channelId: ChannelId) {
-    if (disabled) return;
-    const next: Matrix = {
-      ...matrix,
-      [eventId]: {
-        ...matrix[eventId],
-        [channelId]: !matrix[eventId][channelId],
-      },
-    };
-    setMatrix(next);
-    onChange?.(next);
+  function toggle(eventId: string) {
+    setPrefs((prev) => ({ ...prev, [eventId]: !prev[eventId] }));
+    setDirty(true);
+  }
+
+  function save() {
+    startTransition(async () => {
+      const res = await saveNotificationPrefsAction(prefs);
+      if (!res.ok) {
+        toast.error(res.error ?? 'Speichern fehlgeschlagen.');
+        return;
+      }
+      setDirty(false);
+      toast.success('Benachrichtigungen gespeichert.');
+    });
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px]">
-        <thead>
-          <tr className="border-b border-border text-left">
-            <th className="py-2 pr-3 font-mono type-mono-sm uppercase tracking-wider text-muted-foreground">
-              Event
-            </th>
-            {CHANNELS.map((c) => (
-              <th
-                key={c.id}
-                className="px-2 py-2 text-center font-mono type-mono-sm uppercase tracking-wider text-muted-foreground"
+    <div className="space-y-4">
+      <ul className="divide-y divide-border/60">
+        {events.map((ev) => {
+          const on = prefs[ev.id] ?? false;
+          return (
+            <li
+              key={ev.id}
+              className="flex items-center justify-between gap-4 py-3"
+            >
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-sm font-medium text-foreground">
+                  {ev.label}
+                </p>
+                <p className="type-mono-sm text-muted-foreground">
+                  {ev.description}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={on}
+                aria-label={`${ev.label} per E-Mail`}
+                onClick={() => toggle(ev.id)}
+                className={cn(
+                  'inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border transition-colors',
+                  on ? 'bg-foreground/85' : 'bg-card',
+                )}
               >
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {EVENTS.map((ev) => (
-            <tr key={ev.id} className="border-b border-border/50">
-              <td className="py-3 pr-3">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-foreground">{ev.label}</p>
-                  <p className="type-mono-sm text-muted-foreground">
-                    {ev.description}
-                  </p>
-                </div>
-              </td>
-              {CHANNELS.map((ch) => {
-                const on = matrix[ev.id][ch.id];
-                return (
-                  <td key={ch.id} className="px-2 py-3 text-center">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={on}
-                      aria-label={`${ev.label} via ${ch.label}`}
-                      disabled={disabled}
-                      onClick={() => toggle(ev.id, ch.id)}
-                      className={cn(
-                        'inline-flex h-5 w-9 items-center rounded-full border border-border transition-colors',
-                        on ? 'bg-foreground/85' : 'bg-card',
-                        disabled && 'cursor-not-allowed opacity-50',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'block size-3.5 rounded-full bg-background transition-transform',
-                          on ? 'translate-x-4' : 'translate-x-0.5',
-                        )}
-                      />
-                    </button>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <span
+                  className={cn(
+                    'block size-3.5 rounded-full bg-background transition-transform',
+                    on ? 'translate-x-4' : 'translate-x-0.5',
+                  )}
+                />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="type-mono-sm text-muted-foreground">
+          Kanal: E-Mail. Slack / Webhook / In-app folgen mit ihrer Infra.
+        </p>
+        <Button size="sm" onClick={save} disabled={!dirty || pending}>
+          {pending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Speichere…
+            </>
+          ) : (
+            'Speichern'
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

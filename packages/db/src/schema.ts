@@ -876,3 +876,40 @@ export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     references: [workspace.id],
   }),
 }));
+
+// Settings backend (nova-2-settings-backend) — per-workspace notification
+// preferences. One row per (event, channel); a missing row falls back to the
+// curated opt-out default in lib/notification-prefs. Email is the only wired
+// channel for now (Slack/Webhook/In-app land with their delivery infra).
+export const notificationPreference = pgTable(
+  "notification_preference",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    eventId: varchar("event_id", { length: 40 }).notNull(),
+    channel: varchar("channel", { length: 20 }).notNull(),
+    enabled: boolean("enabled").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("notification_preference_unique").on(
+      t.workspaceId,
+      t.eventId,
+      t.channel,
+    ),
+  ],
+);
+
+export const notificationPreferenceRelations = relations(
+  notificationPreference,
+  ({ one }) => ({
+    workspace: one(workspace, {
+      fields: [notificationPreference.workspaceId],
+      references: [workspace.id],
+    }),
+  }),
+);

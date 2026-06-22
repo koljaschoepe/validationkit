@@ -16,6 +16,7 @@ import {
   sendTransactionalEmail,
 } from "@vk/auth";
 import { getStripe, isStripeEnabled } from "@/lib/stripe";
+import { isEmailNotificationEnabled } from "@/lib/notification-prefs";
 
 function billingUrlForWorkspace(slug: string): string {
   const base =
@@ -314,6 +315,10 @@ async function handleSubscriptionUpdated(
   const newIdx = tierOrder.indexOf(tier);
   const kind: "upgrade" | "downgrade" =
     newIdx > previousIdx ? "upgrade" : "downgrade";
+  // Block C — the plan-change confirmation is informational; respect the
+  // workspace's billing.event email preference. The critical past-due alert
+  // (handleInvoicePaymentFailed) is never gated.
+  if (!(await isEmailNotificationEnabled(workspaceId, "billing.event"))) return;
   await sendTransactionalEmail({
     to: contact.email,
     subject:
@@ -363,6 +368,8 @@ async function handleSubscriptionDeleted(
   if (previousTier === "free") return;
   const contact = await fetchWorkspaceContact(workspaceId);
   if (!contact) return;
+  // Block C — informational cancellation mail respects billing.event.
+  if (!(await isEmailNotificationEnabled(workspaceId, "billing.event"))) return;
   await sendTransactionalEmail({
     to: contact.email,
     subject: "Abonnement gekündigt",
