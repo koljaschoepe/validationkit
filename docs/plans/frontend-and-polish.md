@@ -30,7 +30,7 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 
 ### C · Produkt-Feature-Backends (offene Produktentscheidungen!) — ex `nova-2-settings-backend`
 > ⚠️ Der Plan hat **4 offene Open-Questions** (§7 im Original) — vor Bau klären. Settings-Stubs sind aktuell aus der Nav versteckt, also **nicht launch-blockierend**. Galaxie-Settings-Teile sind obsolet (Pixi retired).
-- [ ] **API-Keys**: `api_key`-Tabelle + create/list/revoke-Routes + Bearer-Middleware + Modal. *(large)*
+- [x] **API-Keys** (2026-06-22): `api_key`-Tabelle (Migration `0020` — ⚠️ **noch nicht auf DB angewandt**: `pnpm db:migrate` lokal / Go-Live-Migrate-Step für Prod) + Token-Lib (`vk_<base64url>`, Reveal-once, nur SHA-256-Hash gespeichert — **Q-SB-1 entschieden**) + Bearer-Middleware (`authenticateApiKey`, bumpt `last_used_at`) + create/list/revoke-Actions (workspace-scoped, IDOR-Guard auf Revoke) + **read-API `GET /api/v1/scans` (+ `/:scanId` mit Findings)** + Settings-UI (Create-Dialog Reveal-once + Copy, Revoke-AlertDialog) + Nav un-hidden. Full-Access-Workspace-Keys, nie ablaufend + manueller Revoke. **339 Tests grün, Typecheck 23/23.** *(large)*
 - [ ] **Outbound-Webhooks**: `webhook`-Tabelle + CRUD + Test-Ping + `webhook-deliver`-Inngest-Job (HMAC). *(large)*
 - [ ] **Notification-Preferences**: `notification_preference`-Tabelle + GET/PUT + `NotificationMatrix`-Save-Wiring. *(large)*
 - [ ] **Workspace-General-Settings** (name/slug-rename mit Redirect-Schutz/logo/timezone) + **Audit&Apply-Settings** (`applySettings` JSONB) + **Account-Profile** (name/avatar/locale) + **Ownership-Transfer**.

@@ -842,3 +842,37 @@ export const stripeMeterEventLogRelations = relations(
     }),
   }),
 );
+
+// Settings backend (nova-2-settings-backend) — API keys for programmatic,
+// read-only access to a workspace's scans + findings. Reveal-once tokens: only
+// the SHA-256 hash is persisted; `tokenPrefix` + `last4` are display-only so
+// the UI can show a recognizable mask. Workspace-scoped, full-access (no
+// granular scopes in the MVP). Revoke = hard delete.
+export const apiKey = pgTable(
+  "api_key",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    tokenPrefix: varchar("token_prefix", { length: 16 }).notNull(),
+    last4: varchar("last4", { length: 4 }).notNull(),
+    createdByUserId: text("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (t) => [index("api_key_workspace_idx").on(t.workspaceId)],
+);
+
+export const apiKeyRelations = relations(apiKey, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [apiKey.workspaceId],
+    references: [workspace.id],
+  }),
+}));

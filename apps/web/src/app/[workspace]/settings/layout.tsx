@@ -6,6 +6,7 @@ import {
   PuzzleIcon,
   ShieldAlertIcon,
   BrainIcon,
+  KeyRoundIcon,
 } from 'lucide-react';
 import { isAuthEnabled } from '@vk/auth';
 import { getSessionUser } from '@/lib/session';
@@ -16,13 +17,13 @@ export const dynamic = 'force-dynamic';
 /**
  * Workspace settings layout — Phase Nova-2 P5 restructure.
  *
- * Bundle D (Launch-Verify): the not-yet-backed sections (general, api-keys,
- * audit-apply, notifications, webhooks) were full "Coming soon" stub routes
- * wired into the nav, so a paying user clicked through a sidebar full of
- * dead-ends. They're hidden from the nav until `nova-2-settings-backend.md`
- * lands the DB backing (the routes still resolve by direct URL). Only shipped,
- * load-bearing sections remain. (The galaxie settings route was removed with
- * the galaxie retirement, 2026-06-10.)
+ * Bundle D (Launch-Verify): the not-yet-backed sections (general, audit-apply,
+ * notifications, webhooks) were full "Coming soon" stub routes wired into the
+ * nav, so a paying user clicked through a sidebar full of dead-ends. They're
+ * hidden from the nav until `nova-2-settings-backend.md` lands the DB backing
+ * (the routes still resolve by direct URL). API Keys is now live (Block C) and
+ * back in the nav. (The galaxie settings route was removed with the galaxie
+ * retirement, 2026-06-10.)
  */
 
 function buildGroups(workspace: string): SettingsGroup[] {
@@ -40,6 +41,7 @@ function buildGroups(workspace: string): SettingsGroup[] {
       sections: [
         { href: `${ws}/integrations`, label: 'Integrations', icon: PuzzleIcon },
         { href: `${ws}/ai`, label: 'AI', icon: BrainIcon },
+        { href: `${ws}/api-keys`, label: 'API Keys', icon: KeyRoundIcon },
       ],
     },
     {
