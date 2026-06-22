@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { BrainIcon, KeyIcon, LockIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  BrainIcon,
+  CheckCircle2,
+  KeyIcon,
+  LockIcon,
+} from "lucide-react";
 import { isAuthEnabled } from "@vk/auth";
 import { ensureSubscription, hasFeature, isPaidTier } from "@vk/billing";
 import { getDb, isDbEnabled, schema } from "@vk/db";
@@ -23,23 +29,78 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ workspace: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }
 
-async function bindAction<
-  T extends (slug: string, fd: FormData) => Promise<unknown>,
->(fn: T, slug: string): Promise<(fd: FormData) => Promise<void>> {
+type AiActionResult = { ok: true } | { ok: false; error: string };
+
+// Bind the workspace slug + redirect with a status flag so the server-action
+// forms get a visible "saved"/error confirmation (the forms have no client
+// boundary of their own). Surfaces validation errors the wrapper used to drop.
+async function bindAction(
+  fn: (slug: string, fd: FormData) => Promise<AiActionResult>,
+  slug: string,
+  key: string,
+): Promise<(fd: FormData) => Promise<void>> {
   return async (fd: FormData): Promise<void> => {
     "use server";
-    await fn(slug, fd);
+    const result = await fn(slug, fd);
+    redirect(
+      result.ok
+        ? `/${slug}/settings/ai?saved=${key}`
+        : `/${slug}/settings/ai?error=${encodeURIComponent(result.error)}`,
+    );
   };
 }
 
-export default async function AiSettingsPage({ params }: PageProps) {
+function savedMessage(key: string): string {
+  return (
+    {
+      byok: "BYOK-Einstellungen gespeichert.",
+      overage: "Auto-Overage-Einstellung gespeichert.",
+      spendcap: "Spend-Cap aktualisiert.",
+      intensity: "Standard-Intensität gespeichert.",
+    }[key] ?? "Gespeichert."
+  );
+}
+
+function AiBanner({
+  kind,
+  message,
+}: {
+  kind: "success" | "error";
+  message: string;
+}) {
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
+        kind === "success"
+          ? "border-[var(--color-sev-strong)]/40 bg-[var(--color-sev-strong)]/5 text-[var(--color-sev-strong)]"
+          : "border-destructive/40 bg-destructive/5 text-destructive",
+      )}
+    >
+      {kind === "success" ? (
+        <CheckCircle2 className="h-4 w-4" />
+      ) : (
+        <AlertTriangle className="h-4 w-4" />
+      )}
+      {message}
+    </div>
+  );
+}
+
+export default async function AiSettingsPage({
+  params,
+  searchParams,
+}: PageProps) {
   if (!isAuthEnabled()) redirect("/login");
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -48,6 +109,7 @@ export default async function AiSettingsPage({ params }: PageProps) {
   }
 
   const { workspace: slug } = await params;
+  const sp = await searchParams;
   const ws = await resolveWorkspaceFromSlug(slug, user.id);
   const snap = await ensureSubscription(ws.id);
 
@@ -75,10 +137,14 @@ export default async function AiSettingsPage({ params }: PageProps) {
 
   // Bound server-actions — Next.js Server-Actions can't take extra args
   // from client forms, so we close over the workspace slug here.
-  const byokAction = await bindAction(updateByokSettings, slug);
-  const overageAction = await bindAction(toggleAutoOverage, slug);
-  const spendCapAction = await bindAction(setSpendCap, slug);
-  const intensityAction = await bindAction(setDefaultIntensity, slug);
+  const byokAction = await bindAction(updateByokSettings, slug, "byok");
+  const overageAction = await bindAction(toggleAutoOverage, slug, "overage");
+  const spendCapAction = await bindAction(setSpendCap, slug, "spendcap");
+  const intensityAction = await bindAction(
+    setDefaultIntensity,
+    slug,
+    "intensity",
+  );
 
   return (
     <>
@@ -89,6 +155,9 @@ export default async function AiSettingsPage({ params }: PageProps) {
           controls for this workspace.
         </p>
       </header>
+
+      {sp.saved && <AiBanner kind="success" message={savedMessage(sp.saved)} />}
+      {sp.error && <AiBanner kind="error" message={sp.error} />}
 
       {/* BYOK */}
       <Card>

@@ -24,7 +24,7 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 ### B · Frontend-Code (sicher, aber UX-Politur) — ex-Bundle D
 - [x] **S13** (2026-06-22): `global-error.tsx` `lang="de"` + komplette deutsche Copy (DACH).
 - [x] **S14 Toasts (Client-Forms)** (2026-06-22): `AddCustomerForm` + `AddRepoForm` mit `toast.success`/`toast.error` (deutsch) statt stillem `router.refresh()`. **IntensitySelector existiert nicht mehr** (gelöscht). BYOK/SpendCap/Overage/Intensity sind **Server-Action-Forms** (kein `router.refresh()`) → eigener Sub-Schritt **S14b** (Client-Wrapper-Refactor, siehe unten).
-- [ ] **S14b AI-Settings-Toasts**: `settings/ai/page.tsx` 4 Server-Action-Forms (BYOK/SpendCap/Overage/Intensity) brauchen Client-Wrapper (`useActionState`/onClick) für Toast-Feedback. *(scope-expansion, vom Quick-Win-Pass getrennt)*
+- [x] **S14b AI-Settings-Feedback** (2026-06-22): leichtgewichtiges `?status`-Banner (User-Entscheidung statt Client-Refactor) — `bindAction` redirectet mit `?saved=<key>`/`?error=<msg>`, Seite rendert deutsches `AiBanner`. Bonus: zeigt jetzt BYOK-Validierungsfehler, die der Wrapper vorher still verschluckt hat.
 - [x] **SessionList** (2026-06-22): `window.confirm()` → shadcn `AlertDialog` (neue `components/ui/alert-dialog.tsx`, unified-`radix-ui`-Stil wie `sheet.tsx`), deutsche Copy.
 - [ ] **S20 Inspector-Focus-Trap**: `galaxie/Inspector.tsx` (`createPortal`, `aria-modal` ohne Containment) → Radix `Sheet` (`components/ui/sheet.tsx` liegt ungenutzt bereit). *(Damit wird `sheet.tsx` wieder genutzt — nicht löschen.)* **669-Zeilen-Konsolen-Refactor — schwerer als die übrigen B-Items.**
 
