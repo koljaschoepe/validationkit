@@ -13,6 +13,7 @@ import { getDb, schema } from "@vk/db";
 import type { AuditFinding } from "@vk/core";
 import type { MeteringContext } from "@vk/llm";
 import { inngest } from "../client.js";
+import { onFailureHandler } from "../on-failure.js";
 import { publishEvent } from "../events.js";
 
 export interface AuditRequestedPayload {
@@ -34,7 +35,11 @@ export interface AuditRequestedPayload {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const auditRequested: any = inngest.createFunction(
-  { id: "audit-requested", triggers: [{ event: "audit/requested" }] },
+  {
+    id: "audit-requested",
+    triggers: [{ event: "audit/requested" }],
+    onFailure: onFailureHandler("audit-requested"),
+  },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
     const payload = event.data as AuditRequestedPayload;

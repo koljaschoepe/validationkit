@@ -42,7 +42,7 @@ export function MemberInviteEmail({
   return (
     <Html>
       <Head />
-      <Preview>{`${inviterName} invited you to ${workspaceName} on ValidationKit`}</Preview>
+      <Preview>{`${inviterName} hat dich zu ${workspaceName} auf ValidationKit eingeladen`}</Preview>
       <Body
         style={{
           backgroundColor: BG,
@@ -83,17 +83,18 @@ export function MemberInviteEmail({
               margin: "0 0 12px",
             }}
           >
-            You&apos;ve been invited to {workspaceName}
+            Du wurdest zu {workspaceName} eingeladen
           </Text>
 
           <Text
             style={{ color: MUTED, fontSize: 14, lineHeight: 1.6, margin: "0 0 24px" }}
           >
-            {inviterName} added you as an admin to the workspace{" "}
-            <span style={{ color: TEXT }}>{workspaceName}</span> on ValidationKit.
+            {inviterName} hat dich als Admin zum Workspace{" "}
+            <span style={{ color: TEXT }}>{workspaceName}</span> auf
+            ValidationKit hinzugefügt.
             {alreadyHadAccount
-              ? " It's already on your account, so open it below."
-              : " Sign in with this email address to accept; your invite is attached automatically on first sign-in."}
+              ? " Er ist bereits mit deinem Konto verknüpft — öffne ihn unten."
+              : " Melde dich mit dieser E-Mail-Adresse an, um anzunehmen; deine Einladung wird bei der ersten Anmeldung automatisch zugeordnet."}
           </Text>
 
           <Section style={{ margin: "0 0 24px" }}>
@@ -109,14 +110,14 @@ export function MemberInviteEmail({
                 textDecoration: "none",
               }}
             >
-              {alreadyHadAccount ? "Open workspace" : "Accept invite"}
+              {alreadyHadAccount ? "Workspace öffnen" : "Einladung annehmen"}
             </Button>
           </Section>
 
           <Text
             style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: "0 0 8px" }}
           >
-            Or paste this URL into your browser.
+            Oder füge diese URL in deinen Browser ein.
           </Text>
           <Text
             style={{
@@ -139,8 +140,9 @@ export function MemberInviteEmail({
           <Hr style={{ borderColor: BORDER, margin: "24px 0" }} />
 
           <Text style={{ color: MUTED, fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-            If you weren&apos;t expecting this invite, you can safely ignore this
-            email. No account is created until you sign in yourself.
+            Falls du diese Einladung nicht erwartet hast, kannst du diese
+            E-Mail ignorieren. Es wird kein Konto erstellt, bis du dich selbst
+            anmeldest.
           </Text>
 
           <EmailFooter />

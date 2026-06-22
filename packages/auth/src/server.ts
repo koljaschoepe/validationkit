@@ -156,7 +156,7 @@ function createAuth(): AuthInstance {
               process.env.SMTP_FROM ??
               (useResend ? "onboarding@resend.dev" : "auth@validationkit.local"),
             to: email,
-            subject: "Sign in to ValidationKit",
+            subject: "Bei ValidationKit anmelden",
             text,
             html,
           });

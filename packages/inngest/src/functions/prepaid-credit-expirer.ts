@@ -18,6 +18,7 @@ import {
   sendTransactionalEmail,
 } from "@vk/auth";
 import { inngest } from "../client.js";
+import { onFailureHandler } from "../on-failure.js";
 
 const BATCH_LIMIT = 200;
 const WARNING_LOOKBACK_HOURS = 48;
@@ -124,7 +125,7 @@ async function expireOnce(db: Db = getDb()): Promise<ExpireResult> {
     if (!contact) continue;
     const result = await sendTransactionalEmail({
       to: contact.email,
-      subject: `${row.creditsRemaining} pre-paid credits expire tomorrow`,
+      subject: `${row.creditsRemaining} Prepaid-Credits verfallen morgen`,
       react: React.createElement(PrepaidPackExpireWarning, {
         workspaceName: contact.workspaceName,
         creditsRemaining: row.creditsRemaining,
@@ -155,6 +156,7 @@ export const prepaidCreditExpirer: any = inngest.createFunction(
   {
     id: "prepaid-credit-expirer",
     triggers: [{ cron: "0 2 * * *" }],
+    onFailure: onFailureHandler("prepaid-credit-expirer"),
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ step }: any) => {

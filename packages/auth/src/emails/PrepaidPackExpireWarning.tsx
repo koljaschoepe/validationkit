@@ -12,6 +12,7 @@ import {
 } from "@react-email/components";
 import { STYLES, FONT_SANS, FONT_MONO } from "./styles.js";
 import { EmailFooter } from "./EmailFooter.js";
+import { formatDateDe } from "./format.js";
 
 /**
  * Sub-Plan-C V2 — pre-paid credit pack expiry reminder.
@@ -36,21 +37,14 @@ export function PrepaidPackExpireWarning({
   daysUntilExpiry,
   billingUrl,
 }: PrepaidPackExpireWarningProps) {
-  const dateStr = expiresAt.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const dateStr = formatDateDe(expiresAt);
   const urgency =
     daysUntilExpiry === 1
-      ? "tomorrow"
+      ? "morgen"
       : daysUntilExpiry === 7
-        ? "in 7 days"
-        : "in 30 days";
-  const previewText =
-    daysUntilExpiry === 1
-      ? `${creditsRemaining} credits expire tomorrow`
-      : `${creditsRemaining} credits expire ${urgency}`;
+        ? "in 7 Tagen"
+        : "in 30 Tagen";
+  const previewText = `${creditsRemaining} Credits verfallen ${urgency}`;
 
   return (
     <Html>
@@ -94,7 +88,7 @@ export function PrepaidPackExpireWarning({
               margin: "0 0 12px",
             }}
           >
-            {creditsRemaining} pre-paid credits expire {urgency}
+            {creditsRemaining} Prepaid-Credits verfallen {urgency}
           </Text>
 
           <Text
@@ -105,11 +99,13 @@ export function PrepaidPackExpireWarning({
               margin: "0 0 24px",
             }}
           >
-            Workspace <strong style={{ color: STYLES.text }}>{workspaceName}</strong>{" "}
-            has <strong style={{ color: STYLES.text }}>{creditsRemaining}</strong>{" "}
-            credits remaining in a pre-paid pack that expires on{" "}
-            <strong style={{ color: STYLES.text }}>{dateStr}</strong>. Use them
-            up before then or they&apos;ll be retired automatically.
+            Der Workspace{" "}
+            <strong style={{ color: STYLES.text }}>{workspaceName}</strong> hat
+            noch{" "}
+            <strong style={{ color: STYLES.text }}>{creditsRemaining}</strong>{" "}
+            Credits in einem Prepaid-Paket, das am{" "}
+            <strong style={{ color: STYLES.text }}>{dateStr}</strong> verfällt.
+            Nutze sie vorher auf, sonst werden sie automatisch entfernt.
           </Text>
 
           <Section style={{ margin: "0 0 24px" }}>
@@ -125,7 +121,7 @@ export function PrepaidPackExpireWarning({
                 textDecoration: "none",
               }}
             >
-              Open billing
+              Zur Abrechnung
             </Button>
           </Section>
 
@@ -139,10 +135,11 @@ export function PrepaidPackExpireWarning({
               margin: 0,
             }}
           >
-            Credits from your monthly subscription cycle aren&apos;t affected by
-            this notice. Pre-paid packs always burn before subscription
-            credits, so this only matters if you stashed packs for a rainy
-            day. Reply to this email if you have questions.
+            Credits aus deinem monatlichen Abo-Zyklus sind von diesem Hinweis
+            nicht betroffen. Prepaid-Pakete werden immer vor den Abo-Credits
+            verbraucht — das hier ist also nur relevant, wenn du Pakete für
+            später angelegt hast. Antworte einfach auf diese E-Mail, wenn du
+            Fragen hast.
           </Text>
 
           <EmailFooter />

@@ -175,7 +175,7 @@ async function sendInviteEmail(
     "http://localhost:3000";
   await sendTransactionalEmail({
     to: inviteeEmail,
-    subject: `You've been invited to ${ws.name} on ValidationKit`,
+    subject: `Du wurdest zu ${ws.name} auf ValidationKit eingeladen`,
     react: React.createElement(MemberInviteEmail, {
       workspaceName: ws.name,
       inviterName: inviterEmail,

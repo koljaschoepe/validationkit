@@ -318,8 +318,8 @@ async function handleSubscriptionUpdated(
     to: contact.email,
     subject:
       kind === "upgrade"
-        ? `Welcome to ${TIERS[tier].label}`
-        : `Plan updated to ${TIERS[tier].label}`,
+        ? `Willkommen bei ${TIERS[tier].label}`
+        : `Plan geändert auf ${TIERS[tier].label}`,
     react: React.createElement(PlanChangeConfirmation, {
       workspaceName: contact.workspaceName,
       previousTierLabel: TIERS[previousTier].label,
@@ -365,7 +365,7 @@ async function handleSubscriptionDeleted(
   if (!contact) return;
   await sendTransactionalEmail({
     to: contact.email,
-    subject: "Subscription canceled",
+    subject: "Abonnement gekündigt",
     react: React.createElement(PlanChangeConfirmation, {
       workspaceName: contact.workspaceName,
       previousTierLabel: TIERS[previousTier].label,
@@ -471,7 +471,7 @@ async function handleInvoicePaymentFailed(
   }
   await sendTransactionalEmail({
     to: contact.email,
-    subject: `Payment failed for ${contact.workspaceName}`,
+    subject: `Zahlung für ${contact.workspaceName} fehlgeschlagen`,
     react: React.createElement(SubscriptionPastDue, {
       workspaceName: contact.workspaceName,
       tierLabel: TIERS[tier].label,

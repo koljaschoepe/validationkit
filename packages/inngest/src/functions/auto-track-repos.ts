@@ -1,6 +1,7 @@
 import { eq, isNotNull } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { inngest } from "../client.js";
+import { onFailureHandler } from "../on-failure.js";
 
 interface RepoRow {
   id: string;
@@ -23,6 +24,7 @@ export const autoTrackRepos: any = inngest.createFunction(
   {
     id: "auto-track-repos",
     triggers: [{ cron: "0 */4 * * *" }],
+    onFailure: onFailureHandler("auto-track-repos"),
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ step }: any) => {

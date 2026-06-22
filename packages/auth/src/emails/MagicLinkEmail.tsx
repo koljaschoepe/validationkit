@@ -45,7 +45,7 @@ export function MagicLinkEmail({
   return (
     <Html>
       <Head />
-      <Preview>{`Your link expires in ${expiresInMinutes} minutes`}</Preview>
+      <Preview>{`Dein Link läuft in ${expiresInMinutes} Minuten ab`}</Preview>
       <Body
         style={{
           backgroundColor: BG,
@@ -86,14 +86,15 @@ export function MagicLinkEmail({
               margin: "0 0 12px",
             }}
           >
-            Sign in to ValidationKit
+            Bei ValidationKit anmelden
           </Text>
 
           <Text
             style={{ color: MUTED, fontSize: 14, lineHeight: 1.6, margin: "0 0 24px" }}
           >
-            Click the button below to finish signing in. The link works once and
-            expires in {expiresInMinutes} minutes.
+            Klicke auf den Button unten, um die Anmeldung abzuschließen. Der
+            Link funktioniert einmalig und läuft in {expiresInMinutes} Minuten
+            ab.
           </Text>
 
           <Section style={{ margin: "0 0 24px" }}>
@@ -109,14 +110,14 @@ export function MagicLinkEmail({
                 textDecoration: "none",
               }}
             >
-              Sign in
+              Anmelden
             </Button>
           </Section>
 
           <Text
             style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: "0 0 8px" }}
           >
-            Or paste this URL into your browser.
+            Oder füge diese URL in deinen Browser ein.
           </Text>
           <Text
             style={{
@@ -147,7 +148,7 @@ export function MagicLinkEmail({
                   margin: 0,
                 }}
               >
-                {requestIp ? <>Requested from {requestIp}</> : null}
+                {requestIp ? <>Angefordert von {requestIp}</> : null}
                 {requestIp && userAgent ? " · " : null}
                 {userAgent ? <>UA: {userAgent}</> : null}
               </Text>
@@ -155,8 +156,9 @@ export function MagicLinkEmail({
           ) : null}
 
           <Text style={{ color: MUTED, fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-            If you didn&apos;t request this email, you can safely ignore it. No
-            account is created until you click the link.
+            Falls du diese E-Mail nicht angefordert hast, kannst du sie
+            ignorieren. Es wird kein Konto erstellt, bis du auf den Link
+            klickst.
           </Text>
 
           <EmailFooter />

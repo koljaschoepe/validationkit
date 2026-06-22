@@ -36,7 +36,7 @@ export function SubscriptionPastDue({
   return (
     <Html>
       <Head />
-      <Preview>{`Payment failed for ${workspaceName} — action needed`}</Preview>
+      <Preview>{`Zahlung für ${workspaceName} fehlgeschlagen — Aktion erforderlich`}</Preview>
       <Body
         style={{
           backgroundColor: STYLES.bg,
@@ -75,7 +75,7 @@ export function SubscriptionPastDue({
               margin: "0 0 12px",
             }}
           >
-            Payment failed for {workspaceName}
+            Zahlung für {workspaceName} fehlgeschlagen
           </Text>
 
           <Text
@@ -86,16 +86,16 @@ export function SubscriptionPastDue({
               margin: "0 0 16px",
             }}
           >
-            We couldn&apos;t charge your card for the{" "}
-            <strong style={{ color: STYLES.text }}>{tierLabel}</strong>{" "}
-            subscription
+            Wir konnten deine Karte für das{" "}
+            <strong style={{ color: STYLES.text }}>{tierLabel}</strong>-Abo
+            nicht belasten
             {attemptCount > 1 ? (
               <>
-                {" "}(attempt{" "}
+                {" "}(Versuch{" "}
                 <strong style={{ color: STYLES.text }}>{attemptCount}</strong>)
               </>
             ) : null}
-            . Amount due:{" "}
+            . Offener Betrag:{" "}
             <strong style={{ color: STYLES.text }}>{amountDueEur}</strong>.
           </Text>
 
@@ -107,9 +107,10 @@ export function SubscriptionPastDue({
               margin: "0 0 24px",
             }}
           >
-            Stripe will retry over the next few days. To avoid a service
-            interruption, update your payment method in the customer portal
-            now — the update applies to the next retry automatically.
+            Stripe versucht es in den nächsten Tagen erneut. Um eine
+            Unterbrechung zu vermeiden, aktualisiere jetzt deine
+            Zahlungsmethode im Kundenportal — die Änderung gilt automatisch für
+            den nächsten Versuch.
           </Text>
 
           <Section style={{ margin: "0 0 24px" }}>
@@ -125,7 +126,7 @@ export function SubscriptionPastDue({
                 textDecoration: "none",
               }}
             >
-              Update payment method
+              Zahlungsmethode aktualisieren
             </Button>
           </Section>
 
@@ -139,10 +140,10 @@ export function SubscriptionPastDue({
               margin: 0,
             }}
           >
-            Your audit history and credit balance remain intact while the
-            invoice is past-due. We won&apos;t downgrade you until Stripe
-            permanently fails the charge — usually 21 days from the first
-            attempt.
+            Deine Audit-Historie und dein Credit-Stand bleiben erhalten,
+            solange die Rechnung überfällig ist. Wir stufen dich erst herab,
+            wenn Stripe die Zahlung endgültig nicht einziehen kann — in der
+            Regel 21 Tage nach dem ersten Versuch.
           </Text>
 
           <EmailFooter />

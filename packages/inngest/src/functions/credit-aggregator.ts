@@ -12,6 +12,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { getDb, schema } from "@vk/db";
 import { inngest } from "../client.js";
+import { onFailureHandler } from "../on-failure.js";
 
 const BATCH_LIMIT = 100;
 
@@ -105,6 +106,7 @@ export const creditAggregator: any = inngest.createFunction(
   {
     id: "credit-aggregator",
     triggers: [{ cron: "*/5 * * * *" }],
+    onFailure: onFailureHandler("credit-aggregator"),
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ step }: any) => {

@@ -38,8 +38,8 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 ### D · Non-Go-Live-Backend-Resilience & Architektur — ex-Bundle B/J/G
 - [ ] **J1 GitHub-Background-Audit**: großer GitHub-Repo läuft aktuell immer Foreground (Timeout-Risiko). Sauber = `github-fetch` in ein Shared-Package ziehen, damit der Inngest-Worker den Zipball selbst re-fetchen kann + Threshold-Routing. **Architektur-Refactor — bewusst nicht blind autonom.**
 - [ ] **J4 `requestSolution` async**: läuft synchron blockierend (`solution-dal.ts:257`) → pending-Row + Inngest, oder ehrlich-blockierend mit Timeout-Guard.
-- [ ] **B-Phase-6 Inngest-Resilience**: `onFailure`-Handler auf den 5 Functions (aktuell 0).
-- [ ] **Email-de-Copy + neue Templates** (ohne Domain machbar): Template-Bodies de-DE übersetzen + `de-DE`-Datums-Helper (aktuell `en-US` in `PlanChangeConfirmation`/`PrepaidPackExpireWarning`); optional `InvoicePaidReceipt` (nur falls Stripe-native Belege nicht reichen — siehe Go-Live §3 G4) + `CreditLowWarning`-Cron + 30/7-Tage-Pack-Warn-Stufen. *(Marken-Voice → dein Review.)*
+- [x] **B-Phase-6 Inngest-Resilience** (2026-06-22): shared `onFailureHandler`-Factory (`packages/inngest/src/on-failure.ts`) auf alle **5** Functions verdrahtet (vorher 0). Durable structured stderr-Log nach Retry-Erschöpfung + designierter Sentry-Hook-Point (Go-Live Block 1/2).
+- [x] **Email-de-Copy + Datums-Helper** (2026-06-22): alle **5** React-Email-Templates (Magic-Link, Member-Invite, PlanChange, PrepaidPackExpire, SubscriptionPastDue) + alle **6** Subject-Lines auf de-DE; shared `formatDateDe`-Helper (`emails/format.ts`) ersetzt `en-US`-`toLocaleDateString`. **Deferred (optional):** `InvoicePaidReceipt` (Go-Live §3 G4) + `CreditLowWarning`-Cron + 30/7-Tage-Pack-Warn-Stufen (Cron sendet aktuell nur 1-Tag).
 
 ### E · Test-/Tooling-Harness (Code) — ex `nova-2-a11y-deep-sweep` + A
 - [ ] **axe-core Playwright-Harness**: `@axe-core/playwright` + `playwright.config.ts` + `tests/a11y/critical-routes.spec.ts` + `pnpm a11y`-CI-Gate. *(Wertvoll für Procurement-Audits.)*

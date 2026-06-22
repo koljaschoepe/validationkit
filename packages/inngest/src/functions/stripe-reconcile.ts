@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getDb, schema } from "@vk/db";
 import { TIERS, type TierId, grantCredits } from "@vk/billing";
 import { inngest } from "../client.js";
+import { onFailureHandler } from "../on-failure.js";
 import { publishEvent } from "../events.js";
 
 /**
@@ -47,6 +48,7 @@ export const stripeReconcile: any = inngest.createFunction(
   {
     id: "stripe-reconcile",
     triggers: [{ cron: "0 3 * * *" }],
+    onFailure: onFailureHandler("stripe-reconcile"),
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ step }: any) => {

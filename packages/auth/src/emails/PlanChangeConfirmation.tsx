@@ -12,6 +12,7 @@ import {
 } from "@react-email/components";
 import { STYLES, FONT_SANS, FONT_MONO } from "./styles.js";
 import { EmailFooter } from "./EmailFooter.js";
+import { formatDateDe } from "./format.js";
 
 /**
  * Sub-Plan-C V2 — sent on `customer.subscription.updated` webhook when the
@@ -41,21 +42,17 @@ export function PlanChangeConfirmation({
   effectiveAt,
   billingUrl,
 }: PlanChangeConfirmationProps) {
-  const dateStr = effectiveAt.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const dateStr = formatDateDe(effectiveAt);
   const headline =
     kind === "upgrade"
-      ? `Welcome to ${newTierLabel}`
+      ? `Willkommen bei ${newTierLabel}`
       : kind === "downgrade"
-        ? `Plan updated to ${newTierLabel}`
-        : `Subscription canceled`;
+        ? `Plan geändert auf ${newTierLabel}`
+        : `Abonnement gekündigt`;
   const preview =
     kind === "canceled"
-      ? `Subscription canceled, effective ${dateStr}`
-      : `Plan change: ${previousTierLabel} → ${newTierLabel}`;
+      ? `Abonnement gekündigt, wirksam zum ${dateStr}`
+      : `Planwechsel: ${previousTierLabel} → ${newTierLabel}`;
   const headlineColor =
     kind === "canceled" ? STYLES.warning : STYLES.success;
 
@@ -112,28 +109,30 @@ export function PlanChangeConfirmation({
               margin: "0 0 16px",
             }}
           >
-            Workspace{" "}
+            Der Workspace{" "}
             <strong style={{ color: STYLES.text }}>{workspaceName}</strong>{" "}
             {kind === "canceled" ? (
               <>
-                will move to the free tier on{" "}
-                <strong style={{ color: STYLES.text }}>{dateStr}</strong> when
-                the current billing period ends. Your audit history stays —
-                only the credit allotment + paid features deactivate.
+                wechselt am{" "}
+                <strong style={{ color: STYLES.text }}>{dateStr}</strong> in den
+                kostenlosen Tarif, sobald der aktuelle Abrechnungszeitraum
+                endet. Deine Audit-Historie bleibt erhalten — nur das
+                Credit-Kontingent und die kostenpflichtigen Funktionen werden
+                deaktiviert.
               </>
             ) : (
               <>
-                changed from{" "}
+                wurde von{" "}
                 <strong style={{ color: STYLES.text }}>
                   {previousTierLabel}
                 </strong>{" "}
-                to{" "}
-                <strong style={{ color: STYLES.text }}>{newTierLabel}</strong>
-                . The new quota of{" "}
+                auf{" "}
+                <strong style={{ color: STYLES.text }}>{newTierLabel}</strong>{" "}
+                geändert. Das neue Kontingent von{" "}
                 <strong style={{ color: STYLES.text }}>
-                  {newCreditsPerCycle} credits / cycle
+                  {newCreditsPerCycle} Credits / Zyklus
                 </strong>{" "}
-                is active immediately.
+                ist ab sofort aktiv.
               </>
             )}
           </Text>
@@ -151,7 +150,7 @@ export function PlanChangeConfirmation({
                 textDecoration: "none",
               }}
             >
-              Open billing
+              Zur Abrechnung
             </Button>
           </Section>
 
@@ -166,8 +165,8 @@ export function PlanChangeConfirmation({
             }}
           >
             {kind === "canceled"
-              ? "Change your mind? Reactivate the subscription in the Stripe portal anytime before the cancellation takes effect."
-              : "Your next invoice reflects the new plan immediately. Pre-paid credit packs you bought earlier remain valid until their original expiry."}
+              ? "Anders überlegt? Reaktiviere das Abonnement jederzeit im Stripe-Portal, bevor die Kündigung wirksam wird."
+              : "Deine nächste Rechnung berücksichtigt den neuen Plan sofort. Zuvor gekaufte Prepaid-Credit-Pakete bleiben bis zu ihrem ursprünglichen Ablaufdatum gültig."}
           </Text>
 
           <EmailFooter />
