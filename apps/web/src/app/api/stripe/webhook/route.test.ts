@@ -111,6 +111,12 @@ vi.mock("@/lib/stripe", () => ({
   })),
 }));
 
+// notification-prefs is server-only; mock it so the route imports cleanly under
+// the app's vitest config and billing.event-gated mails default to "send".
+vi.mock("@/lib/notification-prefs", () => ({
+  isEmailNotificationEnabled: vi.fn(() => Promise.resolve(true)),
+}));
+
 // drizzle-orm operators are referentially-transparent here — we don't
 // inspect the filters, just count the calls.
 vi.mock("drizzle-orm", () => ({

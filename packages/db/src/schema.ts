@@ -913,3 +913,35 @@ export const notificationPreferenceRelations = relations(
     }),
   }),
 );
+
+// Settings backend (nova-2-settings-backend) — outbound webhooks. Per-workspace
+// endpoints that receive Stripe-style signed POSTs (X-VK-Signature) for the
+// event types they subscribe to (`events` jsonb string[]). The signing secret
+// is stored plaintext because we need it to compute the HMAC on every delivery.
+// `lastStatus` / `lastDeliveryAt` are updated by the deliver worker.
+export const webhook = pgTable(
+  "webhook",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    secret: varchar("secret", { length: 80 }).notNull(),
+    events: jsonb("events").notNull().default(sql`'[]'::jsonb`),
+    enabled: boolean("enabled").notNull().default(true),
+    lastStatus: varchar("last_status", { length: 40 }),
+    lastDeliveryAt: timestamp("last_delivery_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("webhook_workspace_idx").on(t.workspaceId)],
+);
+
+export const webhookRelations = relations(webhook, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [webhook.workspaceId],
+    references: [workspace.id],
+  }),
+}));

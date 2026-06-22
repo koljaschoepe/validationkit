@@ -17,10 +17,13 @@ vi.mock("@vk/inngest", () => ({
   functions: [],
 }));
 
-// App-local worker (J4) — mocked so this smoke test doesn't pull in the
-// server-only solution DAL. Its body is covered via the DAL/worker path.
+// App-local workers (J4 + Block C) — mocked so this smoke test doesn't pull in
+// the server-only DAL / signing libs. Their bodies are covered elsewhere.
 vi.mock("@/lib/inngest/solution-generate", () => ({
   solutionGenerate: { id: "solution-generate" },
+}));
+vi.mock("@/lib/inngest/webhook-deliver", () => ({
+  webhookDeliver: { id: "webhook-deliver" },
 }));
 
 describe("/api/inngest route exports", () => {

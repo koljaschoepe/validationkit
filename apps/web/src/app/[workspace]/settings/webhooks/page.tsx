@@ -1,35 +1,34 @@
-import { WebhookIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui-vk';
+import { redirect } from 'next/navigation';
+import { isAuthEnabled } from '@vk/auth';
+import { getSessionUser } from '@/lib/session';
+import { listWebhooksAction } from '@/lib/webhook-actions';
+import { WebhooksManager } from './WebhooksManager';
 
-export default function WebhooksSettingsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function WebhooksSettingsPage() {
+  if (!isAuthEnabled()) redirect('/login');
+  const user = await getSessionUser();
+  if (!user) redirect('/login');
+
+  const webhooks = await listWebhooksAction();
+
   return (
     <>
       <header className="space-y-2 border-b border-border pb-6">
         <h1 className="type-h1 font-semibold tracking-tight">Webhooks</h1>
         <p className="type-body text-muted-foreground">
-          Outbound events. Subscribe to <code>scan.complete</code>,{' '}
-          <code>finding.applied</code>, <code>workspace.member.added</code>{' '}
-          (and 4 more) from your CI or internal dashboards.
+          Ausgehende Events an deine Endpoints. Stripe-style signiert (
+          <code className="font-mono text-xs">X-VK-Signature</code>), mit
+          automatischem Retry bei Fehlern. Verifiziere die Signatur über{' '}
+          <code className="font-mono text-xs">
+            HMAC-SHA256(secret, &quot;&lt;t&gt;.&lt;body&gt;&quot;)
+          </code>
+          .
         </p>
       </header>
 
-      <Card>
-        <CardContent className="py-2">
-          <EmptyState
-            icon={WebhookIcon}
-            title="No webhooks configured."
-            description="Add an HTTPS endpoint and select the events to subscribe. Backend wiring lands in nova-2-settings-backend."
-            action={
-              <Button size="sm" disabled>
-                Add webhook (coming soon)
-              </Button>
-            }
-            size="default"
-          />
-        </CardContent>
-      </Card>
+      <WebhooksManager initial={webhooks} />
     </>
   );
 }
