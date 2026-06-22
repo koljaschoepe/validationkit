@@ -14,6 +14,26 @@ export interface SoleOwnerWorkspace {
 }
 
 /**
+ * Update the signed-in user's display name. Email is immutable here (it's the
+ * magic-link identity); avatar/locale land later with their schema columns.
+ */
+export async function updateAccountProfile(
+  name: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: "Bitte zuerst anmelden." };
+  const trimmed = name.trim();
+  if (trimmed.length > 200) {
+    return { ok: false, error: "Name ist zu lang (max. 200 Zeichen)." };
+  }
+  await getDb()
+    .update(schema.user)
+    .set({ name: trimmed || null, updatedAt: new Date() })
+    .where(eq(schema.user.id, user.id));
+  return { ok: true };
+}
+
+/**
  * Workspaces the user is the SOLE active owner of (owner-role membership with
  * no other active owner-role membership). Account-delete is blocked while any
  * exist — the user must transfer ownership or delete the workspace first, so we

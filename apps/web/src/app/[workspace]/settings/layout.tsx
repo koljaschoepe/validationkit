@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
+  SettingsIcon,
   UsersIcon,
   CreditCardIcon,
   PuzzleIcon,
@@ -33,6 +34,7 @@ function buildGroups(workspace: string): SettingsGroup[] {
     {
       label: 'General',
       sections: [
+        { href: `${ws}/general`, label: 'General', icon: SettingsIcon },
         { href: `${ws}/members`, label: 'Members', icon: UsersIcon },
         { href: `${ws}/billing`, label: 'Billing', icon: CreditCardIcon },
       ],

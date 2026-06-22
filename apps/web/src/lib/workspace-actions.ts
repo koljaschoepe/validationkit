@@ -1,11 +1,105 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@vk/db";
 import { getSessionUser } from "./session";
 import { requireRole } from "./authz";
 import { getStripe, isStripeEnabled } from "./stripe";
+
+/**
+ * Rename a workspace (owner/admin). Label only — the slug is immutable in the
+ * MVP (changing it would break existing /<slug> URLs without a slug-alias
+ * table; that lands later).
+ */
+export async function renameWorkspace(
+  workspaceId: string,
+  name: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: "Bitte zuerst anmelden." };
+  try {
+    await requireRole(workspaceId, user.id, ["owner", "admin"]);
+  } catch {
+    return {
+      ok: false,
+      error: "Nur Owner/Admins können den Workspace umbenennen.",
+    };
+  }
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: "Name darf nicht leer sein." };
+  if (trimmed.length > 200) {
+    return { ok: false, error: "Name ist zu lang (max. 200 Zeichen)." };
+  }
+  await getDb()
+    .update(schema.workspace)
+    .set({ name: trimmed })
+    .where(eq(schema.workspace.id, workspaceId));
+  return { ok: true };
+}
+
+/**
+ * Transfer workspace ownership to another active member (owner-only). Promotes
+ * the target to `owner`, demotes the caller to `admin` (so they keep access),
+ * and repoints `workspace.owner_id`. Unblocks account-delete for a sole owner.
+ */
+export async function transferOwnership(
+  workspaceId: string,
+  newOwnerUserId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: "Bitte zuerst anmelden." };
+  try {
+    await requireRole(workspaceId, user.id, ["owner"]);
+  } catch {
+    return {
+      ok: false,
+      error: "Nur der Owner kann die Inhaberschaft übergeben.",
+    };
+  }
+  if (newOwnerUserId === user.id) {
+    return { ok: false, error: "Du bist bereits Owner." };
+  }
+  const db = getDb();
+  const target = await db
+    .select({ id: schema.membership.id })
+    .from(schema.membership)
+    .where(
+      and(
+        eq(schema.membership.workspaceId, workspaceId),
+        eq(schema.membership.userId, newOwnerUserId),
+        eq(schema.membership.status, "active"),
+      ),
+    )
+    .limit(1);
+  if (target.length === 0) {
+    return { ok: false, error: "Ziel ist kein aktives Mitglied." };
+  }
+
+  await db
+    .update(schema.membership)
+    .set({ role: "owner" })
+    .where(
+      and(
+        eq(schema.membership.workspaceId, workspaceId),
+        eq(schema.membership.userId, newOwnerUserId),
+      ),
+    );
+  await db
+    .update(schema.membership)
+    .set({ role: "admin" })
+    .where(
+      and(
+        eq(schema.membership.workspaceId, workspaceId),
+        eq(schema.membership.userId, user.id),
+      ),
+    );
+  await db
+    .update(schema.workspace)
+    .set({ ownerId: newOwnerUserId })
+    .where(eq(schema.workspace.id, workspaceId));
+  return { ok: true };
+}
 
 /**
  * Cancel the workspace's live Stripe subscription before its local row is torn

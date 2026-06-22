@@ -1,30 +1,56 @@
-import { SettingsIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { redirect } from 'next/navigation';
+import { isAuthEnabled } from '@vk/auth';
+import { getSessionUser } from '@/lib/session';
+import { resolveWorkspaceFromSlug } from '@/lib/workspace-context';
+import { getUserRole } from '@/lib/authz';
+import { listMembers } from '@/lib/membership';
+import { GeneralSettingsForms } from './GeneralSettingsForms';
 
-export default function GeneralSettingsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function GeneralSettingsPage({
+  params,
+}: {
+  params: Promise<{ workspace: string }>;
+}) {
+  if (!isAuthEnabled()) redirect('/login');
+  const user = await getSessionUser();
+  if (!user) redirect('/login');
+
+  const { workspace: slug } = await params;
+  const ws = await resolveWorkspaceFromSlug(slug, user.id);
+  const role = await getUserRole(ws.id, user.id);
+  const isOwner = role === 'owner';
+
+  const members = isOwner
+    ? (await listMembers(ws.id))
+        .filter(
+          (m) => m.status === 'active' && m.userId && m.userId !== user.id,
+        )
+        .map((m) => ({
+          userId: m.userId as string,
+          label: m.email ?? m.invitedEmail ?? (m.userId as string),
+        }))
+    : [];
+
   return (
     <>
       <header className="space-y-2 border-b border-border pb-6">
         <h1 className="type-h1 font-semibold tracking-tight">General</h1>
         <p className="type-body text-muted-foreground">
-          Workspace name, slug, logo, timezone. The basics every team touches first.
+          Workspace-Name und Inhaberschaft. Slug-Rename, Logo und Zeitzone
+          folgen später (brauchen Schema).
         </p>
       </header>
 
-      <Card>
-        <CardContent className="space-y-4 py-6">
-          <div className="flex items-center gap-3">
-            <SettingsIcon className="size-5 text-muted-foreground" aria-hidden />
-            <p className="font-mono type-mono-sm uppercase tracking-wider text-muted-foreground">
-              Coming with nova-2-settings-backend
-            </p>
-          </div>
-          <p className="type-body-sm text-muted-foreground">
-            Will expose: workspace label, slug rename (with redirect protection),
-            logo upload, default timezone for cron-job scheduling, primary contact email.
-          </p>
-        </CardContent>
-      </Card>
+      <GeneralSettingsForms
+        workspaceId={ws.id}
+        workspaceSlug={ws.slug}
+        currentName={ws.name}
+        canRename={role === 'owner' || role === 'admin'}
+        isOwner={isOwner}
+        members={members}
+      />
     </>
   );
 }
