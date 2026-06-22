@@ -26,7 +26,7 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 - [x] **S14 Toasts (Client-Forms)** (2026-06-22): `AddCustomerForm` + `AddRepoForm` mit `toast.success`/`toast.error` (deutsch) statt stillem `router.refresh()`. **IntensitySelector existiert nicht mehr** (gelöscht). BYOK/SpendCap/Overage/Intensity sind **Server-Action-Forms** (kein `router.refresh()`) → eigener Sub-Schritt **S14b** (Client-Wrapper-Refactor, siehe unten).
 - [x] **S14b AI-Settings-Feedback** (2026-06-22): leichtgewichtiges `?status`-Banner (User-Entscheidung statt Client-Refactor) — `bindAction` redirectet mit `?saved=<key>`/`?error=<msg>`, Seite rendert deutsches `AiBanner`. Bonus: zeigt jetzt BYOK-Validierungsfehler, die der Wrapper vorher still verschluckt hat.
 - [x] **SessionList** (2026-06-22): `window.confirm()` → shadcn `AlertDialog` (neue `components/ui/alert-dialog.tsx`, unified-`radix-ui`-Stil wie `sheet.tsx`), deutsche Copy.
-- [ ] **S20 Inspector-Focus-Trap**: `galaxie/Inspector.tsx` (`createPortal`, `aria-modal` ohne Containment) → Radix `Sheet` (`components/ui/sheet.tsx` liegt ungenutzt bereit). *(Damit wird `sheet.tsx` wieder genutzt — nicht löschen.)* **669-Zeilen-Konsolen-Refactor — schwerer als die übrigen B-Items.**
+- [x] **S20 Inspector-Focus-Trap** (2026-06-22): `galaxie/Inspector.tsx` Default-Drawer von `createPortal`+hand-gerolltem ESC/Click-Outside auf **Radix-Dialog** umgestellt → native Focus-Trap + ESC + Scroll-Lock + Outside-Click. **Implementierungs-Abweichung:** direkt auf dem `Dialog`-Primitive gebaut (nicht `SheetContent`-Wrapper), weil dessen fixe `side`-API die responsive Form (Mobile-Bottom-Sheet / Desktop-Right-Drawer) nicht ausdrücken kann. `contained`-Landing-Pfad (toter Branch, kein Caller) bleibt als In-Tree-Panel inkl. eigener Effekte erhalten. ⚠️ User-QA: Hintergrund jetzt modal/inert.
 
 ### C · Produkt-Feature-Backends (offene Produktentscheidungen!) — ex `nova-2-settings-backend`
 > ⚠️ Der Plan hat **4 offene Open-Questions** (§7 im Original) — vor Bau klären. Settings-Stubs sind aktuell aus der Nav versteckt, also **nicht launch-blockierend**. Galaxie-Settings-Teile sind obsolet (Pixi retired).
@@ -50,7 +50,7 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 ## 4. Bewusst NICHT in diesem Plan (obsolet/verworfen)
 - Galaxie-Legibility-Mechanik (Pixi retired — 80 % des alten `galaxie-legibility-rework`-Plans tot).
 - `gray-matter` entfernen (alter Cleanup-Plan-Irrtum — `gray-matter` ist live im Parser).
-- `sheet.tsx` löschen (alter Cleanup-Plan-Irrtum — wird für Block-B Inspector-Focus-Trap gebraucht).
+- `sheet.tsx` löschen — bleibt unbenutzt (S20 nutzt direkt das Radix-`Dialog`-Primitive wegen der responsive Form, nicht den `SheetContent`-Wrapper), aber Standard-shadcn-Primitive → **nicht löschen**.
 - K16 Inngest-Local-Path-Reject (Intake ist GitHub-URL-getrieben — geringes Realrisiko).
 - S34 MarketingNav / S36 /status-Caching (Ziel bereits via Nova-3a / `'use cache'`-post-launch erreicht).
 - B2C-Cookie-Banner (DACH-B2B, 0 Analytics-SDK).

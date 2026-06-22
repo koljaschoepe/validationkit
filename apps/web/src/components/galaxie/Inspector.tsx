@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { createPortal } from 'react-dom';
+import { Dialog as DialogPrimitive } from 'radix-ui';
 import Link from 'next/link';
 import {
   BellIcon,
@@ -73,11 +73,12 @@ export function Inspector({
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // Slide-in tween — desktop from the right, mobile from below. Uses the
-  // dependency-free Web Animations API (gsap was retired with the galaxie);
-  // `anim.cancel()` reverts cleanly if we unmount mid-slide. `power3.out` maps
-  // to the cubic-bezier below.
+  // Contained (landing showcase) keeps the hand-rolled in-tree panel with its
+  // own slide / ESC / click-outside. The default workspace drawer further down
+  // is a Radix Dialog (native focus-trap + ESC + scroll-lock + outside-click —
+  // S20), so these manual effects only run for the contained path.
   useEffect(() => {
+    if (!contained) return;
     const el = panelRef.current;
     if (!el) return;
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -91,21 +92,21 @@ export function Inspector({
       { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' },
     );
     return () => anim.cancel();
-  }, []);
+  }, [contained]);
 
-  // ESC closes the panel (any focus). Pivot is owned by the parent, which
-  // also wires its own ESC for non-inspector flows (UniversalSearch).
   useEffect(() => {
+    if (!contained) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [contained, onClose]);
 
   // Click-outside detection. Deferred by one frame so the click that opens
   // the panel can't immediately close it via the same event tick.
   useEffect(() => {
+    if (!contained) return;
     let armed = false;
     const raf = requestAnimationFrame(() => {
       armed = true;
@@ -121,7 +122,7 @@ export function Inspector({
       cancelAnimationFrame(raf);
       document.removeEventListener('mousedown', onDoc);
     };
-  }, [onClose]);
+  }, [contained, onClose]);
 
   if (typeof document === 'undefined') return null;
 
@@ -130,41 +131,69 @@ export function Inspector({
       ? `Finding inspector — ${target.file.path}`
       : `Folder inspector — ${target.folder.name}`;
 
-  const panel = (
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={panelLabel}
-      className={cn(
-        'pointer-events-auto z-50 flex flex-col border-white/10 bg-black/90 backdrop-blur',
-        // Contained (landing card) anchors to the relative canvas root; default
-        // is a viewport-fixed drawer for the full-bleed workspace.
-        contained ? 'absolute' : 'fixed',
-        // Mobile: bottom sheet (card-relative % when contained, else viewport vh)
-        'inset-x-0 bottom-0 rounded-t-2xl border-t',
-        contained ? 'h-[82%]' : 'h-[70vh]',
-        // Desktop: right sidebar
-        'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:rounded-none sm:border-l sm:border-t-0',
-        contained ? 'sm:w-[340px]' : 'sm:w-[380px]',
-      )}
-    >
-      {target.kind === 'file' ? (
-        <FileInspector file={target.file} onClose={onClose} readOnly={readOnly} />
-      ) : (
-        <FolderInspector
-          folder={target.folder}
-          files={target.files}
-          onClose={onClose}
-          onSelectFile={onSelectFile}
-        />
-      )}
-    </div>
-  );
+  const body =
+    target.kind === 'file' ? (
+      <FileInspector file={target.file} onClose={onClose} readOnly={readOnly} />
+    ) : (
+      <FolderInspector
+        folder={target.folder}
+        files={target.files}
+        onClose={onClose}
+        onSelectFile={onSelectFile}
+      />
+    );
 
-  // Contained mode renders in-tree (inside GalaxieScene's clipped root); the
-  // workspace drawer portals to body so it floats above all app chrome.
-  return contained ? panel : createPortal(panel, document.body);
+  // Contained mode: anchored in-tree panel, clipped by the showcase card root.
+  if (contained) {
+    return (
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={panelLabel}
+        className={cn(
+          'pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex h-[82%] flex-col rounded-t-2xl border-t border-white/10 bg-black/90 backdrop-blur',
+          'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[340px] sm:rounded-none sm:border-l sm:border-t-0',
+        )}
+      >
+        {body}
+      </div>
+    );
+  }
+
+  // Default workspace drawer (S20): Radix Dialog modal — native focus-trap,
+  // ESC, scroll-lock and outside-click, replacing the hand-rolled handlers
+  // above. Built on the Dialog primitive (not the SheetContent wrapper) so the
+  // responsive shape survives: bottom-sheet on mobile, right-drawer on desktop.
+  // The inner header owns the visible close button, so the Dialog title is
+  // screen-reader-only and the description requirement is opted out.
+  return (
+    <DialogPrimitive.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Content
+          aria-label={panelLabel}
+          aria-describedby={undefined}
+          className={cn(
+            'pointer-events-auto fixed z-50 flex flex-col border-white/10 bg-black/90 outline-none backdrop-blur',
+            'inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t',
+            'sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[380px] sm:rounded-none sm:border-l sm:border-t-0',
+            'duration-300 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 sm:data-open:slide-in-from-right-10 sm:data-open:slide-in-from-bottom-0',
+          )}
+        >
+          <DialogPrimitive.Title className="sr-only">
+            {panelLabel}
+          </DialogPrimitive.Title>
+          {body}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
 }
 
 // ── File inspector (existing inspector experience, lifted into a sub-component) ──
