@@ -98,9 +98,6 @@ importers:
       '@vk/pr-workflow':
         specifier: workspace:*
         version: link:../../packages/pr-workflow
-      adm-zip:
-        specifier: ^0.5.16
-        version: 0.5.17
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -162,9 +159,6 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
     devDependencies:
-      '@types/adm-zip':
-        specifier: ^0.5.7
-        version: 0.5.8
       '@types/d3-hierarchy':
         specifier: ^3.1.7
         version: 3.1.7
@@ -419,6 +413,9 @@ importers:
       '@vk/core':
         specifier: workspace:*
         version: link:../core
+      adm-zip:
+        specifier: ^0.5.16
+        version: 0.5.17
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.3
@@ -432,6 +429,9 @@ importers:
         specifier: ^2.6.1
         version: 2.9.0
     devDependencies:
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.8
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.19

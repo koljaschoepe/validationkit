@@ -19,8 +19,15 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
+// github-fetch now lives in @vk/parser (J1), so the parser mock provides both
+// the scanner and the GitHub fetch/parse helpers.
 vi.mock("@vk/parser", () => ({
   scanRepository: vi.fn(),
+  classifyPath: vi.fn(() => "other"),
+  looksLikeGithubUrl: vi.fn((s: string) => s.includes("github.com")),
+  parseGithubUrl: vi.fn(),
+  fetchRepoZipball: vi.fn(),
+  cleanupTempDir: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@vk/audit", () => ({
@@ -69,13 +76,6 @@ vi.mock("./workspaces", () => ({
   ensureDefaultWorkspace: vi.fn(() =>
     Promise.resolve({ id: "ws_1", slug: "ws-one" }),
   ),
-}));
-
-vi.mock("./github-fetch", () => ({
-  looksLikeGithubUrl: vi.fn((s: string) => s.includes("github.com")),
-  parseGithubUrl: vi.fn(),
-  fetchRepoZipball: vi.fn(),
-  cleanupTempDir: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("./rate-limit", () => ({
@@ -173,7 +173,7 @@ describe("auditAction", () => {
   });
 
   it("rejects unparseable GitHub URL", async () => {
-    const { parseGithubUrl } = await import("./github-fetch");
+    const { parseGithubUrl } = await import("@vk/parser");
     vi.mocked(parseGithubUrl).mockReturnValueOnce(null);
     const { auditAction } = await import("./audit-action");
     const res = await auditAction(
@@ -209,7 +209,7 @@ describe("auditAction", () => {
   });
 
   it("happy-path anonymous github audit: returns scan + report", async () => {
-    const { parseGithubUrl, fetchRepoZipball } = await import("./github-fetch");
+    const { parseGithubUrl, fetchRepoZipball } = await import("@vk/parser");
     vi.mocked(parseGithubUrl).mockReturnValueOnce({
       owner: "vercel",
       repo: "next.js",
@@ -243,7 +243,7 @@ describe("auditAction", () => {
 
   it("github-audit cleans up extracted temp dir even on error", async () => {
     const { parseGithubUrl, fetchRepoZipball, cleanupTempDir } = await import(
-      "./github-fetch"
+      "@vk/parser"
     );
     vi.mocked(parseGithubUrl).mockReturnValueOnce({
       owner: "owner",
@@ -291,7 +291,7 @@ describe("auditAction", () => {
       debits: [{ prepaidGrantId: null, amount: 1 }],
     });
 
-    const { parseGithubUrl, fetchRepoZipball } = await import("./github-fetch");
+    const { parseGithubUrl, fetchRepoZipball } = await import("@vk/parser");
     vi.mocked(parseGithubUrl).mockReturnValueOnce({
       owner: "o",
       repo: "r",
@@ -339,7 +339,7 @@ describe("auditAction", () => {
     // Free tier user — actor should downgrade deep → quick. We verify by
     // observing the intensity passed to runAudit on the anonymous-DB path
     // (isDbEnabled === false so we bypass the credit consume).
-    const { parseGithubUrl, fetchRepoZipball } = await import("./github-fetch");
+    const { parseGithubUrl, fetchRepoZipball } = await import("@vk/parser");
     vi.mocked(parseGithubUrl).mockReturnValueOnce({
       owner: "o",
       repo: "r",
@@ -368,5 +368,57 @@ describe("auditAction", () => {
       expect.anything(),
       expect.objectContaining({ intensity: "quick" }),
     );
+  });
+
+  it("J1: signed-in github audit with Inngest routes to background (worker re-fetches)", async () => {
+    const { getSessionUser } = await import("./session");
+    vi.mocked(getSessionUser).mockResolvedValueOnce({
+      id: "user_bg",
+      email: "bg@test",
+      name: null,
+    });
+
+    const { isDbEnabled } = await import("@vk/db");
+    vi.mocked(isDbEnabled).mockReturnValue(true);
+
+    const { isInngestEnabled, inngest } = await import("@vk/inngest");
+    vi.mocked(isInngestEnabled).mockReturnValue(true);
+
+    const { parseGithubUrl, fetchRepoZipball } = await import("@vk/parser");
+    vi.mocked(parseGithubUrl).mockReturnValueOnce({
+      owner: "vercel",
+      repo: "next.js",
+      ref: null,
+    } as never);
+
+    dbInsertReturning.mockResolvedValueOnce([{ id: "scan_bg" }]);
+
+    const { auditAction } = await import("./audit-action");
+    const res = await auditAction(
+      { ok: false },
+      fd({ path: "https://github.com/vercel/next.js" }),
+    );
+
+    expect(res.ok).toBe(true);
+    expect(res.background).toBe(true);
+    expect(res.savedScanId).toBe("scan_bg");
+    // The worker re-fetches — no foreground zipball download.
+    expect(fetchRepoZipball).not.toHaveBeenCalled();
+    expect(inngest.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "audit/requested",
+        data: expect.objectContaining({
+          githubRef: expect.objectContaining({
+            owner: "vercel",
+            repo: "next.js",
+          }),
+          displayPath: expect.stringContaining("github.com/vercel/next.js"),
+        }),
+      }),
+    );
+
+    // Reset shared (non-Once) mocks so later tests keep their defaults.
+    vi.mocked(isDbEnabled).mockReturnValue(false);
+    vi.mocked(isInngestEnabled).mockReturnValue(false);
   });
 });

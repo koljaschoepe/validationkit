@@ -25,12 +25,14 @@
   },
   "dependencies": {
     "@vk/core": "workspace:*",
+    "adm-zip": "^0.5.16",
     "fast-glob": "^3.3.2",
     "gray-matter": "^4.0.3",
     "js-tiktoken": "^1.0.20",
     "yaml": "^2.6.1"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2"
   }

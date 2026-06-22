@@ -1,5 +1,10 @@
 import { eq, sum } from "drizzle-orm";
-import { scanRepository, classifyPath } from "@vk/parser";
+import {
+  scanRepository,
+  classifyPath,
+  fetchRepoZipball,
+  cleanupTempDir,
+} from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import {
   consumeCredits,
@@ -22,6 +27,13 @@ export interface AuditRequestedPayload {
   intensity?: Intensity;
   workspaceId?: string;
   byokFlag?: boolean;
+  /**
+   * J1 — when present, the audit source is a GitHub repo the worker re-fetches
+   * itself (the request that enqueued this no longer holds the temp checkout).
+   * `displayPath` is the human-facing path findings should cite.
+   */
+  githubRef?: { owner: string; repo: string; ref?: string };
+  displayPath?: string;
 }
 
 /**
@@ -61,7 +73,29 @@ export const auditRequested: any = inngest.createFunction(
     let reserved: { credits: number; debits: ConsumeDebitLine[] } | null = null;
 
     try {
-      const scan = await step.run("scan", () => scanRepository(rootPath));
+      const scan = await step.run("scan", async () => {
+        // J1 — GitHub source: re-fetch + extract the zipball here (background),
+        // scan it, then rewrite the temp-dir paths onto the human-facing GitHub
+        // path so findings cite github.com/owner/repo/… not /tmp/vk-gh-…
+        if (payload.githubRef) {
+          const extractedRoot = await fetchRepoZipball(payload.githubRef);
+          try {
+            const probe = await scanRepository(extractedRoot);
+            const display = payload.displayPath ?? rootPath;
+            return {
+              ...probe,
+              rootPath: display,
+              files: probe.files.map((f) => ({
+                ...f,
+                absolutePath: display + "/" + f.relativePath,
+              })),
+            };
+          } finally {
+            await cleanupTempDir(extractedRoot).catch(() => {});
+          }
+        }
+        return scanRepository(rootPath);
+      });
       const credits = creditsForIntensity(intensity);
 
       // J5: reserve credits ATOMICALLY before the (expensive) LLM call. The

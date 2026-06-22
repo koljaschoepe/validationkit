@@ -5,19 +5,21 @@ import { existsSync, statSync } from "node:fs";
 import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { galaxieWorkspaceTag } from "./cache-tags";
-import { scanRepository, classifyPath } from "@vk/parser";
+import {
+  scanRepository,
+  classifyPath,
+  parseGithubUrl,
+  fetchRepoZipball,
+  cleanupTempDir,
+  looksLikeGithubUrl,
+  type GithubRepoRef,
+} from "@vk/parser";
 import { runAudit } from "@vk/audit";
 import { getDb, isDbEnabled, schema } from "@vk/db";
 import { inngest, isInngestEnabled, BACKGROUND_THRESHOLD } from "@vk/inngest";
 import type { AuditReport, ParserResult } from "@vk/core";
 import { getSessionUser } from "./session";
 import { ensureDefaultWorkspace } from "./workspaces";
-import {
-  parseGithubUrl,
-  fetchRepoZipball,
-  cleanupTempDir,
-  looksLikeGithubUrl,
-} from "./github-fetch";
 import { checkRateLimit, ipFromHeaders, type LimitKey } from "./rate-limit";
 import {
   canConsume,
@@ -218,6 +220,38 @@ async function auditGithubUrl(
   }
   const displayPath = `github.com/${refInfo.owner}/${refInfo.repo}${refInfo.ref ? "@" + refInfo.ref : ""}`;
 
+  // J1 — authenticated workspace users with Inngest run GitHub audits in the
+  // background: enqueue with the repo ref so the worker re-fetches + extracts
+  // the zipball itself, avoiding a foreground fetch+scan+LLM timeout on large
+  // repos. Anonymous demos + the no-Inngest dev path keep the inline path so
+  // they still get an immediate result. Credits were pre-checked in auditAction
+  // and are reserved/consumed by the worker (J5), same as local background.
+  if (
+    actor.workspaceId &&
+    actor.workspaceSlug &&
+    isDbEnabled() &&
+    isInngestEnabled()
+  ) {
+    const { scanId, workspaceSlug } = await enqueueBackgroundAudit(
+      {
+        ...actor,
+        workspaceId: actor.workspaceId,
+        workspaceSlug: actor.workspaceSlug,
+      },
+      displayPath,
+      refInfo,
+    );
+    revalidatePath(`/${workspaceSlug}/scans`);
+    return {
+      ok: true,
+      resolvedPath: displayPath,
+      displayPath,
+      savedScanId: scanId,
+      workspaceSlug,
+      background: true,
+    };
+  }
+
   let extractedRoot: string | null = null;
   try {
     extractedRoot = await fetchRepoZipball(refInfo);
@@ -267,6 +301,7 @@ async function auditGithubUrl(
 async function enqueueBackgroundAudit(
   actor: ResolvedActor & { workspaceId: string; workspaceSlug: string },
   rootPath: string,
+  githubRef?: GithubRepoRef,
 ): Promise<{ scanId: string; workspaceSlug: string }> {
   const db = getDb();
   const inserted = await db
@@ -296,6 +331,9 @@ async function enqueueBackgroundAudit(
       intensity: actor.intensity,
       workspaceId: actor.workspaceId,
       byokFlag: actor.byokFlag,
+      // J1 — GitHub source: the worker re-fetches the zipball itself; pass the
+      // ref + the human-facing path it should cite in findings.
+      ...(githubRef ? { githubRef, displayPath: rootPath } : {}),
     },
   });
 
