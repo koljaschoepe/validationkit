@@ -50,6 +50,7 @@ export default function WorkspaceConsole({
           initialData={initialData}
           readOnly={readOnly}
           workspaceSlug={initialWorkspaceSlug}
+          urlState
         />
         {onboarding ? (
           <ActivationChecklist

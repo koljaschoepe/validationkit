@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -41,6 +42,29 @@ const FOCUS_RING_INSET =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/50';
 const KILL_TEXT = 'text-[var(--color-sev-kill)]';
 
+// Saved-Views (Block E) — seed the triage filters from the URL query so a
+// shared/deep-linked console view restores group-by + severity + rule filters.
+function seedGroupBy(raw: string | null): GroupBy {
+  return raw === 'customer' ? 'customer' : 'repo';
+}
+
+function seedSeverities(raw: string | null): Set<Severity> {
+  if (!raw) return new Set(SEVERITY_BANDS);
+  const wanted = raw.split(',');
+  const picked = SEVERITY_BANDS.filter((s) => wanted.includes(s));
+  return picked.length ? new Set(picked) : new Set(SEVERITY_BANDS);
+}
+
+function seedCats(
+  raw: string | null,
+  ruleSections: ReadonlyArray<{ key: string }>,
+): Set<string> {
+  const all = ruleSections.map((r) => r.key);
+  if (!raw) return new Set(all);
+  const wanted = raw.split(',').filter((k) => all.includes(k));
+  return wanted.length ? new Set(wanted) : new Set(all);
+}
+
 /**
  * Mission-Control triage console — the workspace surface.
  *
@@ -59,6 +83,7 @@ export function SolarListView({
   readOnly = false,
   workspaceSlug,
   onRepoActivate,
+  urlState = false,
 }: {
   initialData?: GalaxieData;
   readOnly?: boolean;
@@ -70,6 +95,8 @@ export function SolarListView({
    * separate surface. Undefined in the workspace, where headers expand inline.
    */
   onRepoActivate?: (repoId: string) => void;
+  /** Saved-Views (Block E): sync the triage filters to the URL — workspace only. */
+  urlState?: boolean;
 }) {
   const data = useMemo(
     () => initialData ?? generateMockGalaxieData(),
@@ -85,6 +112,14 @@ export function SolarListView({
     [data.files],
   );
 
+  // Saved-Views (Block E): in the workspace (urlState) the triage filters live
+  // in the URL so a view is shareable/deep-linkable. Seeded from the query on
+  // mount; written back by the effect below. The landing demo (urlState=false)
+  // keeps purely-local state so it can never rewrite the marketing URL.
+  const router = useRouter();
+  const pathname = usePathname();
+  const seededRef = useRef(false);
+
   const [groupBy, setGroupBy] = useState<GroupBy>('repo');
   const [active, setActive] = useState<Set<Severity>>(
     () => new Set(SEVERITY_BANDS),
@@ -95,6 +130,35 @@ export function SolarListView({
   );
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [target, setTarget] = useState<InspectorTarget | null>(null);
+
+  // Seed the filters from the URL once on mount (workspace only). Reads
+  // window.location instead of useSearchParams() so the static landing build
+  // (which also renders this component) isn't forced into a Suspense bailout.
+  useEffect(() => {
+    if (!urlState || seededRef.current) return;
+    const sp = new URLSearchParams(window.location.search);
+    setGroupBy(seedGroupBy(sp.get('group')));
+    setActive(seedSeverities(sp.get('sev')));
+    setActiveCats(seedCats(sp.get('rule'), ruleSections));
+    seededRef.current = true;
+  }, [urlState, ruleSections]);
+
+  // Write the active filters back to the URL after seeding (workspace only).
+  useEffect(() => {
+    if (!urlState || !seededRef.current) return;
+    const params = new URLSearchParams();
+    if (groupBy !== 'repo') params.set('group', groupBy);
+    const sevOn = SEVERITY_BANDS.filter((s) => active.has(s));
+    if (sevOn.length !== SEVERITY_BANDS.length)
+      params.set('sev', sevOn.join(','));
+    const ruleKeys = ruleSections.map((r) => r.key);
+    const ruleOn = ruleKeys.filter((k) => activeCats.has(k));
+    if (ruleOn.length !== ruleKeys.length) params.set('rule', ruleOn.join(','));
+    const qs = params.toString();
+    router.replace((qs ? `${pathname}?${qs}` : pathname) as never, {
+      scroll: false,
+    });
+  }, [urlState, groupBy, active, activeCats, ruleSections, pathname, router]);
 
   // A file is visible when its severity chip is on AND its rule category is on.
   const passesFilter = useCallback(

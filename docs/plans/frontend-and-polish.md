@@ -42,7 +42,7 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 
 ### E · Test-/Tooling-Harness (Code) — ex `nova-2-a11y-deep-sweep` + A
 - [ ] **axe-core Playwright-Harness**: `@axe-core/playwright` + `playwright.config.ts` + `tests/a11y/critical-routes.spec.ts` + `pnpm a11y`-CI-Gate. *(Wertvoll für Procurement-Audits.)*
-- [ ] **Saved-Views / URL-State** für die Konsole (`SolarListView` hält Group-by/Filter nur in lokalem `useState`) — teilbare/deep-linkbare Triage-Filter. *(ex saas-Bundle-G)*
+- [x] **Saved-Views / URL-State** (2026-06-22): `SolarListView`-Triage-Filter (group-by + Severity-Chips + Regel-Filter) syncen jetzt in die URL (`?group=&sev=&rule=`) → teilbar/deep-linkbar. Opt-in via `urlState`-Prop (nur Workspace via `WorkspaceConsole`; Landing-Demo unberührt). **Static-Landing-safe:** seedet aus `window.location` statt `useSearchParams()` (kein Suspense-Bailout), `router.replace` schreibt zurück. **342 Tests grün, Typecheck 23/23.** *(ex saas-Bundle-G)*
 - [ ] Optional: Phase-5 IDOR-Negative-Tests (User hat Tests bisher abgelehnt) · `vitest` 3→4-Bump (CVE, kann Suite brechen — vorsichtig).
 - [ ] Trivial-Export-Hygiene: `probe*`/`AccessDeniedError`/`LayoutLevel`/`_exportedForTesting` un-exporten (rein kosmetisch).
 
