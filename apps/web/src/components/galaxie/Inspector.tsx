@@ -206,7 +206,7 @@ function FileInspector({
             {file.path}
           </p>
           {findings.length > 1 ? (
-            <p className="mt-1 type-mono-sm uppercase tracking-wider text-white/40">
+            <p className="mt-1 type-mono-sm uppercase tracking-wider text-white/58">
               {findings.length} findings
             </p>
           ) : null}
@@ -387,7 +387,7 @@ function FindingCard({
         ) : null}
         <p className="whitespace-pre-wrap leading-relaxed">{finding.snippet}</p>
         <div className="border-t border-white/10 pt-3">
-          <h4 className="font-mono text-xs uppercase tracking-wider text-white/40">
+          <h4 className="font-mono text-xs uppercase tracking-wider text-white/58">
             Why important
           </h4>
           <p className="mt-1 leading-relaxed text-white/70">
@@ -480,7 +480,7 @@ function FolderInspector({
           <p className="mt-0.5 truncate font-mono text-[11px] text-white/35">
             {folder.name}/
           </p>
-          <p className="mt-1 text-xs text-white/40">
+          <p className="mt-1 text-xs text-white/58">
             {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
           </p>
         </div>
@@ -523,7 +523,7 @@ function FolderInspector({
             <FileTextIcon className="size-3 text-black/70" />
           </span>
           <div className="min-w-0">
-            <p className="type-mono-sm uppercase tracking-wider text-white/40">
+            <p className="type-mono-sm uppercase tracking-wider text-white/58">
               Governing context
             </p>
             <p className="truncate font-mono text-xs text-white/85">
@@ -548,7 +548,7 @@ function FolderInspector({
                 'rounded px-2 py-0.5 type-mono-sm transition',
                 active
                   ? 'bg-white/10 text-white'
-                  : 'bg-white/5 text-white/40 line-through',
+                  : 'bg-white/5 text-white/58 line-through',
               )}
             >
               {count} {sev}
@@ -559,7 +559,7 @@ function FolderInspector({
 
       <div className="flex-1 overflow-y-auto">
         {sortedFiles.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-white/40">
+          <p className="px-4 py-6 text-center text-xs text-white/58">
             No findings match the active filters.
           </p>
         ) : (

@@ -35,20 +35,31 @@ interface PageProps {
 }
 
 function eur(cents: number): string {
-  if (cents === 0) return "€0";
-  return `€${(cents / 100).toFixed(0)}`;
+  if (cents === 0) return "0 €";
+  return `${(cents / 100).toFixed(0)} €`;
 }
 
 function formatDate(d: Date | null): string {
-  if (!d) return "n/a";
-  return d.toLocaleDateString("en-US", {
+  if (!d) return "—";
+  return d.toLocaleDateString("de-DE", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
 }
 
 const TIER_ORDER: TierId[] = ["free", "starter", "pro", "agency"];
+
+/**
+ * Usage heat: maps the consumed-percentage of the period quota onto the
+ * 3-colour severity system (calm → orange → red). Used for the headline
+ * balance number and the meter so a near-empty balance reads as "hot".
+ */
+function usageHeatClass(usedPct: number): string {
+  if (usedPct >= 95) return "text-destructive";
+  if (usedPct >= 80) return "text-[var(--color-sev-mid)]";
+  return "text-foreground";
+}
 
 export default async function WorkspaceBillingPage({
   params,
@@ -67,7 +78,7 @@ export default async function WorkspaceBillingPage({
     return (
       <Card>
         <CardContent className="pt-6">
-          Database is not enabled on this deployment.
+          Die Datenbank ist auf diesem Deployment nicht aktiviert.
         </CardContent>
       </Card>
     );
@@ -95,31 +106,38 @@ export default async function WorkspaceBillingPage({
             (snap.creditsUsedThisPeriod / snap.creditsQuotaPerCycle) * 100,
           ),
         );
+  // Transparent breakdown: quota-Credits that are still unspent this period,
+  // independent of the prepaid stash on top.
+  const quotaRemaining = Math.max(
+    0,
+    snap.creditsQuotaPerCycle - snap.creditsUsedThisPeriod,
+  );
   const isPastDue = snap.status === "past_due";
+  const isPaid = snap.tier !== "free";
 
   return (
     <>
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Abrechnung</h1>
         <p className="text-sm text-muted-foreground">
-          Current plan, credit balance, pre-paid packs, and Stripe portal for
-          invoices + payment method updates.
+          Aktueller Plan, Credit-Stand, Prepaid-Pakete und das Stripe-Portal für
+          Rechnungen und Zahlungsdaten.
         </p>
       </header>
 
       {search?.status === "success" && (
-        <StatusBanner kind="success" message="Subscription updated." />
+        <StatusBanner kind="success" message="Abonnement aktualisiert." />
       )}
       {search?.status === "pack_success" && (
         <StatusBanner
           kind="success"
-          message="Credit pack purchased. Credits will appear in a moment."
+          message="Credit-Paket gekauft. Die Credits erscheinen in wenigen Augenblicken."
         />
       )}
       {search?.status === "error" && (
         <StatusBanner
           kind="error"
-          message={search?.reason ?? "Something went wrong."}
+          message={search?.reason ?? "Etwas ist schiefgelaufen."}
         />
       )}
       {isPastDue && (
@@ -127,61 +145,77 @@ export default async function WorkspaceBillingPage({
           <CardContent className="flex items-center gap-3 pt-6">
             <AlertTriangle className="h-5 w-5 text-destructive" />
             <div className="flex-1 text-sm">
-              <p className="font-medium">Payment failed</p>
+              <p className="font-medium">Zahlung fehlgeschlagen</p>
               <p className="text-muted-foreground">
-                Update your payment method in the Stripe portal to restore
-                full access.
+                Aktualisiere deine Zahlungsdaten im Stripe-Portal, um den vollen
+                Zugriff wiederherzustellen.
               </p>
             </div>
             <form action={openBillingPortalAction}>
               <Button size="sm" variant="destructive">
-                Update payment
+                Zahlung aktualisieren
               </Button>
             </form>
           </CardContent>
         </Card>
       )}
 
+      {/* Premium plan-status header: tier is the headline, status + renewal +
+          price as supporting metadata so the "what am I paying for" answer is
+          legible at a glance. */}
       <Card>
         <CardHeader>
-          <div className="flex items-baseline justify-between">
-            <CardTitle>Current plan</CardTitle>
-            <Badge variant={snap.tier === "free" ? "secondary" : "default"}>
-              {snap.config.label}
-            </Badge>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="type-mono-sm uppercase tracking-wider text-muted-foreground">
+                Aktueller Plan
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-semibold tracking-tight">
+                  {snap.config.label}
+                </span>
+                <StatusPill status={snap.status} />
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-semibold tracking-tight">
+                {eur(priceForCycle(snap.config, "monthly"))}
+                <span className="text-sm font-normal text-muted-foreground">
+                  {" "}
+                  / Monat
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isPaid
+                  ? `Nächste Verlängerung: ${formatDate(snap.currentPeriodEnd)}`
+                  : "Kostenloser Plan"}
+              </p>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 text-sm md:grid-cols-3">
-          <Stat label="Status" value={statusLabel(snap.status)} />
-          <Stat
-            label="Next renewal"
-            value={formatDate(snap.currentPeriodEnd)}
-          />
-          <Stat
-            label="Monthly price"
-            value={eur(priceForCycle(snap.config, "monthly"))}
-          />
-        </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Credit balance</CardTitle>
+          <CardTitle>Credit-Stand</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
-          <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-semibold tracking-tight">
+          <div className="flex items-baseline justify-between gap-3">
+            <span
+              className={cn(
+                "text-4xl font-semibold tracking-tight tabular-nums",
+                usageHeatClass(usedPct),
+              )}
+            >
               {snap.totalCreditsAvailable}
               <span className="text-base font-normal text-muted-foreground">
                 {" "}
-                / {snap.creditsQuotaPerCycle} this period
+                verfügbar
               </span>
             </span>
-            {snap.prepaidRemaining > 0 && (
-              <span className="text-xs text-muted-foreground">
-                +{snap.prepaidRemaining} from prepaid packs
-              </span>
-            )}
+            <span className="text-right text-xs text-muted-foreground">
+              {usedPct}% des Zeitraum-Kontingents genutzt
+            </span>
           </div>
           <div
             className="h-2 w-full overflow-hidden rounded-full bg-secondary"
@@ -189,7 +223,7 @@ export default async function WorkspaceBillingPage({
             aria-valuenow={usedPct}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Credits used this period"
+            aria-label="Verbrauchte Credits in diesem Zeitraum"
           >
             <div
               className={cn(
@@ -203,23 +237,41 @@ export default async function WorkspaceBillingPage({
               style={{ width: `${usedPct}%` }}
             />
           </div>
+
+          {/* Transparent breakdown — where the available balance comes from and
+              what's already been spent this period. */}
+          <dl className="grid grid-cols-3 gap-3 rounded-md border bg-secondary/30 px-3 py-2.5 text-center">
+            <Breakdown
+              label="Verbraucht"
+              value={snap.creditsUsedThisPeriod}
+            />
+            <Breakdown
+              label="Kontingent übrig"
+              value={quotaRemaining}
+            />
+            <Breakdown
+              label="Aus Prepaid"
+              value={snap.prepaidRemaining}
+            />
+          </dl>
+
           <p className="text-xs text-muted-foreground">
             {snap.config.isLifetimeCap
-              ? "Free tier credits don't reset. Upgrade to a paid plan for a monthly cycle."
-              : `Resets on ${formatDate(snap.currentPeriodEnd)}. Need more? Buy a credit pack below or enable auto-overage in AI settings.`}
+              ? "Die Credits des kostenlosen Plans werden nicht zurückgesetzt. Wechsle auf einen bezahlten Plan für einen monatlichen Zyklus."
+              : `Wird am ${formatDate(snap.currentPeriodEnd)} zurückgesetzt. Mehr nötig? Kaufe unten ein Credit-Paket oder aktiviere die Auto-Overage in den AI-Einstellungen.`}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Pre-paid credit packs</CardTitle>
+          <CardTitle>Prepaid-Credit-Pakete</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
           {grants.length === 0 ? (
             <p className="text-muted-foreground">
-              No active packs. Buy one below to stash extra credits. Packs
-              expire after 12 months.
+              Keine aktiven Pakete. Kaufe unten eins, um Extra-Credits anzulegen.
+              Pakete verfallen nach 12 Monaten.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
@@ -229,11 +281,11 @@ export default async function WorkspaceBillingPage({
                   className="flex items-center justify-between rounded-md border bg-secondary/30 px-3 py-2"
                 >
                   <span>
-                    <strong>{g.creditsRemaining}</strong> of {g.creditsGranted}{" "}
-                    credits remaining
+                    <strong>{g.creditsRemaining}</strong> von {g.creditsGranted}{" "}
+                    Credits übrig
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    expires {formatDate(g.expiresAt)}
+                    verfällt {formatDate(g.expiresAt)}
                   </span>
                 </li>
               ))}
@@ -249,7 +301,7 @@ export default async function WorkspaceBillingPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Change plan</CardTitle>
+          <CardTitle>Plan wechseln</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {TIER_ORDER.map((id) => {
@@ -267,13 +319,13 @@ export default async function WorkspaceBillingPage({
                   {tier.label}
                   {current && (
                     <Badge variant="default" className="text-[10px]">
-                      Current
+                      Aktuell
                     </Badge>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {tier.creditsPerCycle} credits ·{" "}
-                  {eur(priceForCycle(tier, "monthly"))}/mo
+                  {tier.creditsPerCycle} Credits ·{" "}
+                  {eur(priceForCycle(tier, "monthly"))}/Mon.
                 </div>
                 {id === "free" ? (
                   <Button
@@ -282,7 +334,7 @@ export default async function WorkspaceBillingPage({
                     disabled
                     className="mt-auto"
                   >
-                    {current ? "Current" : "Downgrade via portal"}
+                    {current ? "Aktuell" : "Downgrade über Portal"}
                   </Button>
                 ) : (
                   <form action={startCheckoutAction} className="mt-auto">
@@ -295,7 +347,7 @@ export default async function WorkspaceBillingPage({
                       className="w-full"
                       disabled={current}
                     >
-                      {current ? "Current" : "Upgrade"}
+                      {current ? "Aktuell" : "Upgrade"}
                     </Button>
                   </form>
                 )}
@@ -307,16 +359,16 @@ export default async function WorkspaceBillingPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Stripe customer portal</CardTitle>
+          <CardTitle>Stripe-Kundenportal</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm">
           <p className="text-muted-foreground">
-            Update payment method, view invoices, cancel subscription, or
-            change your VAT ID, all in Stripe&apos;s hosted portal.
+            Zahlungsmethode ändern, Rechnungen einsehen, Abo kündigen oder deine
+            USt-IdNr. anpassen — alles im gehosteten Stripe-Portal.
           </p>
           <form action={openBillingPortalAction}>
             <Button type="submit" variant="outline" size="sm">
-              Open Stripe portal
+              Stripe-Portal öffnen
             </Button>
           </form>
         </CardContent>
@@ -324,14 +376,14 @@ export default async function WorkspaceBillingPage({
 
       <div className="text-xs text-muted-foreground">
         <Link href="/pricing" className="underline-offset-4 hover:underline">
-          See pricing details
+          Preisdetails ansehen
         </Link>
         {" · "}
         <Link
           href={"/legal/agb" as never}
           className="underline-offset-4 hover:underline"
         >
-          Terms & pricing clause
+          AGB & Preisklausel
         </Link>
       </div>
     </>
@@ -341,22 +393,41 @@ export default async function WorkspaceBillingPage({
 function statusLabel(status: string): string {
   return (
     {
-      active: "Active",
-      past_due: "Past due",
-      canceled: "Canceled",
-      trialing: "Trial",
-      incomplete: "Incomplete",
+      active: "Aktiv",
+      past_due: "Zahlung überfällig",
+      canceled: "Gekündigt",
+      trialing: "Testphase",
+      incomplete: "Unvollständig",
     }[status] ?? status
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function StatusPill({ status }: { status: string }) {
+  const tone =
+    status === "active"
+      ? "border-[var(--color-sev-strong)]/40 bg-[var(--color-sev-strong)]/10 text-[var(--color-sev-strong)]"
+      : status === "past_due"
+        ? "border-destructive/40 bg-destructive/10 text-destructive"
+        : "border-border bg-secondary text-muted-foreground";
   return (
-    <div className="flex flex-col">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 type-mono-sm",
+        tone,
+      )}
+    >
+      {statusLabel(status)}
+    </span>
+  );
+}
+
+function Breakdown({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
-      </span>
-      <span className="text-sm">{value}</span>
+      </dt>
     </div>
   );
 }

@@ -252,7 +252,7 @@ export function SolarListView({
                     FOCUS_RING,
                     on
                       ? 'bg-white/10 text-white'
-                      : 'bg-white/[0.03] text-white/40 opacity-60',
+                      : 'bg-white/[0.03] text-white/58 opacity-60',
                   )}
                 >
                   <span
@@ -261,7 +261,7 @@ export function SolarListView({
                     aria-hidden
                   />
                   {sev}
-                  <span className="text-white/40">{count}</span>
+                  <span className="text-white/58">{count}</span>
                 </button>
               );
             })}
@@ -569,7 +569,7 @@ function FolderBranch({
             </span>
             {folder.nucleus ? (
               <FileTextIcon
-                className="size-3 shrink-0 text-white/40"
+                className="size-3 shrink-0 text-white/58"
                 aria-label="Hat eine governing Context-Datei"
               />
             ) : null}
@@ -642,8 +642,8 @@ function FileRow({
 
 function Chevron({ open }: { open: boolean }) {
   return open ? (
-    <ChevronDownIcon className="size-4 shrink-0 text-white/40" aria-hidden />
+    <ChevronDownIcon className="size-4 shrink-0 text-white/58" aria-hidden />
   ) : (
-    <ChevronRightIcon className="size-4 shrink-0 text-white/40" aria-hidden />
+    <ChevronRightIcon className="size-4 shrink-0 text-white/58" aria-hidden />
   );
 }

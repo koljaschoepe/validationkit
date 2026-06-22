@@ -15,11 +15,11 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 ## 3. Blöcke
 
 ### A · Frontend-Visual-Politur (braucht dein Auge) — ex-Bundle D + I
-- [ ] **S11 Touch-Targets ≥44px**: `components/ui/button.tsx`/`input.tsx` Mobile-Variante (`h-11 sm:h-8` o.ä.) — visuelles QA über alle Formulare.
-- [ ] **S12 Settings-Mobile-Accordion**: `SettingsLayout.tsx:43-44` stapelt nur; `<details>`-Accordion gewünscht? Design-Entscheidung.
-- [ ] **I-Kontrast**: `text-white/40 → /58` in `SolarListView.tsx` (Zeilen 255/264/572/645/647) + `Inspector.tsx` (209/390/483/526/551) für WCAG-Lesbarkeit — visuell prüfen.
-- [ ] **saas-Bundle-H Billing-Premium-Surface**: `settings/billing/page.tsx` Premium-Politur (Plan-Status, Credit-Stand mit Heat/Trend, transparente Usage-Breakdown, deutsche Quota-/Error-States) gegen die „200 €/Monat"-Erwartung. *(ex `done/saas-premium-overhaul/h-billing-premium-surface.md`)*
-- [ ] Feature-Screenshots-Regen (4 Stück, Playwright-Env war blockiert).
+- [x] **S11 Touch-Targets ≥44px** (2026-06-22): `button.tsx` default `h-11 sm:h-8` + icon `size-11 sm:size-8`, `input.tsx` `h-11 sm:h-8`. Dichte `sm/xs/lg`-Varianten + Konsolen-Rows (eigenes `min-h-44`) bewusst unberührt. Mobile 44px, Desktop unverändert 32px.
+- [x] **S12 Settings-Mobile-Accordion** (2026-06-22): **Entscheidung = stacked beibehalten** (kein Accordion). Wenige Sektionen lesen sich als vertikale Liste übersichtlich; `<details>` fügt nur Klick-Reibung ohne Platzgewinn hinzu. → §4 (bewusst verworfen).
+- [x] **I-Kontrast** (2026-06-22): `text-white/40 → /58` in `SolarListView.tsx` (alle 5 Vorkommen) + `Inspector.tsx` (6 inkl. Empty-State Z.562) für WCAG-Lesbarkeit.
+- [x] **saas-Bundle-H Billing-Premium-Surface** (2026-06-22): `[workspace]/settings/billing/page.tsx` neu — Premium-Plan-Status-Header (Tier als Headline + Status-Pill), Credit-Stand mit Heat-Färbung (3-Farben-System) + transparente 3-Spalten-Usage-Breakdown (Verbraucht/Kontingent/Prepaid), komplette deutsche Copy inkl. Quota-/Error-States. *(ex `done/saas-premium-overhaul/h-billing-premium-surface.md`)*
+- [ ] Feature-Screenshots-Regen (4 Stück) — **deferred: Playwright-MCP in dieser Env tot (Calls timeouten)**. Bleibt offen bis lauffähiges Playwright-Env.
 
 ### B · Frontend-Code (sicher, aber UX-Politur) — ex-Bundle D
 - [ ] **S13** `global-error.tsx:20` `lang="en" → "de"` (DACH).
