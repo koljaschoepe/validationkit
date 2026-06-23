@@ -127,7 +127,7 @@ export interface GalaxieData {
  * `LayoutLevel` describes the legacy 3-level Customer→Repo→File layout used by
  * `MiniMap.tsx` until the MiniMap-Migration-Phase. Do not introduce new consumers.
  */
-export type LayoutLevel = 1 | 2 | 3;
+type LayoutLevel = 1 | 2 | 3;
 
 /**
  * @deprecated Use {@link SolarLayoutNode} from `solar-layout.ts`. Only `MiniMap.tsx`

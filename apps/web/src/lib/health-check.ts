@@ -61,7 +61,7 @@ async function probeHead(url: string): Promise<HealthSurface> {
   }
 }
 
-export async function probeNeon(): Promise<HealthSurface> {
+async function probeNeon(): Promise<HealthSurface> {
   if (!isDbEnabled()) {
     return {
       name: "Neon Postgres",
@@ -89,7 +89,7 @@ export async function probeNeon(): Promise<HealthSurface> {
   }
 }
 
-export async function probeInngest(): Promise<HealthSurface> {
+async function probeInngest(): Promise<HealthSurface> {
   if (!isInngestEnabled()) {
     return {
       name: "Inngest Cloud",
@@ -101,7 +101,7 @@ export async function probeInngest(): Promise<HealthSurface> {
   return { ...result, name: "Inngest Cloud" };
 }
 
-export async function probeResend(): Promise<HealthSurface> {
+async function probeResend(): Promise<HealthSurface> {
   if (!process.env.RESEND_API_KEY) {
     return {
       name: "Resend Email",
@@ -113,7 +113,7 @@ export async function probeResend(): Promise<HealthSurface> {
   return { ...result, name: "Resend Email" };
 }
 
-export async function probeStripe(): Promise<HealthSurface> {
+async function probeStripe(): Promise<HealthSurface> {
   if (!process.env.STRIPE_SECRET_KEY) {
     return {
       name: "Stripe",
@@ -125,12 +125,12 @@ export async function probeStripe(): Promise<HealthSurface> {
   return { ...result, name: "Stripe" };
 }
 
-export async function probeGithub(): Promise<HealthSurface> {
+async function probeGithub(): Promise<HealthSurface> {
   const result = await probeHead("https://api.github.com/zen");
   return { ...result, name: "GitHub API (public)" };
 }
 
-export async function probeAnthropic(): Promise<HealthSurface> {
+async function probeAnthropic(): Promise<HealthSurface> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return {
       name: "Anthropic API",

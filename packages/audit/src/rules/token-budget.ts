@@ -64,7 +64,3 @@ function pickSeverity(total: number, budget: number): SeverityBand {
   if (ratio > 2) return "Weak";
   return "Mid";
 }
-
-export function _exportedForTesting(): { budget: number } {
-  return { budget: DEFAULT_BUDGET };
-}
