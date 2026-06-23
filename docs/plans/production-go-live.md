@@ -60,10 +60,11 @@ Code-verifiziert abgeschlossen (Stand 2026-06-18, Branch `launch-prep-execute`):
 
 ### Block 5 — Deploy-Hardening (Hosting)
 - [ ] **Migration aus dem Build lösen**: `vercel.json` `buildCommand` entkoppeln → eigener `db:migrate:prod`-Schritt (Vercel-Cron-One-Shot oder GitHub-Action mit Prod-`DATABASE_URL`-Secret). *(K-DB1 — der `VERCEL_ENV=preview`-Guard ist nur die halbe Lösung.)*
+  - ⬑ Über diesen Schritt fließen auch die **Settings-Backend-Migrationen `0020`/`0021`/`0022`** (API-Keys / Notification-Preferences / Webhooks — additiv + idempotent, aus `done/frontend-and-polish.md`) auf Prod. Lokal: Docker Desktop starten → `pnpm db:migrate`.
 - [ ] **`membership_pending_unique`**-Migration: partial-unique `(workspace_id, lower(invited_email)) WHERE status='pending' AND user_id IS NULL` + `inviteAdmin`-onConflict-Handling. *(Daten-Integrität; bewusst nicht autonom wg. Constraint-Verhalten.)*
 - [ ] `vercel.json`: `regions:['fra1']` + `functions`-Memory/maxDuration-Profil (DACH-Latenz).
 - [ ] `.lighthouserc.json` nuancieren (numberOfRuns 1→3, Marketing-85-vs-App-Tiers, warn-Levels) + Lighthouse-CI im CI aktivieren.
-- [ ] Deps-Bump `tmp`/`hono` (moderate CVEs); optional `vitest` 3→4 (CVE) im Schwester-Plan.
+- [ ] Deps-Bump `tmp`/`hono` (moderate CVEs). (`vitest` 3→4-CVE-Bump ✅ im Schwester-Plan erledigt 2026-06-23.)
 
 ### Block 6 — Final
 - [ ] **Impressum/Datenschutz-Adressdaten** ausfüllen (`impressum/page.tsx:30-34` Platzhalter: Straße/PLZ/Ort/Telefon/USt-IdNr) — nur der Inhaber kann das.

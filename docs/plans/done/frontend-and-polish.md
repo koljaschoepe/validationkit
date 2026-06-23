@@ -1,6 +1,6 @@
 # Plan — Frontend & Non-Go-Live Polish
 
-> Erstellt: 2026-06-18 · Status: 🔵 Offen — **alles, was ohne Domain/Geld/externe Accounts machbar ist, aber dein visuelles QA oder eine Produktentscheidung braucht.**
+> Erstellt: 2026-06-18 · Status: ✅ **Done — 2026-06-23** (Confidence-At-Start: High · Blöcke A/B/C/D komplett, E bis auf bewusste Deferrals · 18 Commits, Gate durchgehend **342 Tests grün** / Typecheck 23/23 / Lint sauber · 6 dokumentierte Deferrals siehe §6 · User-QA + lokale Migration pending).
 > Slug: `frontend-and-polish`
 > Confidence: **High** — aus der 16-Subagent-Plan-Reconciliation (2026-06-18), jeder Punkt code-verifiziert.
 > Schwester-Plan (manuell/extern/Geld): `docs/plans/production-go-live.md`.
@@ -56,4 +56,15 @@ Auf Branch `launch-prep-execute` autonom erledigt: J5-Refund, B-Resilience (cust
 - B2C-Cookie-Banner (DACH-B2B, 0 Analytics-SDK).
 
 ## 5. Reihenfolge-Empfehlung
-B (schnelle UX-Wins) → A (Visual mit deinem QA) → E (Harness) → D (Resilience) → C (Feature-Backends, nach Klärung der Open-Questions). Jeder Block eigener Commit; nichts hiervon blockiert den Go-Live.
+B (schnelle UX-Wins) → A (Visual mit deinem QA) → E (Harness) → D (Resilience) → C (Feature-Backends, nach Klärung der Open-Questions). Jeder Block eigener Commit; nichts hiervon blockiert den Go-Live. *(Tatsächlich ausgeführt: A → B → D → C → E.)*
+
+## 6. Deferrals beim Abschluss (bewusst offen, dokumentiert)
+- **DB-Migrationen `0020`/`0021`/`0022` anwenden** — Code + Migrations-SQL fertig; lokal hier blockiert (Docker-Daemon down, `pnpm stack:up` schlägt fehl). Anwenden: Docker Desktop starten → `pnpm db:migrate`; Prod über den Go-Live-Migrate-Step (`production-go-live.md` Block 5). Bis dahin liefern API-Keys/Notifications/Webhooks „Database not enabled" bzw. leere Listen.
+- **4 Feature-Screenshots** — Playwright-Env auf dieser Maschine tot (Calls timeouten). Offen bis lauffähiges Browser-Env.
+- **axe-Lauf** — Harness-Code fertig + gate-isoliert; der eigentliche Run braucht `pnpm exec playwright install chromium` + Dev-Server (hier kein Browser).
+- **Schema-pflichtige Settings-Extras** — Slug-Rename (Alias-Tabelle), Logo-Upload, Timezone, `applySettings` JSONB, Avatar, Locale. Eigene Migration + Produkt-Entscheidung → künftige „settings-v2"-Iteration.
+- **IDOR-Negative-Tests** — User-Präferenz (zusätzliche Tests abgelehnt).
+- **Optionale Email-Extras** — `InvoicePaidReceipt`, `CreditLowWarning`-Cron, 30/7-Tage-Pack-Warn-Stufen.
+
+## 7. Endzustand (Acceptance)
+Blöcke A/B/C/D vollständig; E vollständig bis auf den env-/präferenz-gebundenen Rest (§6). 18 Commits, jeder grün (342 Tests / Typecheck 23/23 / Lint). 4 neue Settings-Backends (API-Keys, Notifications, Webhooks, Workspace/Account) hinter 3 noch-anzuwendenden additiven Migrationen. Kein Go-Live-Blocker berührt. **User-Aufgaben:** `pnpm db:migrate` (lokal, nach Docker-Start) + visuelles/funktionales QA.
